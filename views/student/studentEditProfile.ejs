@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= isNew ? 'Complete Your Profile' : 'Edit Profile' %> | HostelNode</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+<style>
+:root {
+  --g:       #09B850;
+  --g-dark:  #078040;
+  --g-light: #e8f9ef;
+  --g-border:#a8e6bf;
+  --g-glow:  rgba(9,184,80,0.15);
+  --ink:     #0f1117;
+  --ink2:    #1e293b;
+  --muted:   #64748b;
+  --muted-l: #94a3b8;
+  --border:  #e2e8f0;
+  --bg:      #f8fafc;
+  --white:   #ffffff;
+  --shadow:  0 2px 16px rgba(0,0,0,0.07);
+  --radius:  14px;
+  --font-d:  sans-serif;
+  --font-b:  sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-b); background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  padding: 0 clamp(16px,4vw,48px); height: 60px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.tb-brand { display: flex; align-items: center; gap: 9px; font-family: var(--font-d); font-size: 1rem; font-weight: 800; color: var(--ink); text-decoration: none; }
+.tb-brand img { height: 32px; }
+.tb-actions { display: flex; align-items: center; gap: 10px; }
+.tb-skip { font-size: 0.8rem; color: var(--muted); font-weight: 600; text-decoration: none; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--border); transition: all 0.18s; }
+.tb-skip:hover { border-color: var(--g); color: var(--g); background: var(--g-light); }
+
+/* ── HERO ── */
+.ep-hero {
+  background: linear-gradient(135deg, #09B850 0%, #065f36 100%);
+  padding: 36px clamp(16px,5vw,60px) 80px;
+  position: relative; overflow: hidden;
+}
+.ep-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 28px 28px; pointer-events: none;
+}
+.ep-hero-inner { max-width: 800px; margin: 0 auto; position: relative; z-index: 1; }
+.ep-hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+  padding: 4px 14px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: rgba(255,255,255,0.9); margin-bottom: 14px;
+}
+.ep-hero h1 { font-family: var(--font-d); font-size: clamp(1.5rem,3.5vw,2.4rem); font-weight: 800; color: #fff; letter-spacing: -0.02em; margin-bottom: 8px; line-height: 1.15; }
+.ep-hero p { font-size: 0.9rem; color: rgba(255,255,255,0.7); max-width: 420px; line-height: 1.7; }
+
+/* ── AVATAR FLOAT ── */
+.avatar-float {
+  position: absolute; bottom: -44px; right: clamp(16px,5vw,60px);
+  z-index: 10;
+}
+.avatar-circle {
+  width: 88px; height: 88px; border-radius: 50%;
+  border: 4px solid #fff;
+  background: var(--g-light);
+  overflow: hidden; position: relative; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  transition: transform 0.2s;
+}
+.avatar-circle:hover { transform: scale(1.05); }
+.avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-fallback {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-d); font-size: 2rem; font-weight: 800; color: var(--g);
+}
+.avatar-edit-badge {
+  position: absolute; bottom: 2px; right: 2px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--g); border: 2px solid #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.55rem; color: #fff;
+}
+
+/* ── BODY ── */
+.ep-body {
+  max-width: 800px; margin: 0 auto;
+  padding: 64px clamp(16px,5vw,60px) 80px;
+}
+
+/* ── COMPLETION BANNER ── */
+.completion-banner {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+  margin-bottom: 24px; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 14px;
+  animation: slideUp 0.4s ease;
+}
+.cp-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  background: var(--g-light); border: 1.5px solid var(--g-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: var(--g); flex-shrink: 0;
+}
+.cp-text { flex: 1; }
+.cp-text strong { font-size: 0.85rem; color: var(--ink); display: block; }
+.cp-text span   { font-size: 0.77rem; color: var(--muted); }
+.cp-pct { font-family: var(--font-d); font-size: 1.2rem; font-weight: 800; color: var(--g); flex-shrink: 0; }
+.cp-bar-wrap { height: 5px; background: var(--bg); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+.cp-bar { height: 100%; background: linear-gradient(90deg, var(--g), #22c55e); border-radius: 999px; transition: width 0.5s cubic-bezier(.22,.68,0,1.2); }
+
+@keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+
+/* ── SECTIONS ── */
+.ep-section {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 26px 24px;
+  margin-bottom: 18px; box-shadow: var(--shadow);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: slideUp 0.4s ease both;
+}
+.ep-section:nth-child(1){animation-delay:0.05s} .ep-section:nth-child(2){animation-delay:0.1s} .ep-section:nth-child(3){animation-delay:0.15s} .ep-section:nth-child(4){animation-delay:0.2s} .ep-section:nth-child(5){animation-delay:0.25s}
+.ep-section:hover { border-color: var(--g-border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+.sec-header {
+  display: flex; align-items: center; gap: 11px;
+  margin-bottom: 20px; padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--border);
+}
+.sec-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: var(--g-light); border: 1.5px solid var(--g-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--g); font-size: 0.88rem; flex-shrink: 0;
+}
+.sec-title { font-family: var(--font-d); font-size: 0.93rem; font-weight: 800; color: var(--ink); }
+.sec-sub   { font-size: 0.73rem; color: var(--muted); margin-top: 1px; }
+.sec-opt   { margin-left: auto; font-size: 0.68rem; font-weight: 600; color: var(--muted-l); letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* ── FORM CONTROLS ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.col-1 { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+
+.form-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.label-opt { font-size: 0.68rem; color: var(--muted-l); font-weight: 400; margin-left: auto; }
+
+.form-input, .form-select {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid #dde6ef; border-radius: 11px;
+  font-family: var(--font-b); font-size: 0.86rem; color: var(--ink);
+  background: var(--bg); outline: none;
+  transition: all 0.2s; -webkit-appearance: none; appearance: none;
+}
+.form-input:hover, .form-select:hover { border-color: #94a3b8; }
+.form-input:focus, .form-select:focus { border-color: var(--g); box-shadow: 0 0 0 3px rgba(9,184,80,0.12); background: #fff; }
+.form-input::placeholder { color: var(--muted-l); }
+.form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px; cursor: pointer; }
+
+/* Photo upload */
+.photo-upload-zone {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 24px; text-align: center; cursor: pointer;
+  transition: all 0.2s; background: var(--bg); position: relative;
+}
+.photo-upload-zone:hover, .photo-upload-zone.drag-over { border-color: var(--g); background: var(--g-light); }
+.photo-upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.puz-icon { font-size: 1.6rem; color: var(--muted-l); margin-bottom: 8px; }
+.puz-title { font-family: var(--font-d); font-size: 0.88rem; font-weight: 700; color: var(--ink); }
+.puz-sub   { font-size: 0.74rem; color: var(--muted); margin-top: 3px; }
+
+/* Gender chips */
+.gender-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.gender-opt { display: none; }
+.gender-lbl {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px;
+  cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--muted);
+  transition: all 0.2s; background: var(--bg);
+}
+.gender-lbl:hover { border-color: var(--g-border); background: var(--g-light); color: var(--g-dark); }
+.gender-opt:checked + .gender-lbl { border-color: var(--g); background: var(--g-light); color: var(--g-dark); box-shadow: 0 0 0 2px var(--g-glow); }
+
+/* Year chips */
+.year-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.year-opt { display: none; }
+.year-lbl {
+  padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 999px;
+  cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+  transition: all 0.18s; background: var(--bg);
+}
+.year-lbl:hover { border-color: var(--g); color: var(--g); background: var(--g-light); }
+.year-opt:checked + .year-lbl { border-color: var(--g); background: var(--g-light); color: var(--g-dark); }
+
+/* Budget range */
+.budget-row { display: flex; align-items: center; gap: 12px; }
+.budget-input { width: 120px; flex-shrink: 0; }
+input[type="range"] { flex: 1; accent-color: var(--g); cursor: pointer; }
+
+/* Preferred gender chips */
+.pref-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.pref-opt { display: none; }
+.pref-lbl {
+  padding: 7px 16px; border: 1.5px solid var(--border); border-radius: 999px;
+  cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+  transition: all 0.18s; background: var(--bg);
+}
+.pref-lbl:hover { border-color: var(--g); color: var(--g); background: var(--g-light); }
+.pref-opt:checked + .pref-lbl { border-color: var(--g); background: var(--g-light); color: var(--g-dark); }
+
+/* Alert */
+.alert-top {
+  padding: 11px 14px; border-radius: 10px; margin-bottom: 16px;
+  font-size: 0.8rem; font-weight: 500; display: none;
+  align-items: center; gap: 7px;
+}
+.alert-top.error   { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; display: flex; }
+.alert-top.success { background: var(--g-light); border: 1px solid var(--g-border); color: #065f46; display: flex; }
+
+/* Submit button */
+.btn-save {
+  width: 100%; padding: 14px;
+  border: none; border-radius: 12px;
+  background: linear-gradient(135deg, var(--g), #22c55e);
+  color: #fff; font-family: var(--font-d); font-size: 0.97rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(9,184,80,0.3);
+}
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(9,184,80,0.38); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--ink); color: #fff; padding: 12px 20px;
+  border-radius: 12px; font-size: 0.82rem; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  transform: translateY(60px); opacity: 0;
+  transition: all 0.3s cubic-bezier(.22,.68,0,1.2);
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast i { color: var(--g); }
+
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .gender-grid { grid-template-columns: 1fr; }
+  .avatar-float { display: none; }
+  .ep-body { padding-top: 28px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a href="/" class="tb-brand">
+    <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+    HostelNode
+  </a>
+  <div class="tb-actions">
+    <% if (isNew) { %>
+      <a href="/student/" class="tb-skip">Skip for now →</a>
+    <% } else { %>
+      <a href="/student/" class="tb-skip">← Back to dashboard</a>
+    <% } %>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="ep-hero">
+  <div class="ep-hero-inner">
+    <div class="ep-hero-tag">
+      <i class="fa-solid fa-graduation-cap"></i>
+      <%= isNew ? 'New account' : 'My Profile' %>
+    </div>
+    <h1><%= isNew ? 'Complete your profile' : 'Edit your profile' %></h1>
+    <p><%= isNew ? 'Just a few more details to get you the best hostel matches near your college.' : 'Keep your profile up to date for better hostel recommendations.' %></p>
+  </div>
+
+  <!-- Floating avatar -->
+  <div class="avatar-float">
+    <div class="avatar-circle" onclick="document.getElementById('avatarInput').click()">
+      <% if (student.profileImage) { %>
+        <img id="avatarPreview" src="/student-images/<%= student.profileImage %>" alt="Profile">
+      <% } else { %>
+        <div class="avatar-fallback" id="avatarFallback"><%= student.firstName.charAt(0).toUpperCase() %></div>
+        <img id="avatarPreview" src="" alt="Profile" style="display:none">
+      <% } %>
+      <div class="avatar-edit-badge"><i class="fa-solid fa-camera"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="ep-body">
+
+  <!-- Completion -->
+  <div class="completion-banner" id="completionBanner">
+    <div class="cp-icon"><i class="fa-solid fa-chart-pie"></i></div>
+    <div class="cp-text">
+      <strong>Profile completion</strong>
+      <span>Fill more details for better hostel matches</span>
+      <div class="cp-bar-wrap"><div class="cp-bar" id="cpBar" style="width:0%"></div></div>
+    </div>
+    <div class="cp-pct" id="cpPct">0%</div>
+  </div>
+
+  <!-- Alert -->
+  <div class="alert-top" id="alertTop"></div>
+
+  <form id="editForm" action="/student/edit-profile" method="POST" enctype="multipart/form-data">
+
+    <% if (isNew) { %><input type="hidden" name="isNew" value="1"><% } %>
+
+    <!-- Hidden file input for avatar -->
+    <input type="file" id="avatarInput" name="profileImage" accept="image/*" style="display:none" onchange="previewAvatar(event)">
+
+    <!-- ── SECTION 1: BASIC INFO ── -->
+    <div class="ep-section">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-user"></i></div>
+        <div>
+          <div class="sec-title">Basic Information</div>
+          <div class="sec-sub">Your name and contact details</div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" name="firstName" class="form-input" value="<%= student.firstName %>" maxlength="40" oninput="updateProgress()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" name="lastName" class="form-input" value="<%= student.lastName %>" maxlength="40" oninput="updateProgress()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile <span style="color:#22c55e;font-size:0.7rem">(verified)</span></label>
+          <input type="tel" class="form-input" value="+91 <%= student.phone %>" readonly style="background:#f8f8f8;color:var(--muted)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email <span class="label-opt">Optional</span></label>
+          <input type="email" name="email" class="form-input" value="<%= student.email || '' %>" placeholder="your@email.com" oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2: PERSONAL ── -->
+    <div class="ep-section">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-id-card"></i></div>
+        <div>
+          <div class="sec-title">Personal Details</div>
+          <div class="sec-sub">Gender, age, and profile photo</div>
+        </div>
+        <span class="sec-opt">Optional</span>
+      </div>
+
+      <!-- Photo upload zone (alternative to avatar click) -->
+      <div class="form-group full" style="margin-bottom:16px">
+        <label class="form-label">Profile Photo</label>
+        <div class="photo-upload-zone" id="photoZone" onclick="document.getElementById('avatarInput').click()">
+          <div class="puz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <div class="puz-title">Click to upload your photo</div>
+          <div class="puz-sub">JPG, PNG · Max 5 MB</div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Gender</label>
+          <div class="gender-grid">
+            <div>
+              <input type="radio" name="gender" id="gMale" class="gender-opt" value="Male" <%= student.gender === 'Male' ? 'checked' : '' %>>
+              <label for="gMale" class="gender-lbl"><i class="fa-solid fa-mars"></i> Male</label>
+            </div>
+            <div>
+              <input type="radio" name="gender" id="gFemale" class="gender-opt" value="Female" <%= student.gender === 'Female' ? 'checked' : '' %>>
+              <label for="gFemale" class="gender-lbl"><i class="fa-solid fa-venus"></i> Female</label>
+            </div>
+            <div>
+              <input type="radio" name="gender" id="gOther" class="gender-opt" value="Other" <%= student.gender === 'Other' ? 'checked' : '' %>>
+              <label for="gOther" class="gender-lbl"><i class="fa-solid fa-venus-mars"></i> Other</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date of Birth</label>
+          <input type="date" name="dob" class="form-input"
+            value="<%= student.dob ? new Date(student.dob).toISOString().split('T')[0] : '' %>"
+            max="<%= new Date(new Date().setFullYear(new Date().getFullYear()-15)).toISOString().split('T')[0] %>"
+            oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 3: COLLEGE ── -->
+    <div class="ep-section">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div>
+          <div class="sec-title">College Information</div>
+          <div class="sec-sub">Helps us find hostels near your campus</div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">College / University Name <span style="color:#ef4444">*</span></label>
+          <input type="text" name="collegeName" class="form-input"
+            value="<%= student.collegeName || '' %>"
+            placeholder="e.g. IIT Bombay, Delhi University..."
+            oninput="updateProgress()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Course / Stream</label>
+          <input type="text" name="course" class="form-input"
+            value="<%= student.course || '' %>"
+            placeholder="e.g. B.Tech, MBA, MBBS..."
+            oninput="updateProgress()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Year of Study</label>
+          <div class="year-grid">
+            <% ['1st Year','2nd Year','3rd Year','4th Year','PG','Other'].forEach(y => { %>
+            <div>
+              <input type="radio" name="year" id="y<%= y.replace(/\s/g,'') %>" class="year-opt" value="<%= y %>" <%= student.year === y ? 'checked' : '' %>>
+              <label for="y<%= y.replace(/\s/g,'') %>" class="year-lbl"><%= y %></label>
+            </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 4: LOCATION ── -->
+    <div class="ep-section">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-location-dot"></i></div>
+        <div>
+          <div class="sec-title">Your Location</div>
+          <div class="sec-sub">Where are you looking for a hostel?</div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">City <span style="color:#ef4444">*</span></label>
+          <input type="text" name="city" class="form-input"
+            value="<%= student.city || '' %>" placeholder="e.g. Mumbai"
+            oninput="updateProgress()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <select name="state" class="form-select">
+            <option value="">Select state</option>
+            <% ['Maharashtra','Delhi','Karnataka','Tamil Nadu','Telangana','Gujarat','Rajasthan','Uttar Pradesh','West Bengal','Madhya Pradesh','Punjab','Haryana','Kerala','Andhra Pradesh','Bihar','Jharkhand','Odisha','Assam','Other'].forEach(s => { %>
+              <option value="<%= s %>" <%= student.state === s ? 'selected' : '' %>><%= s %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pincode</label>
+          <input type="text" name="pincode" class="form-input"
+            value="<%= student.pincode || '' %>" placeholder="e.g. 400076" maxlength="6">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 5: PREFERENCES ── -->
+    <div class="ep-section">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-sliders"></i></div>
+        <div>
+          <div class="sec-title"> Your Profession </div>
+          <div class="sec-sub"> So we can match you with the right options</div>
+        </div>
+        <span class="sec-opt">Optional</span>
+      </div>
+
+      <div class="form-grid col-1">
+        <div class="form-group">
+          <label class="form-label">Select Profession</label>
+          <div class="pref-grid">
+            <% ['Student','Employee','Bussiness','Other'].forEach(p => { %>
+            <div>
+              <input type="radio" name=" profession" id="pg<%= p %>" class="pref-opt" value="<%= p %>" <%= (student. profession || 'Any') === p ? 'checked' : '' %>>
+              <label for="pg<%= p %>" class="pref-lbl"><%= p %></label>
+            </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" class="btn-save" onclick="handleSave(event)">
+      <i class="fa-solid fa-floppy-disk"></i>
+      <%= isNew ? 'Save & Find Hostels' : 'Save Changes' %>
+    </button>
+
+  </form>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl"><i class="fa-solid fa-check-circle"></i><span id="toastText">Saved!</span></div>
+
+<script>
+/* ── AVATAR PREVIEW ── */
+function previewAvatar(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB)', true); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const preview = document.getElementById('avatarPreview');
+    const fallback = document.getElementById('avatarFallback');
+    preview.src = ev.target.result;
+    preview.style.display = 'block';
+    if (fallback) fallback.style.display = 'none';
+    document.getElementById('photoZone').style.borderColor = 'var(--g)';
+    document.getElementById('photoZone').style.background = 'var(--g-light)';
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── BUDGET RANGE ── */
+function updateBudget(val) {
+  const v = Number(val);
+  document.getElementById('budgetDisplay').textContent = `₹${v.toLocaleString('en-IN')}`;
+  document.getElementById('budgetVal').value = v;
+  document.getElementById('budgetRange').value = v;
+  // Sync hidden field
+  document.querySelector('input[name="maxBudget"]').value = v;
+}
+
+/* ── COMPLETION PROGRESS ── */
+const fields = [
+  () => document.querySelector('input[name="firstName"]')?.value.trim(),
+  () => document.querySelector('input[name="collegeName"]')?.value.trim(),
+  () => document.querySelector('input[name="city"]')?.value.trim(),
+  () => document.querySelector('input[name="dob"]')?.value,
+  () => document.querySelector('input[name="gender"]:checked')?.value,
+  () => document.querySelector('input[name="course"]')?.value.trim(),
+  () => document.querySelector('input[name="email"]')?.value.trim(),
+];
+
+function updateProgress() {
+  const done = fields.filter(f => !!f()).length;
+  const pct  = Math.round(done / fields.length * 100);
+  document.getElementById('cpBar').style.width = pct + '%';
+  document.getElementById('cpPct').textContent = pct + '%';
+}
+updateProgress();
+
+/* ── FORM SUBMIT ── */
+function handleSave(e) {
+  // Sync budget value
+  const bv = document.getElementById('budgetRange').value;
+  document.querySelector('input[name="maxBudget"]').value = bv;
+
+  const college = document.querySelector('input[name="collegeName"]')?.value.trim();
+  const city    = document.querySelector('input[name="city"]')?.value.trim();
+
+  if (!college) { e.preventDefault(); showAlert('Please enter your college name'); return; }
+  if (!city)    { e.preventDefault(); showAlert('Please enter your city'); return; }
+}
+
+function showAlert(msg) {
+  const el = document.getElementById('alertTop');
+  el.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${msg}`;
+  el.className = 'alert-top error';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => el.className = 'alert-top', 4000);
+}
+
+function showToast(msg, isErr = false) {
+  const el = document.getElementById('toastEl');
+  document.getElementById('toastText').textContent = msg;
+  el.querySelector('i').style.color = isErr ? '#ef4444' : 'var(--g)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* Drag-over photo zone */
+const pz = document.getElementById('photoZone');
+pz.addEventListener('dragover', e => { e.preventDefault(); pz.classList.add('drag-over'); });
+pz.addEventListener('dragleave', () => pz.classList.remove('drag-over'));
+pz.addEventListener('drop', e => {
+  e.preventDefault(); pz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('avatarInput').files = dt.files;
+    previewAvatar({ target: { files: [file] } });
+  }
+});
+</script>
+</body>
+</html>

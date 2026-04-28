@@ -1,0 +1,130 @@
+<% layout("/layouts/boilerplate") -%> 
+<div class="main-body-page" style="background-color: #ffffff0e;">
+         <br>
+        
+        <!-- <img style="margin: 0; height: 30vh; width: 100vw;" src="" alt=""> -->
+<!-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+        <!-- slider start -->
+<!-- <div id="carouselExampleDark" class="carousel carousel-dark slide" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#carouselExampleDark" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#carouselExampleDark" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            <button type="button" data-bs-target="#carouselExampleDark" data-bs-slide-to="2" aria-label="Slide 3"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active" data-bs-interval="3000">
+                <img src="https://i.pinimg.com/736x/d8/3d/73/d83d739d07a3afab37e05515554c187e.jpg" class="d-block w-100" alt="...">
+                <div class="carousel-caption">
+                    <h4>Welcome to </h4><h1><b>GOLDY HOSTEL</b></h1>
+                    <p>Providing a comfortable and well-managed living experience for all Members</p>
+                </div>
+            </div>
+            <div class="carousel-item" data-bs-interval="3000">
+                <img src="https://images.unsplash.com/photo-1619810230359-b2c2f61c49cd?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="d-block w-100" alt="...">
+                <div class="carousel-caption  ">
+                    <h5>Second slide label</h5>
+                    <p>Some representative placeholder content for the second slide.</p>
+                </div>
+            </div>
+            <div class="carousel-item" data-bs-interval="3000">
+                <img src="https://images.unsplash.com/photo-1460317442991-0ec209397118?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="d-block w-100" alt="...">
+                <div class="carousel-caption ">
+                    <h5>Third slide label</h5>
+                    <p>Some representative placeholder content for the third slide.</p>
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleDark" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleDark" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div> -->
+    <!-- slider end -->
+     <!-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+   <br><br>
+        <div class="cols" style=" display: flex; justify-content: center;">
+                <a href="/user/newmember" class="col-10 btn btn-outline-info "> <i class="fa-solid fa-plus"></i> Add Member </a>
+        </div>
+       <br>
+        <div class="card-container">
+                <div class="card card-1">
+                        <div class="row m-1"  >
+                                <span class="col-9"  style="justify-content: center; text-align: left;">
+                                        <h3><b><%= availableBeds %></b></h3>
+                                        <p>Available Beds</p>
+                                </span>
+                                <span class="col-2" >
+                                        <i class="fa-solid fa-bed" style="color: #ffffff;font-size: 20px; background-color: #ffbb00;padding: 20px; border-radius: 50%; justify-items: center;"></i>
+                                </span>
+                        </div>
+                </div>
+                <div class="card card-2"  >
+                        <div class="row m-1"  >
+                                <span class="col-9"  style="justify-content: center; text-align: left;">
+                                        <h3><b><%= totalBeds %></b></h3>
+                                        <p>Total Beds</p>
+                                </span>
+                                <span class="col-2" >
+                                        <i class="fa-solid fa-cubes-stacked" style="color: #ffffff;font-size: 20px; background-color:  #28d17d8a;padding: 20px; border-radius: 50%; justify-items: center;"></i>
+                                </span>
+                        </div>
+                </div>
+               
+                <div class="card card-3">
+                        <div class="row m-1"  >
+                                <span class="col-9"  style="justify-content: center; text-align: left;">
+                                        <h3><b><%= bookedRooms %></b></h3>
+                                        <p>Booked Rooms</p>
+                                </span>
+                                <span class="col-2" >
+                                        <i class="fa-solid fa-building-circle-check"  style="color: #ffffff;font-size: 20px; background-color:  #2871f8bd; padding: 20px; border-radius: 50%; justify-items: center;"></i>
+                                        
+                                </span>
+                        </div>
+                </div>
+               
+                <div class="card card-4">
+                        <div class="row m-1"  >
+                                <span class="col-9"  style="justify-content: center; text-align: left;">
+                                        <h3><b><%= totalRooms %></b></h3>
+                                        <p>Total Rooms</p>
+                                </span>
+                                <span class="col-2" >
+                                        <i class="fa-solid fa-hotel" style="color: #ffffff;font-size: 20px; background-color: #a50d98f6;padding: 20px; border-radius: 50%; justify-items: center;"></i>
+                                </span>
+                        </div>
+                </div>
+               
+                
+                <div class="card card-5">
+                        <div class="row m-1"  >
+                                <span class="col-9"  style="justify-content: center; text-align: left;">
+                                        <h3><b><%= totalStudents %></b></h3>
+                                        <p>Total Members</p>
+                                </span>
+                                <span class="col-2" >
+                                        <i class="fa-solid fa-users" style="color: #ffffff;font-size: 20px; background-color: #11b7bd73;padding: 20px; border-radius: 50%; justify-items: center;"></i>
+                                         
+                                </span>
+                        </div>
+                </div>
+                <div class="card card-6">
+                        <div class="row m-1"  >
+                                <span class="col-9"  style="justify-content: center; text-align: left;">
+                                        <h2> <i class="fa-solid fa-indian-rupee-sign"></i><%= totalPendingAmount.toLocaleString()%></h2>
+                                        <h5>Total Pending Amount</h5>
+                                </span>
+                                <span class="col-2" >
+                                        <i class="fa-solid fa-circle-exclamation" style="color: #ffffff;font-size: 30px; background-color: #ff0800a4;padding: 20px; border-radius: 50%; justify-items: center;"></i>
+                                </span>
+                        </div>
+                </div>
+                
+                
+                </div>
+             
+</div>

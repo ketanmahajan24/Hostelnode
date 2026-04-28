@@ -1,0 +1,87 @@
+<% locals.pageTitle = 'Students'; locals.activePage = 'students'; %>
+<%- include('layout', { body: `
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Students</h1>
+    <p>${total} students registered</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <form method="GET" action="/admin/students" style="display:contents">
+    <div class="filter-input">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="search" placeholder="Search name, phone, city…" value="${filters.search||''}">
+    </div>
+    <select name="status" class="filter-select" onchange="this.form.submit()">
+      <option value="all">All Status</option>
+      <option value="Active"   ${filters.status==='Active'  ?'selected':''}>Active</option>
+      <option value="Inactive" ${filters.status==='Inactive'?'selected':''}>Inactive</option>
+      <option value="Banned"   ${filters.status==='Banned'  ?'selected':''}>Banned</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+    <a href="/admin/students" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Student</th><th>College</th><th>Location</th><th>Profile</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        ${students.length === 0 ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">No students found</td></tr>' :
+        students.map(s => `
+        <tr>
+          <td>
+            <div class="cell-avatar">
+              <div class="cell-avatar-img">${s.firstName.charAt(0)}</div>
+              <div>
+                <div class="cell-name">${s.firstName} ${s.lastName}</div>
+                <div class="cell-sub">${s.phone}</div>
+                <div class="cell-sub">${s.email||'—'}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="cell-name">${s.collegeName||'—'}</div>
+            <div class="cell-sub">${s.course||'—'} · ${s.year||'—'}</div>
+          </td>
+          <td><div class="cell-sub">${s.city||'—'}, ${s.state||'—'}</div></td>
+          <td>
+            <span class="badge ${s.isProfileComplete?'badge-green':'badge-gray'}">
+              ${s.isProfileComplete?'Complete':'Incomplete'}
+            </span>
+          </td>
+          <td>
+            <select class="filter-select" style="padding:4px 28px 4px 8px;font-size:0.72rem"
+              onchange="updateStatus('/admin/students/${s._id}/status',{status:this.value},'Status updated')">
+              ${['Active','Inactive','Banned'].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join('')}
+            </select>
+          </td>
+          <td><div class="cell-sub">${new Date(s.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div></td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <a href="/admin/students/${s._id}" class="icon-btn" title="View"><i class="fa-solid fa-eye"></i></a>
+              <button class="icon-btn danger" title="Delete"
+                onclick="openConfirm('Delete Student','Delete ${(s.firstName+' '+s.lastName).replace(/'/g,"\\'")}? This cannot be undone.',()=>deleteRecord('/admin/students/${s._id}','Student deleted','/admin/students'))">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  ${totalPages > 1 ? `
+  <div class="card-footer">
+    <div class="pagination">
+      <a href="?page=${currentPage-1}" class="page-btn ${currentPage===1?'disabled':''}"><i class="fa-solid fa-chevron-left"></i></a>
+      ${Array.from({length:totalPages},(_,i)=>`<a href="?page=${i+1}" class="page-btn ${currentPage===i+1?'active':''}">${i+1}</a>`).join('')}
+      <a href="?page=${currentPage+1}" class="page-btn ${currentPage===totalPages?'disabled':''}"><i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+  </div>` : ''}
+</div>
+` }) %>

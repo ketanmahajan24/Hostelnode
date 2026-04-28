@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home | HostelNode</title>
+    <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+
+    <!-- BOOTSTRAP LINK -->
+    <link rel="stylesheet" href="/css/lendingpage-style .css">
+     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <!--GOOGLE FONTS ->>>>>>   Instrument Sans | Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css" integrity="sha512-v8QQ0YQ3H4K6Ic3PJkym91KoeNT5S3PnDKvqnwqFD1oiqIl653crGZplPdU5KKtHjO0QKcQ2aUlQZYjHczkmGw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Bootstrap Bundle with Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</head>
+<body>
+<!--     
+    <h1 style=" color:rgb(9, 184, 80)">wellcome to BizGuide </h1>
+    <img style="height: 50px;" src="/images/BizGuide_ProductLogo.png" alt=""> -->
+
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid" style="padding: 0  20px 0 30px;">
+           
+<span class="product-logo" id="logo">
+    <img style="height: 3rem; border-radius: 50%;" src="/images/hostelnode-logo-cutout.png" alt="user img">
+    <a class="navbar-brand montserrat-subrayada-regular" href="#">HostelNode</a>
+</span>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="#">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#feature-list">Features <i class="fa-solid fa-angle-down"></i></a>
+              </li>
+              <!-- <li class="nav-item">
+                <a class="nav-link" href="#">Pricing <i class="fa-solid fa-angle-down"></i> </a>
+              </li> -->
+              <li class="nav-item ">
+                <a class="nav-link" href="#cotactus">Contact us <i class="fa-solid fa-angle-down"></i> </a>
+              </li>
+              <li class="nav-item ">
+                <a class="nav-link" href="#aboutus">About us <i class="fa-solid fa-angle-down"></i> </a>
+              </li>
+            </ul>       
+            <span style="margin-right: 5%;">
+               <a href="/findHostels" class="btn login-btn">
+                  <i class="fa-regular fa-circle-user"></i> Search 
+                </a>
+                <!-- <button type="button" class="dark-mode"><i class="fa-solid fa-circle-half-stroke"></i></button>              -->
+                <a href="/login" class="btn login-btn">
+                  <i class="fa-regular fa-circle-user"></i> Login
+                </a>
+                <a href="/signup" class="btn signup-btn">
+                  <i class="fa-solid fa-user-plus"></i> Signup 
+                </a>           
+                
+                
+              </span>
+          </div>
+        </div>
+      </nav>
+   <!-- Loader Section -->
+   <div id="loader">
+    <!-- Logo & Brand Name in One Line -->
+    <div class="logo-container">
+        <!-- <img src="/images/BizGuide_ProductLogo.png" alt="BizGuide Logo" class="bird-logo">
+          -->
+        <a class="navbar-brand montserrat-subrayada-regular" href="#">HostelNode</a>
+       <!-- <h5> The Interactive Digital Mentor for Entrepreneurs </h5> -->
+    </div>
+ 
+    <!-- Spinners in Second Line -->
+    <div class="spinner-container">
+       <div class="spinner-grow custom-spinner" role="status"></div>
+        <div class="spinner-grow custom-spinner" role="status"></div>
+        <div class="spinner-grow custom-spinner" role="status"></div>
+
+    </div>
+</div>
+
+<!-- OFFER STRIP  -->
+<div class="offer-strip">
+  <div class="offer-content">
+    🚀 Limited Offer: Get <strong>3 Months FREE Trial</strong> on HostelNode! 🎉
+  </div>
+</div>
+
+
+<!-- Main Content (Hidden by default) -->
+<div id="content" class="d-none">
+    <div class="bird-container">
+        <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode Logo" class="HostelNode flying Logo">
+    </div>  
+    <!-- main content -->
+<div class="container1">
+  <div class="box posterBox-1">
+    <div class="banner-section-1">
+      <span class="banner-heading-1"><p>🏠 Simplifying Hostel Management with Smart Tools  <a href="#" class="btn demo-btn" data-bs-toggle="modal" data-bs-target="#demoModal">
+  ▶ Watch Demo
+</a></p></span>
+
+   <span class="banner-heading-2">
+  <p>From Messy Hostels to Smart Management</p>
+  <p class="sub-banner-heading-2">Upgrade to HostelNode Today 🚀</p>
+</span>
+      <span class="banner-heading-3"> 
+        <p>From room allocation to rent tracking, HostelNode provides all-in-one tools to simplify and automate hostel operations. Improve efficiency and resident satisfaction with our modern solution.</p>
+      </span>
+
+      
+      <form action="/emailsubmit">
+        <div class="input-container">
+          <input type="email" placeholder="Enter your email address" required>
+          <button type="submit" class="btn btn-dark">Start Free Trial!</button>
+        </div>
+      </form>
+
+      <div class="feature-container">
+        <!-- Feature 1 -->
+        <div class="feature-box">
+          <div class="feature-icon">
+            <img src="/images/24_7_support.gif" alt="Support">
+          </div>
+          <div class="feature-text">
+            <h4>24/7 Support</h4>
+            <p>Always ready to assist hostel managers</p>
+          </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-box">
+          <div class="feature-icon">
+            <img src="/images/smartbussinessinsight.gif" alt="Insights">
+          </div>
+          <div class="feature-text">
+            <h4>Smart Hostel Insights</h4>
+            <p>Track occupancy, payments, and feedback in real-time.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box posterBox-2">
+    <video width="100%" autoplay loop muted playsinline>
+      <source src="/images/vd-banner.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <div class="visitor-card">
+      <div class="sub-visitor-card">
+        <div class="visitor-count">1.2K+</div>
+        <div class="visitor-images">
+          <img src="/images/man-dp-1.jpg" alt="User 1">
+          <img src="/images/man-dp-2.jpg" alt="User 2">
+          <img src="/images/woman-dp-4.jpg" alt="User 3">
+          <img src="/images/woman-dp-6.jpg" alt="User 4">
+          <img src="/images/woman-dp-7.jpg" alt="User 5">
+        </div>
+      </div>
+      <div class="visitor-text">Active hostel users per month</div>
+    </div>
+  </div>
+</div>
+<!--------- 3 Powerful Features <br> to Streamline Your Hostel Management -------->
+<section class="features-section">
+  <div class="features-heading">3 Powerful Features to <br>Streamline Your Hostel Management</div>
+  <div class="features-container">
+    <div class="feature-item">
+      <img src="/images/room-allocation.gif" alt="Room Allocation">
+      <p>Automated Room Allocation</p>
+    </div>
+    <div class="feature-item">
+      <img src="/images/payment-tracker.gif" alt="Payment Tracker">
+      <p>Real-Time Payment Tracking</p>
+    </div>
+    <div class="feature-item">
+      <img src="/images/maintenance-request.gif" alt="Maintenance Request">
+      <p>Auto reminders for dues</p>
+    </div>
+  </div>
+</section>
+  
+    
+<!------------------------------------------------------------------------------------------------------------------------------------------------->
+<!-- 8 FEATURES LIST (8) BOXES -->   
+
+<div class="container2" id="feature-list">
+  <h1 class="container2-heading-8-feature">Key Features of HostelNode</h1>
+  <div class="grid">
+
+      <div class="card">
+          <div class="icon">📊</div>
+          <h3>Dashboard Analytics</h3>
+          <p>Get a real-time overview of rooms, residents, payments, and alerts.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+      <div class="card">
+          <div class="icon">🏠</div>
+          <h3>Room & Floor Management</h3>
+          <p>Easily allocate, update, or track room availability and occupancy.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+      <div class="card">
+          <div class="icon">💳</div>
+          <h3>Payments & Invoices</h3>
+          <p>Automate monthly rent, due reminders, and generate digital invoices.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+      <div class="card">
+          <div class="icon">🧑‍💼</div>
+          <h3>Resident Profiles</h3>
+          <p>Maintain full resident information with documents, check-in/out logs.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+      <div class="card">
+          <div class="icon">📢</div>
+          <h3>Announcements</h3>
+          <p>Broadcast notices or alerts instantly to all residents.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+      <div class="card">
+          <div class="icon">📝</div>
+          <h3>Feedback System</h3>
+          <p>Collect suggestions, complaints, or reviews from residents easily.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+      <div class="card">
+          <div class="icon">📂</div>
+          <h3>Document Uploads</h3>
+          <p>Store ID proof, rental agreements, and important documents securely.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+      <div class="card">
+          <div class="icon">🔔</div>
+          <h3>Smart Notifications</h3>
+          <p>Stay updated with automated reminders for dues, vacate dates, etc.</p>
+          <a href="#">Explore →</a>
+      </div>
+
+  </div>
+</div>
+
+ 
+<!-- happy clients and feedbacks -->
+<div class="feedback-div">
+    <div class="testimonial-image">
+      <div id="carouselExampleInterval" class="carousel slide" data-bs-ride="carousel" data-bs-wrap="true">
+        <div class="carousel-inner">
+          <!-- slide-1 -->
+          <div class="carousel-item active" data-bs-interval="3000">
+            <img src="/images/feedbacks-img/testemonial-1.jpg" class="d-block w-100" alt="Happy Client 1">
+          </div>
+          <!-- slide-2 -->
+          <div class="carousel-item active" data-bs-interval="3000">
+            <img src="/images/feedbacks-img/testemonial-2.jpg" class="d-block w-100" alt="Happy Client 2">
+          </div>
+          <!-- slide-3 -->
+          <div class="carousel-item active" data-bs-interval="3000">
+            <img src="/images/feedbacks-img/testemonial-3.jpg" class="d-block w-100" alt="Happy Client 3">
+          </div>
+          <!-- slide-4 -->
+          <div class="carousel-item active" data-bs-interval="3000">
+            <img src="/images/feedbacks-img/testemonial-4.jpg" class="d-block w-100" alt="Happy Client 4">
+          </div>
+          <!-- slide-5 -->
+          <div class="carousel-item active" data-bs-interval="3000">
+            <img src="/images/feedbacks-img/testemonial-5.jpg" class="d-block w-100" alt="Happy Client 5">
+          </div>
+          <!-- slide-6 -->
+          <div class="carousel-item active" data-bs-interval="3000">
+            <img src="/images/feedbacks-img/testemonial-6.jpg" class="d-block w-100" alt="Happy Client 6">
+          </div>
+          <!-- slide-7 -->
+          <div class="carousel-item active" data-bs-interval="3000">
+            <img src="/images/feedbacks-img/testemonial-7.jpg" class="d-block w-100" alt="Happy Client 7">
+          </div>
+        </div>
+      </div>
+
+      <div class="floating-review">⭐ The best hostel system ever!</div>
+      <div class="floating-review2">💖 Excellent Experience!</div>
+    </div>
+  
+
+  <div class="testimonial-container">
+    <div class="testimonial-text">
+      <p>💖 Real results from real clients</p>
+      <h2>See how HostelNode is transforming hostel management</h2>
+      <p><strong>Trusted by 1500+ hostel owners and managers across India</strong></p>
+
+      <div class="review">
+        <img src="/images/feedback-man-1.png" alt="User">
+        <div>
+          <div class="stars">★★★★★</div>
+          <p>HostelNode ने हमारे पूरे रूम और पेमेंट मैनेजमेंट को बहुत आसान बना दिया है। अब सब कुछ ऑटोमेटिक है।</p>
+          <small>By Priya Sharma, Warden – Delhi</small>
+        </div>
+      </div>
+
+      <div class="review">
+        <img src="/images/feedback-man-2.png" alt="User">
+        <div>
+          <div class="stars">★★★★★</div>
+          <p>अब हमें Excel sheets की जरूरत नहीं, HostelNode ने हमारी पूरी occupancy और complaint tracking को streamline कर दिया।</p>
+          <small>By Ramesh Patel, Hostel Owner – Ahmedabad</small>
+        </div>
+      </div>
+
+      <div class="review">
+        <img src="/images/feedback-women-1.png" alt="User">
+        <div>
+          <div class="stars">★★★★★</div>
+          <p>Student के तौर पर मैं आसानी से rent status, feedback और room details देख सकती हूँ। HostelNode बहुत यूजर फ्रेंडली है।</p>
+          <small>By Sneha Raut, Student – Pune</small>
+        </div>
+      </div>
+    </div>
+</div>
+
+</div>
+
+
+<!-- ABOUT US SECTION -->
+<div class="container2" id="aboutus">
+  <h1 class="container2-heading-8-feature">About HostelNode</h1>
+  <div class="aboutus-grid">
+    <div class="aboutus-card">
+      <h3>Who We Are</h3>
+      <p class="about-desc">HostelNode is a comprehensive hostel management platform built to simplify operations for hostel owners, wardens, and students. From room allotment to payment tracking and maintenance requests, we provide a smart digital solution to manage everything in one place.</p>
+    </div>
+    <div class="aboutus-card">
+      <h3>Our Mission</h3>
+      <p class="about-desc">To revolutionize hostel management by providing powerful, user-friendly, and scalable digital tools that save time, improve transparency, and enhance the hostel living experience.</p>
+    </div>
+    <div class="aboutus-card">
+      <h3>Our Vision</h3>
+      <p class="about-desc">To become the leading digital solution for hostels and student accommodations globally, creating a smarter, safer, and more efficient living and management ecosystem.</p>
+    </div>
+  </div>
+</div>
+<!-- REACH OUT US SECTION -->
+<div class="container mt-5" id="cotactus">
+  <div class="subscribe-section">
+      <div class="subscribe-left">
+          <h2>Let's connect and simplify your hostel management today!</h2>
+          
+          <form action="/emailsubmit"> 
+            <div class="input-container"> 
+              <input type="email" placeholder="Enter your email address" required>
+              <button type="submit" class="btn btn-dark">Subscribe!</button>
+            </div>
+          </form>
+      </div>
+      <div class="subscribe-right">
+          <p><i class="fas fa-phone-alt"></i> Call on: +91 78798 84375 </p>
+          <p><i class="fas fa-envelope"></i> Email : hostelnodehelp@gmail.com</p>
+          <p><i class="fas fa-location"></i> Navi Mumbai , India</p>
+      </div>
+  </div>
+</div>
+
+
+<!---------------------- FOOTER SECTION------------------ -->
+<footer class="footer">
+  <div class="container">
+      <div class="footer-top">
+         <div class="footer-section">
+                <!--  Logo   -->
+                <span class="" id="logo">
+                  <img style="height: 5rem; border-radius: 50%;" src="/images/hostelnode-logo-cutout.png" alt="HostelNode Logo">
+                  <a style="color: white !important;" class="navbar-brand montserrat-subrayada-regular" href="#">HostelNode</a>
+                </span>
+                <p class="footer-section-logo-para"> Your Smart Hostel Management Partner – Simplify, Automate, Manage</p>
+          </div> 
+
+          <!-- Links heading -->
+          <div class="footer-section">
+              <h3>Quick links</h3>
+              <ul>
+                  <li><a href="#">About us</a></li>
+                  <li><a href="#">Contact us</a></li>
+                  <li><a href="#">Features</a></li>
+                  <li><a href="#">Plans & Pricing</a></li>
+                  <li><a href="#">Become a Partner</a></li>
+                  <li><a href="#">Log in</a></li>
+                  <li><a href="#">Sign up</a></li>
+              </ul>
+          </div>
+
+          <div class="footer-section">
+              <h3>Support</h3>
+              <ul>
+                  <li><a href="#">User Guide</a></li>
+                  <li><a href="#">FAQs</a></li>
+                  <li><a href="#">Help & Support</a></li>
+                  <li><a href="#">Privacy Policy</a></li>
+                  <li><a href="#">Terms & Conditions</a></li>
+              </ul>
+          </div>
+
+          <div class="footer-section">
+              <h3>Follow Us</h3>
+              <div class="social-icons">
+                  <a href="https://www.instagram.com/hostelnode_com/"><i class="fab fa-facebook"></i></a>
+                  <a href="https://www.instagram.com/hostelnode_com/"><i class="fab fa-instagram"></i></a>
+                  <a href="#"><i class="fab fa-twitter"></i></a>
+                  <a href="#"><i class="fab fa-linkedin"></i></a>
+                  <a href="#"><i class="fab fa-youtube"></i></a>
+              </div>
+          </div>
+      </div>
+
+      <div class="footer-bottom">
+          <p>Copyright ©2026 HostelNode. Built by Ketan Mahajan</p>
+          <div class="language-selector">
+              <select>
+                  <option>English</option>
+                  <option>Hindi</option>
+              </select>
+          </div>
+      </div>
+  </div>
+  <button class="scroll-top"><i class="fas fa-arrow-up"></i></button>
+</footer>
+
+
+ 
+</div>
+  <!-- MAIN CONTENT END -->
+
+
+
+<!-- // Show logo after 3 seconds   -->
+<script>
+    setTimeout(function() {
+        document.getElementById("logo").classList.add("show");
+    }, 5000);
+    
+     document.addEventListener("DOMContentLoaded", function () {
+    // Hide the loader after 1 second
+    setTimeout(function () {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("content").classList.remove("d-none");
+    }, 1600);
+});
+</script>
+<!-- DEMO VIDEO MODAL -->
+<div class="modal fade" id="demoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content custom-modal">
+
+      <!-- Close Button -->
+      <button type="button" class="btn-close custom-close" data-bs-dismiss="modal"></button>
+
+      <!-- Video -->
+      <div class="modal-body p-0">
+        <div class="video-container">
+          <iframe 
+            id="demoVideo"
+            src=""
+            title="HostelNode Demo"
+            frameborder="0"
+            allow="autoplay; encrypted-media"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><script>
+  const modal = document.getElementById('demoModal');
+  const iframe = document.getElementById('demoVideo');
+
+  modal.addEventListener('shown.bs.modal', () => {
+    iframe.src = "https://www.youtube.com/embed/9LwacpywVhs?autoplay=1";
+  });
+
+  modal.addEventListener('hide.bs.modal', () => {
+    iframe.src = "";
+  });
+</script>
+</body>
+</html>

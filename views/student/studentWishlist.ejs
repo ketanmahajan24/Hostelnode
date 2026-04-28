@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wishlist | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+
+  <!-- Reuse your existing nav/page styles -->
+  <link rel="stylesheet" href="/css/findhostel.css">
+
+  <style>
+    /* ══════════════════════════════════════════
+       PAGE VARIABLES (matches HostelNode brand)
+    ══════════════════════════════════════════ */
+    :root {
+      --green:       #09B850;
+      --green-dark:  #078a3c;
+      --green-light: #e8faf0;
+      --ink:         #0a1628;
+      --ink-soft:    #3d4f63;
+      --muted:       #6b7280;
+      --border:      #e8f0ea;
+      --surface:     #f5fbf7;
+      --white:       #ffffff;
+      --radius:      14px;
+      --radius-card: 18px;
+    }
+
+    body { background: var(--surface); }
+
+    /* ── PAGE HERO ─────────────────────────── */
+    .wl-hero {
+      background: linear-gradient(135deg, #09B850 0%, #00c264 60%, #0096a0 100%);
+      padding: 100px 0 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .wl-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .wl-hero-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 24px;
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; flex-wrap: wrap;
+    }
+    .wl-hero-left h1 {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 700; color: white; line-height: 1.2;
+      margin: 0 0 8px;
+    }
+    .wl-hero-left h1 span {
+      display: block; font-size: 0.55em;
+      font-weight: 400; opacity: 0.82; margin-bottom: 4px;
+    }
+    .wl-hero-sub { color: rgba(255,255,255,0.80); font-size: 15px; margin: 0; }
+
+    .wl-count-badge {
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 16px;
+      padding: 16px 24px;
+    }
+    .wl-count-num {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 42px; font-weight: 700; color: white; line-height: 1;
+    }
+    .wl-count-label { font-size: 13px; color: rgba(255,255,255,0.78); line-height: 1.4; }
+
+    /* ── LAYOUT ─────────────────────────────── */
+    .wl-layout {
+      max-width: 1200px; margin: 0 auto; padding: 36px 24px 60px;
+    }
+
+    /* ── TOOLBAR ────────────────────────────── */
+    .wl-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap; margin-bottom: 28px;
+    }
+    .wl-toolbar-left { font-size: 15px; color: var(--ink-soft); }
+    .wl-toolbar-left strong { color: var(--ink); }
+
+    .wl-sort {
+      display: flex; gap: 8px;
+    }
+    .wl-sort-btn {
+      padding: 8px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      background: white;
+      font-size: 13px; font-weight: 500; color: var(--ink-soft);
+      cursor: pointer; transition: all .18s;
+      font-family: 'Inter', sans-serif;
+    }
+    .wl-sort-btn.active, .wl-sort-btn:hover {
+      border-color: var(--green); color: var(--green); background: var(--green-light);
+    }
+
+    /* ── CARDS GRID ─────────────────────────── */
+    .wl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 22px;
+    }
+
+    /* ── CARD ───────────────────────────────── */
+    .wl-card {
+      background: white;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: transform .22s, box-shadow .22s;
+      cursor: pointer;
+      position: relative;
+      animation: cardIn .35s ease both;
+    }
+    .wl-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(9,184,80,0.13), 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* stagger animation */
+    .wl-card:nth-child(1)  { animation-delay: .05s; }
+    .wl-card:nth-child(2)  { animation-delay: .10s; }
+    .wl-card:nth-child(3)  { animation-delay: .15s; }
+    .wl-card:nth-child(4)  { animation-delay: .20s; }
+    .wl-card:nth-child(5)  { animation-delay: .25s; }
+    .wl-card:nth-child(6)  { animation-delay: .30s; }
+
+    /* Image area */
+    .wl-card-img {
+      position: relative; height: 200px; overflow: hidden;
+      background: var(--surface);
+    }
+    .wl-card-img img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .4s ease;
+    }
+    .wl-card:hover .wl-card-img img { transform: scale(1.04); }
+
+    /* Remove from wishlist button */
+    .wl-remove-btn {
+      position: absolute; top: 12px; right: 12px;
+      width: 36px; height: 36px;
+      background: white;
+      border: none; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      transition: background .18s, transform .18s;
+      color: #e53e3e;
+      font-size: 15px;
+    }
+    .wl-remove-btn:hover {
+      background: #e53e3e; color: white;
+      transform: scale(1.1);
+    }
+
+    /* Gender badge */
+    .wl-badge {
+      position: absolute; top: 12px; left: 12px;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 11.5px; font-weight: 600;
+      background: rgba(0,0,0,0.5); color: white;
+      backdrop-filter: blur(4px);
+    }
+    .wl-badge.boys   { background: rgba(37,99,235,0.85); }
+    .wl-badge.girls  { background: rgba(219,39,119,0.85); }
+    .wl-badge.co-ed  { background: rgba(124,58,237,0.85); }
+
+    /* Verified badge */
+    .wl-verified {
+      position: absolute; bottom: 12px; left: 12px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      background: white; color: var(--green);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    /* Card body */
+    .wl-card-body { padding: 16px 18px 18px; }
+
+    .wl-card-top {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 8px; margin-bottom: 6px;
+    }
+    .wl-card-name {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 15.5px; font-weight: 700; color: var(--ink);
+      line-height: 1.3;
+    }
+    .wl-card-type {
+      font-size: 11.5px; color: var(--muted); margin-top: 2px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .wl-card-type i { color: var(--green); }
+
+    .wl-rating {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 13px; font-weight: 600; color: var(--ink);
+      flex-shrink: 0;
+    }
+    .wl-rating i { color: #f59e0b; font-size: 12px; }
+    .wl-rating span { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+    .wl-card-loc {
+      font-size: 13px; color: var(--muted);
+      display: flex; align-items: center; gap: 5px;
+      margin-bottom: 10px;
+    }
+    .wl-card-loc i { color: var(--green); font-size: 12px; flex-shrink: 0; }
+
+    /* Amenity pills */
+    .wl-amenities {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px;
+    }
+    .wl-amenity {
+      padding: 3px 10px; border-radius: 20px;
+      background: var(--green-light); color: var(--green-dark);
+      font-size: 11.5px; font-weight: 500;
+    }
+
+    /* Price + actions row */
+    .wl-card-footer {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 10px;
+      border-top: 1px solid var(--border); padding-top: 12px;
+    }
+    .wl-price {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 20px; font-weight: 700; color: var(--ink);
+      line-height: 1;
+    }
+    .wl-price span { font-size: 12px; font-weight: 400; color: var(--muted); }
+    .wl-price-label { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .wl-actions { display: flex; gap: 8px; }
+    .wl-btn-view {
+      padding: 9px 18px;
+      background: var(--green); color: white;
+      border: none; border-radius: 10px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .18s;
+      font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .wl-btn-view:hover { background: var(--green-dark); }
+
+    .wl-btn-wa {
+      padding: 9px 12px;
+      background: #dcfce7; color: #16a34a;
+      border: none; border-radius: 10px;
+      font-size: 14px; cursor: pointer;
+      transition: background .18s;
+    }
+    .wl-btn-wa:hover { background: #bbf7d0; }
+
+    /* ── EMPTY STATE ────────────────────────── */
+    .wl-empty {
+      text-align: center;
+      padding: 80px 24px;
+      background: white;
+      border-radius: var(--radius-card);
+      border: 1.5px dashed var(--border);
+    }
+    .wl-empty-icon {
+      font-size: 64px; margin-bottom: 20px;
+      display: block;
+      animation: beat 1.8s ease-in-out infinite;
+    }
+    @keyframes beat {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.08); }
+    }
+    .wl-empty h2 {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 22px; font-weight: 700; color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .wl-empty p { color: var(--muted); font-size: 15px; max-width: 360px; margin: 0 auto 24px; }
+    .wl-btn-browse {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 28px;
+      background: var(--green); color: white;
+      border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600;
+      text-decoration: none; cursor: pointer;
+      transition: background .18s;
+      font-family: 'Instrument Sans', sans-serif;
+    }
+    .wl-btn-browse:hover { background: var(--green-dark); color: white; }
+
+    /* ── TOAST NOTIFICATION ─────────────────── */
+    .wl-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e; color: white;
+      padding: 12px 20px; border-radius: 12px;
+      font-size: 14px; font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+      z-index: 9999;
+      transition: transform .3s ease, opacity .3s ease;
+      opacity: 0; pointer-events: none;
+      white-space: nowrap;
+    }
+    .wl-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .wl-toast i { color: var(--green); }
+
+    /* ── NAVBAR PROFILE (same as findHostels) ─ */
+    .sn-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 12px 5px 5px; border-radius: 50px;
+      border: 1.5px solid rgba(9,184,80,0.30);
+      background: rgba(9,184,80,0.07);
+      cursor: pointer; user-select: none; position: relative;
+      transition: border-color .2s, background .2s;
+    }
+    .sn-pill:hover { border-color: rgba(9,184,80,0.55); background: rgba(9,184,80,0.12); }
+    .sn-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid #09b850; background: #e8faf0;
+      overflow: hidden; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .sn-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-name { font-size: 13.5px; font-weight: 600; color: #0a1628; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sn-chevron { font-size: 10px; color: #09b850; transition: transform .2s; }
+    .sn-pill.open .sn-chevron { transform: rotate(180deg); }
+
+    .sn-dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0; width: 240px;
+      background: #fff; border-radius: 16px;
+      border: 1px solid #e8f0ea;
+      box-shadow: 0 8px 40px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.06);
+      overflow: hidden; z-index: 9999;
+      opacity: 0; transform: translateY(-6px); pointer-events: none;
+      transition: opacity .18s, transform .18s;
+    }
+    .sn-pill.open .sn-dropdown { opacity: 1; transform: translateY(0); pointer-events: all; }
+    .sn-dd-header { padding: 16px; background: linear-gradient(135deg, #09B850, #00c264); }
+    .sn-dd-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; margin-bottom: 10px; }
+    .sn-dd-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-dd-name  { font-size: 14px; font-weight: 700; color: #fff; }
+    .sn-dd-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
+    .sn-dd-items { padding: 6px 0; }
+    .sn-dd-link  { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13.5px; font-weight: 500; color: #0a1628; text-decoration: none; transition: background .14s; }
+    .sn-dd-link:hover { background: #f5fbf7; color: #09b850; }
+    .sn-dd-link i { width: 16px; text-align: center; color: #09b850; font-size: 13px; }
+    .sn-dd-link.active-link { background: var(--green-light); color: var(--green); }
+    .sn-dd-divider { height: 1px; background: #eef3ee; margin: 4px 0; }
+    .sn-dd-logout { display: flex; align-items: center; gap: 10px; padding: 10px 16px; width: 100%; font-size: 13.5px; font-weight: 500; color: #e53e3e; background: none; border: none; text-align: left; cursor: pointer; text-decoration: none; transition: background .14s; }
+    .sn-dd-logout:hover { background: #fff5f5; }
+    .sn-dd-logout i { width: 16px; text-align: center; }
+
+    /* Mobile nav profile strip */
+    .sn-mob-strip { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: linear-gradient(135deg, #09B850, #00c264); }
+    .sn-mob-avatar { width: 46px; height: 46px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; flex-shrink: 0; }
+    .sn-mob-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-mob-name  { font-size: 15px; font-weight: 700; color: #fff; }
+    .sn-mob-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
+    .mobile-nav-drawer .sn-logout-link { color: #e53e3e !important; }
+
+    @media (max-width: 640px) {
+      .wl-grid { grid-template-columns: 1fr; }
+      .wl-sort { display: none; }
+      .wl-count-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="hn-loader">
+  <div class="loader-brand">Hostel<span>Node</span></div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+  </div>
+</div>
+<%- include("../includes/navbar-user.ejs") %>
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<div class="wl-hero">
+  <div class="wl-hero-inner">
+    <div class="wl-hero-left">
+      <h1>
+        <span>Hello, <%= student.firstName %> 👋</span>
+        My Wishlist
+      </h1>
+      <p class="wl-hero-sub">Your saved hostels — all in one place. Ready to visit?</p>
+    </div>
+
+    <div class="wl-count-badge">
+      <div class="wl-count-num"><%= wishlist.length %></div>
+      <div class="wl-count-label">Saved<br>hostels</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════ -->
+<div class="wl-layout">
+
+  <% if (wishlist.length > 0) { %>
+
+    <!-- Toolbar -->
+    <div class="wl-toolbar">
+      <div class="wl-toolbar-left">
+        Showing <strong><%= wishlist.length %></strong> saved hostel<%= wishlist.length !== 1 ? 's' : '' %>
+      </div>
+      <div class="wl-sort">
+        <button class="wl-sort-btn active" onclick="sortCards(this, 'default')">Default</button>
+        <button class="wl-sort-btn" onclick="sortCards(this, 'price-low')">Price ↑</button>
+        <button class="wl-sort-btn" onclick="sortCards(this, 'price-high')">Price ↓</button>
+        <button class="wl-sort-btn" onclick="sortCards(this, 'rating')">Top rated</button>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="wl-grid" id="wlGrid">
+
+      <% wishlist.forEach(function(l) { %>
+        <div class="wl-card"
+             data-price="<%= l.startingPrice || 0 %>"
+             data-rating="<%= l.rating || 0 %>"
+             data-id="<%= l._id %>"
+             onclick="viewHostel('<%= l.slug %>')">
+
+          <!-- Image -->
+          <div class="wl-card-img">
+            <% if (l.images && l.images.length > 0) { %>
+              <img src="/listing-images/<%= l.images[0] %>" alt="<%= l.title %>" loading="lazy">
+            <% } else { %>
+              <img src="/images/placeholder.jpg" alt="No image">
+            <% } %>
+
+            <!-- Remove button -->
+            <button class="wl-remove-btn"
+              title="Remove from wishlist"
+              onclick="removeFromWishlist(event, this, '<%= l._id %>')">
+              <i class="fa-solid fa-heart-crack"></i>
+            </button>
+
+            <!-- Gender badge -->
+            <span class="wl-badge <%= (l.gender || '').toLowerCase().replace('-','') %>">
+              <%= l.gender || 'Hostel' %>
+            </span>
+
+            <!-- Verified -->
+            <% if (l.isVerified) { %>
+              <span class="wl-verified">
+                <i class="fa-solid fa-shield-halved"></i> Verified
+              </span>
+            <% } %>
+          </div>
+
+          <!-- Body -->
+          <div class="wl-card-body">
+
+            <div class="wl-card-top">
+              <div>
+                <div class="wl-card-name"><%= l.title %></div>
+                <div class="wl-card-type">
+                  <i class="fa-solid fa-bolt"></i> <%= l.propertyType %>
+                </div>
+              </div>
+              <div class="wl-rating">
+                <i class="fa-solid fa-star"></i>
+                <%= l.rating || '4.2' %>
+                <span>(<%= l.reviewCount || 0 %>)</span>
+              </div>
+            </div>
+
+            <div class="wl-card-loc">
+              <i class="fa-solid fa-location-dot"></i>
+              <%= l.location?.address ? l.location.address + ', ' : '' %><%= l.location?.city || '' %>
+            </div>
+
+            <!-- Amenities -->
+            <% if (l.amenities && l.amenities.length > 0) { %>
+              <div class="wl-amenities">
+                <% l.amenities.slice(0, 4).forEach(function(a) { %>
+                  <span class="wl-amenity"><%= a %></span>
+                <% }) %>
+                <% if (l.amenities.length > 4) { %>
+                  <span class="wl-amenity">+<%= l.amenities.length - 4 %> more</span>
+                <% } %>
+              </div>
+            <% } %>
+
+            <!-- Footer -->
+            <div class="wl-card-footer">
+              <div>
+                <div class="wl-price">
+                  ₹<%= (l.startingPrice || 0).toLocaleString('en-IN') %>
+                  <span>/mo</span>
+                </div>
+                <div class="wl-price-label"><%= l.rooms?.[0]?.type || 'Room' %></div>
+              </div>
+              <div class="wl-actions">
+                <% if (l.contact?.whatsapp) { %>
+                  <button class="wl-btn-wa"
+                    title="WhatsApp"
+                    onclick="event.stopPropagation(); waHostel('<%= l.contact.whatsapp %>')">
+                    <i class="fa-brands fa-whatsapp"></i>
+                  </button>
+                <% } %>
+                <button class="wl-btn-view"
+                  onclick="event.stopPropagation(); viewHostel('<%= l.slug %>')">
+                  View <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      <% }) %>
+
+    </div><!-- /wl-grid -->
+
+  <% } else { %>
+
+    <!-- Empty state -->
+    <div class="wl-empty">
+      <span class="wl-empty-icon">🤍</span>
+      <h2>Your wishlist is empty</h2>
+      <p>Start exploring hostels and tap the heart icon to save your favourites here.</p>
+      <a href="/findHostels" class="wl-btn-browse">
+        <i class="fa-solid fa-magnifying-glass"></i> Browse Hostels
+      </a>
+    </div>
+
+  <% } %>
+
+</div><!-- /wl-layout -->
+
+<!-- Toast -->
+<div class="wl-toast" id="wlToast">
+  <i class="fa-solid fa-circle-check"></i>
+  <span id="wlToastMsg">Removed from wishlist</span>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+<script>
+/* ── LOADER ── */
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const l = document.getElementById('hn-loader');
+    l.style.opacity = '0';
+    setTimeout(() => l.style.display = 'none', 400);
+  }, 900);
+});
+
+/* ── NAVBAR SCROLL ── */
+window.addEventListener('scroll', () => {
+  document.getElementById('hnNav').classList.toggle('scrolled', window.scrollY > 10);
+}, { passive: true });
+
+/* ── MOBILE NAV ── */
+function openMobileNav() {
+  document.getElementById('mobileNav').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileNav(e) {
+  if (e.target === document.getElementById('mobileNav')) {
+    document.getElementById('mobileNav').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+/* ── PROFILE DROPDOWN ── */
+function snToggle(e) {
+  e.stopPropagation();
+  document.getElementById('snPill')?.classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('snPill')?.classList.remove('open');
+});
+
+/* ── NAVIGATION ── */
+function viewHostel(slug) { window.location.href = '/hostel/' + slug; }
+function waHostel(phone) {
+  const num = (phone || '').replace(/[^0-9]/g, '');
+  if (!num) return;
+  window.open('https://wa.me/' + num + '?text=' +
+    encodeURIComponent('Hi! I found your hostel on HostelNode. Can you share details?'), '_blank');
+}
+
+/* ── TOAST ── */
+function showToast(msg, icon = 'fa-circle-check') {
+  const toast = document.getElementById('wlToast');
+  document.getElementById('wlToastMsg').textContent = msg;
+  toast.querySelector('i').className = `fa-solid ${icon}`;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+/* ── REMOVE FROM WISHLIST ── */
+async function removeFromWishlist(e, btn, listingId) {
+  e.stopPropagation();
+
+  const card = btn.closest('.wl-card');
+
+  // Animate card out
+  card.style.transition = 'opacity .3s, transform .3s';
+  card.style.opacity = '0';
+  card.style.transform = 'scale(0.93)';
+
+  try {
+    const res  = await fetch(`/student/wishlist/toggle/${listingId}`, { method: 'POST' });
+    const data = await res.json();
+
+    if (data.success) {
+      setTimeout(() => {
+        card.remove();
+
+        // Update count in hero
+        const countEl = document.querySelector('.wl-count-num');
+        const toolbarEl = document.querySelector('.wl-toolbar-left strong');
+        const remaining = document.querySelectorAll('.wl-card').length;
+
+        if (countEl)   countEl.textContent = remaining;
+        if (toolbarEl) toolbarEl.textContent = remaining;
+
+        // Show empty state if no cards left
+        if (remaining === 0) location.reload();
+
+        showToast('Removed from wishlist');
+      }, 300);
+    } else {
+      // Revert animation on failure
+      card.style.opacity = '1';
+      card.style.transform = 'scale(1)';
+      showToast('Could not remove. Try again.', 'fa-circle-xmark');
+    }
+  } catch {
+    card.style.opacity = '1';
+    card.style.transform = 'scale(1)';
+    showToast('Network error. Try again.', 'fa-circle-xmark');
+  }
+}
+
+/* ── CLIENT-SIDE SORT ── */
+function sortCards(btn, mode) {
+  document.querySelectorAll('.wl-sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const grid  = document.getElementById('wlGrid');
+  const cards = [...grid.querySelectorAll('.wl-card')];
+
+  cards.sort((a, b) => {
+    if (mode === 'price-low')  return +a.dataset.price  - +b.dataset.price;
+    if (mode === 'price-high') return +b.dataset.price  - +a.dataset.price;
+    if (mode === 'rating')     return +b.dataset.rating - +a.dataset.rating;
+    return 0; // default: keep server order
+  });
+
+  cards.forEach(c => grid.appendChild(c));
+}
+</script>
+</body>
+</html>

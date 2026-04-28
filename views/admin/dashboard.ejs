@@ -1,0 +1,326 @@
+<% locals.pageTitle = 'Dashboard'; locals.activePage = 'dashboard'; %>
+<%- include('layout', { body: `
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Dashboard</h1>
+    <p>Welcome back, ${admin.name.split(' ')[0]}! Here's what's happening on HostelNode.</p>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="/admin/listings?status=Pending" class="btn btn-amber btn-sm">
+      <i class="fa-solid fa-clock"></i> ${stats.pendingListings} Pending Listings
+    </a>
+    <a href="/admin/owners?status=Pending" class="btn btn-outline btn-sm">
+      <i class="fa-solid fa-user-clock"></i> ${stats.pendingOwners} Pending Owners
+    </a>
+  </div>
+</div>
+
+<!-- STAT CARDS ROW 1 -->
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fa-solid fa-crown"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Total Owners</div>
+      <div class="stat-value">${stats.totalOwners}</div>
+      <div class="stat-sub"><span class="up"><i class="fa-solid fa-circle" style="font-size:0.5rem"></i></span> ${stats.activeOwners} active</div>
+    </div>
+  </div>
+  
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><i class="fa-solid fa-graduation-cap"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Total Students</div>
+      <div class="stat-value">${stats.totalStudents}</div>
+      <div class="stat-sub"><span class="up">${stats.activeStudents}</span> active · <span class="down">${stats.bannedStudents}</span> banned</div>
+    </div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><i class="fa-solid fa-building"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Total Listings</div>
+      <div class="stat-value">${stats.totalListings}</div>
+      <div class="stat-sub"><span class="up">${stats.approvedListings}</span> approved · <span class="down">${stats.pendingListings}</span> pending</div>
+    </div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon purple"><i class="fa-solid fa-house-chimney"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Hostels</div>
+      <div class="stat-value">${stats.totalHostels}</div>
+      <div class="stat-sub">Managed properties</div>
+    </div>
+  </div>
+  <div class="stat-card teal">
+    <div class="stat-icon teal"><i class="fa-solid fa-inbox"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Enquiries</div>
+      <div class="stat-value">${stats.totalEnquiries}</div>
+      <div class="stat-sub">Student inquiries</div>
+    </div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><i class="fa-solid fa-eye"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Total Views</div>
+      <div class="stat-value">${stats.totalViews.toLocaleString('en-IN')}</div>
+      <div class="stat-sub">Across all listings</div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 1 -->
+<div class="charts-grid" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-chart-line"></i> Signup Trends (6 months)</div>
+    </div>
+    <div class="card-body chart-wrap">
+      <canvas id="signupChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Listings by Type</div>
+    </div>
+    <div class="card-body chart-wrap">
+      <canvas id="listingTypeChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 2 -->
+<div class="charts-grid-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-location-dot"></i> Top Cities</div>
+    </div>
+    <div class="card-body chart-wrap">
+      <canvas id="citiesChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-circle-half-stroke"></i> Listing Status</div>
+    </div>
+    <div class="card-body chart-wrap" style="display:flex;align-items:center;justify-content:center">
+      <canvas id="statusChart" style="max-height:220px;max-width:220px"></canvas>
+    </div>
+  </div>
+</div>
+
+ 
+
+<!-- RECENT TABLES ROW -->
+<div class="charts-grid-2" style="margin-bottom:20px">
+
+  <!-- Recent Owners -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-crown"></i> Recent Owners</div>
+      <a href="/admin/owners" class="btn btn-ghost btn-sm">View all →</a>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Owner</th><th>Business</th><th>Status</th></tr></thead>
+        <tbody>
+          ${recentOwners.map(o => `
+          <tr onclick="window.location='/admin/owners/${o._id}'" style="cursor:pointer">
+            <td>
+              <div class="cell-avatar">
+                <div class="cell-avatar-img">${o.name.charAt(0)}</div>
+                <div><div class="cell-name">${o.name}</div><div class="cell-sub">${o.phone}</div></div>
+              </div>
+            </td>
+            <td><div class="cell-sub">${o.businessName || '—'}</div></td>
+            <td>
+              <span class="badge ${o.status==='Active'?'badge-green':o.status==='Pending'?'badge-amber':'badge-red'}">
+                <div class="dot"></div>${o.status}
+              </span>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Listings -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-building"></i> Recent Listings</div>
+      <a href="/admin/listings" class="btn btn-ghost btn-sm">View all →</a>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Listing</th><th>Price</th><th>Status</th></tr></thead>
+        <tbody>
+          ${recentListings.map(l => `
+          <tr onclick="window.location='/admin/listings/${l._id}'" style="cursor:pointer">
+            <td>
+              <div class="cell-name">${l.title}</div>
+              <div class="cell-sub">${l.location?.city||'—'} · ${l.propertyType}</div>
+            </td>
+            <td style="font-weight:600;color:var(--g)">₹${(l.startingPrice||0).toLocaleString('en-IN')}</td>
+            <td>
+              <span class="badge ${l.status==='Approved'?'badge-green':l.status==='Pending'?'badge-amber':'badge-red'}">
+                <div class="dot"></div>${l.status}
+              </span>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recent Students + Enquiries -->
+<div class="charts-grid-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-graduation-cap"></i> Recent Students</div>
+      <a href="/admin/students" class="btn btn-ghost btn-sm">View all →</a>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Student</th><th>City</th><th>Status</th></tr></thead>
+        <tbody>
+          ${recentStudents.map(s => `
+          <tr onclick="window.location='/admin/students/${s._id}'" style="cursor:pointer">
+            <td>
+              <div class="cell-avatar">
+                <div class="cell-avatar-img">${s.firstName.charAt(0)}</div>
+                <div><div class="cell-name">${s.firstName} ${s.lastName}</div><div class="cell-sub">${s.phone}</div></div>
+              </div>
+            </td>
+            <td><div class="cell-sub">${s.city||'—'}</div></td>
+            <td>
+              <span class="badge ${s.status==='Active'?'badge-green':s.status==='Banned'?'badge-red':'badge-gray'}">
+                <div class="dot"></div>${s.status}
+              </span>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-inbox"></i> Recent Enquiries</div>
+      <a href="/admin/enquiries" class="btn btn-ghost btn-sm">View all →</a>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Student</th><th>Hostel</th><th>Status</th></tr></thead>
+        <tbody>
+          ${recentEnquiries.map(e => `
+          <tr>
+            <td><div class="cell-name">${e.student?.firstName||'—'} ${e.student?.lastName||''}</div></td>
+            <td><div class="cell-sub">${e.listing?.title||e.hostelName||'—'}</div></td>
+            <td>
+              <span class="badge ${e.status==='New'?'badge-blue':e.status==='Contacted'?'badge-green':'badge-gray'}">
+                ${e.status}
+              </span>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Chart helpers ── */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const GREEN  = 'rgba(9,184,80,0.8)';
+const BLUE   = 'rgba(59,130,246,0.8)';
+const AMBER  = 'rgba(245,158,11,0.8)';
+
+function monthLabel(item) { return MONTHS[(item._id.m||item._id.month||1)-1]; }
+
+/* Signup chart */
+const ownerData   = ${chartData.ownerSignups};
+const studentData = ${chartData.studentSignups};
+const allMonths   = [...new Set([...ownerData.map(monthLabel), ...studentData.map(monthLabel)])];
+
+new Chart(document.getElementById('signupChart'), {
+  type: 'bar',
+  data: {
+    labels: allMonths,
+    datasets: [
+      { label:'Owners',   data: ownerData.map(d=>d.count),   backgroundColor:'rgba(245,158,11,0.7)', borderRadius:6 },
+      { label:'Students', data: studentData.map(d=>d.count), backgroundColor:'rgba(9,184,80,0.7)',   borderRadius:6 }
+    ]
+  },
+  options: { responsive:true, plugins:{ legend:{ position:'bottom' } }, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true,grid:{color:'#f3f4f6'},ticks:{precision:0}} } }
+});
+
+/* Listing type doughnut */
+const ltData = ${chartData.listingsByType};
+new Chart(document.getElementById('listingTypeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ltData.map(d=>d._id||'Other'),
+    datasets:[{ data: ltData.map(d=>d.count), backgroundColor:['rgba(9,184,80,0.8)','rgba(59,130,246,0.8)','rgba(245,158,11,0.8)'], borderWidth:2, borderColor:'#fff' }]
+  },
+  options:{ responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'65%' }
+});
+
+/* Cities bar */
+const ctData = ${chartData.topCities};
+new Chart(document.getElementById('citiesChart'), {
+  type: 'bar',
+  data: {
+    labels: ctData.map(d=>d._id||'Unknown'),
+    datasets:[{ label:'Listings', data: ctData.map(d=>d.count), backgroundColor:'rgba(59,130,246,0.7)', borderRadius:6 }]
+  },
+  options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,grid:{color:'#f3f4f6'},ticks:{precision:0}},y:{grid:{display:false}}} }
+});
+
+/* Status doughnut */
+const stData = ${chartData.listingsByType}; // reuse, or use listingsByStatus
+const statusRaw = [
+  { _id:'Approved', count: ${stats.approvedListings} },
+  { _id:'Pending',  count: ${stats.pendingListings}  },
+  { _id:'Rejected', count: ${stats.rejectedListings} }
+];
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: statusRaw.map(d=>d._id),
+    datasets:[{ data: statusRaw.map(d=>d.count), backgroundColor:['rgba(9,184,80,0.8)','rgba(245,158,11,0.8)','rgba(239,68,68,0.8)'], borderWidth:2, borderColor:'#fff' }]
+  },
+  options:{ responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'60%' }
+});
+// ================= VISITOR CHART =================
+const visitorData = ${chartData.visitorCities};
+
+if (visitorData.length) {
+  new Chart(document.getElementById('visitorChart'), {
+    type: 'bar',
+    data: {
+      labels: visitorData.map(d => d._id || 'Unknown'),
+      datasets: [{
+        label: 'Visitors',
+        data: visitorData.map(d => d.count),
+        backgroundColor: 'rgba(9,184,80,0.7)',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+} else {
+  document.getElementById('visitorChart').parentElement.innerHTML =
+    "<p style='text-align:center;color:#888'>No visitor data yet</p>";
+}
+</script>
+` }) %>

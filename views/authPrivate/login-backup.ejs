@@ -1,0 +1,301 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login | HostelNode</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Inter',sans-serif;
+  background: linear-gradient(135deg, #09B850, #0f172a);
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+/* background glow */
+body::before{
+  content:"";
+  position:absolute;
+  width:200%;
+  height:200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.05) 10%, transparent 10%);
+  background-size:70px 70px;
+  animation:move 30s linear infinite;
+}
+
+@keyframes move{
+  0%{transform:translate(0,0);}
+  50%{transform:translate(-100px,-120px);}
+  100%{transform:translate(0,0);}
+}
+
+/* container */
+.login-wrapper{
+  width:100%;
+  max-width:420px;
+  backdrop-filter:blur(20px);
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 25px 70px rgba(0,0,0,0.35);
+}
+
+/* logo */
+.logo{
+  text-align:center;
+  margin:25px 0;
+}
+.logo img{
+  height:90px;
+  transition:.3s;
+}
+.logo img:hover{
+  transform:scale(1.08) rotate(-3deg);
+}
+
+/* card */
+.card-login{
+  background:rgba(255,255,255,0.95);
+  padding:40px 30px;
+  border-radius:22px;
+}
+
+/* title */
+.login-title{
+  text-align:center;
+  font-size:26px;
+  font-weight:700;
+  color:#09B850;
+}
+.login-sub{
+  text-align:center;
+  font-size:14px;
+  color:#64748B;
+  margin-bottom:25px;
+}
+
+/* inputs */
+.form-control{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #CBD5E1;
+  margin-top:6px;
+  transition:.25s;
+}
+
+.form-control:focus{
+  border-color:#09B850;
+  box-shadow:0 0 0 3px rgba(9,184,80,0.2);
+  outline:none;
+}
+
+/* password */
+.password-container{
+  position:relative;
+}
+.eye-icon{
+  position:absolute;
+  right:12px;
+  top:38px;
+  cursor:pointer;
+  color:#94A3B8;
+}
+.eye-icon:hover{
+  color:#09B850;
+}
+
+/* 🔥 ROLE TOGGLE (MODERN) */
+.role-select{
+  margin-top:15px;
+}
+
+.role-box{
+  display:flex;
+  background:#F1F5F9;
+  border-radius:12px;
+  padding:5px;
+  gap:5px;
+}
+
+.role-box input{
+  display:none;
+}
+
+.role-box label{
+  flex:1;
+  text-align:center;
+  padding:10px;
+  border-radius:10px;
+  font-size:13px;
+  cursor:pointer;
+  transition:.3s;
+  color:#475569;
+}
+
+/* active */
+.role-box input:checked + label{
+  background: linear-gradient(135deg, #09B850, #22C55E);
+  color:white;
+  box-shadow:0 6px 18px rgba(9,184,80,0.3);
+}
+
+/* hover */
+.role-box label:hover{
+  color:#09B850;
+}
+
+/* button */
+.btn-login{
+  width:100%;
+  margin-top:18px;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  font-weight:600;
+  color:white;
+  background:linear-gradient(135deg,#09B850,#22C55E);
+  transition:.3s;
+}
+
+.btn-login:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 30px rgba(0,0,0,0.25);
+}
+
+.btn-login:active{
+  transform:scale(.97);
+}
+/* 🔥 Modern Alert */
+.custom-alert{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  margin-bottom:15px;
+  border-radius:12px;
+  background:rgba(255, 0, 0, 0.08);
+  color:#dc2626;
+  font-size:14px;
+  font-weight:500;
+  border:1px solid rgba(220,38,38,0.2);
+  animation: shake 0.4s ease;
+}
+
+.custom-alert i{
+  font-size:16px;
+}
+
+/* subtle shake */
+@keyframes shake{
+  0%{transform:translateX(0);}
+  25%{transform:translateX(-4px);}
+  50%{transform:translateX(4px);}
+  75%{transform:translateX(-2px);}
+  100%{transform:translateX(0);}
+}
+/* links */
+.signup-link{
+  text-align:center;
+  margin-top:12px;
+  font-size:14px;
+}
+.signup-link a{
+  color:#09B850;
+  text-decoration:none;
+  font-weight:600;
+}
+.signup-link a:hover{
+  text-decoration:underline;
+}
+
+/* responsive */
+@media(max-width:480px){
+  .card-login{padding:25px;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-wrapper">
+
+  <div class="logo">
+    <img src="/images/hostelnode-logo-cutout.png">
+  </div>
+
+  <div class="card-login">
+<% if (typeof error !== 'undefined') { %>
+  <div class="custom-alert">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span><%= error %></span>
+  </div>
+<% } %>
+    <div class="login-title">Welcome Back</div>
+    <div class="login-sub">Login to your HostelNode account</div>
+
+    <form method="POST" action="/user/login">
+
+      <label>Email</label>
+        <input type="email" name="user[email]" maxlength="50" class="form-control" required>    
+      <div class="password-container">
+        <label>Password</label>
+        <input type="password" id="password"  maxlength="30" name="user[password]" class="form-control" required>
+        <i class="fa-solid fa-eye eye-icon" id="togglePassword"></i>
+      </div>
+
+      <!-- 🔥 MODERN ROLE -->
+      <div class="role-select">
+        <div class="role-box">
+          <input type="radio" id="owner" name="user[role]" value="Owner" checked>
+          <label for="owner"><i class="fa-solid fa-crown"></i> Owner</label>
+
+          <input type="radio" id="manager" name="user[role]" value="Manager">
+          <label for="manager"><i class="fa-solid fa-user-gear"></i> Manager</label>
+
+          <input type="radio" id="member" name="user[role]" value="Member">
+          <label for="member"><i class="fa-solid fa-user"></i> Member</label>
+        </div>
+      </div>
+
+      <button class="btn-login">Login</button>
+
+    </form>
+
+    <div class="signup-link">
+      <a href="/user/forgot-password">Forgot Password?</a>
+    </div>
+
+    <div class="signup-link">
+      Don't have an account? <a href="/signup">Signup</a>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const passwordInput = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
+
+togglePassword.addEventListener("click", () => {
+  passwordInput.type = passwordInput.type === "password" ? "text" : "password";
+  togglePassword.classList.toggle("fa-eye-slash");
+});
+</script>
+
+</body>
+</html>
+

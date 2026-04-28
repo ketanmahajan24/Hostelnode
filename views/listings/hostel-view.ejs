@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= hostel.name %> | HostelNode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/hostel-view1.css">
+  <link rel="stylesheet" href="/css/findhostel.css">
+
+</head>
+<style>
+.enq-overlay {
+  position:fixed;inset:0;background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(3px);z-index:10000;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.enq-overlay.open { opacity:1;pointer-events:all; }
+.enq-box {
+  background:#fff;border-radius:22px;
+  width:100%;max-width:460px;max-height:92vh;overflow-y:auto;
+  position:relative;box-shadow:0 20px 60px rgba(0,0,0,.22);
+  transform:translateY(20px);transition:transform .25s;scrollbar-width:thin;
+}
+.enq-overlay.open .enq-box { transform:translateY(0); }
+.enq-close {
+  position:absolute;top:14px;right:14px;width:32px;height:32px;
+  border-radius:50%;border:none;background:rgba(0,0,0,.08);
+  color:#555;font-size:15px;cursor:pointer;z-index:10;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+}
+.enq-close:hover { background:rgba(0,0,0,.15); }
+.enq-header { padding:28px 24px 22px;text-align:center; }
+.enq-header-auth { background:linear-gradient(135deg,#0a1628,#1a3a5c); }
+.enq-header-form { background:linear-gradient(135deg,#09B850,#00c264); }
+.enq-header h3 { font-family:'Instrument Sans',sans-serif;font-size:20px;font-weight:700;color:#fff;margin:0 0 4px; }
+.enq-header p  { color:rgba(255,255,255,.75);font-size:13px;margin:0; }
+.enq-header-icon { font-size:32px;margin-bottom:10px; }
+.enq-room-pill {
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+  border-radius:50px;padding:5px 14px;font-size:13px;font-weight:600;color:white;margin-bottom:10px;
+}
+.enq-body { padding:22px 24px 24px; }
+.enq-alert { display:none;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px; }
+.enq-alert.show { display:block; }
+.enq-alert.error   { background:#fff5f5;color:#c53030;border:1px solid #feb2b2; }
+.enq-alert.success { background:#e8faf0;color:#078a3c;border:1px solid #9ae6b4; }
+.enq-field { margin-bottom:14px; }
+.enq-field label { display:block;font-size:12px;font-weight:600;color:#3d4f63;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px; }
+.enq-input,
+.enq-field input[type="text"],
+.enq-field input[type="tel"],
+.enq-field input[type="date"],
+.enq-field select,
+.enq-field textarea {
+  width:100%;padding:11px 13px;border:1.5px solid #d6e4d9;border-radius:12px;
+  font-size:14.5px;font-family:inherit;color:#0a1628;background:#fff;
+  outline:none;transition:border-color .18s,box-shadow .18s;box-sizing:border-box;
+}
+.enq-input:focus,.enq-field input:focus,.enq-field select:focus,.enq-field textarea:focus {
+  border-color:#09B850;box-shadow:0 0 0 3px rgba(9,184,80,.12);
+}
+.enq-otp-row { display:flex;gap:10px; }
+.enq-btn-otp {
+  padding:10px 14px;background:#e8faf0;color:#078a3c;
+  border:1.5px solid #09B850;border-radius:12px;
+  font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+  font-family:inherit;transition:all .18s;flex-shrink:0;
+}
+.enq-btn-otp:hover { background:#09B850;color:white; }
+.enq-btn-otp:disabled { opacity:.5;cursor:not-allowed; }
+.enq-countdown { font-size:12px;color:#64748b;margin-top:5px; }
+.enq-countdown span { color:#09B850;font-weight:600; }
+.enq-verified-badge {
+  display:inline-flex;align-items:center;gap:5px;
+  background:#e8faf0;color:#078a3c;font-size:12px;font-weight:600;
+  padding:4px 12px;border-radius:20px;
+}
+.enq-row-2 { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+.enq-contact-opts { display:flex;gap:10px; }
+.enq-opt { flex:1;cursor:pointer; }
+.enq-opt input { display:none; }
+.enq-opt-card {
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:12px 8px;border:1.5px solid #d6e4d9;border-radius:12px;
+  font-size:12.5px;font-weight:600;color:#3d4f63;transition:all .18s;text-align:center;
+}
+.enq-opt-card i { font-size:18px;color:#94a3b8; }
+.enq-opt input:checked + .enq-opt-card { border-color:#09B850;background:#e8faf0;color:#09B850; }
+.enq-opt input:checked + .enq-opt-card i { color:#09B850; }
+.enq-btn-primary {
+  width:100%;padding:13px;background:#09B850;color:white;border:none;
+  border-radius:13px;font-size:15px;font-weight:700;
+  font-family:'Instrument Sans',sans-serif;cursor:pointer;margin-top:6px;
+  transition:background .18s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.enq-btn-primary:hover { background:#078a3c; }
+.enq-btn-primary:disabled { opacity:.6;cursor:not-allowed; }
+.enq-login-note { text-align:center;font-size:13px;color:#64748b;margin-top:14px; }
+.enq-login-note a { color:#09B850;font-weight:600;text-decoration:none; }
+.enq-trust-row {
+  display:flex;justify-content:center;gap:16px;
+  margin-top:14px;font-size:12px;color:#94a3b8;flex-wrap:wrap;
+}
+.enq-trust-row i { color:#09B850;margin-right:3px; }
+.enq-success { text-align:center;padding:48px 24px; }
+.enq-success-icon { font-size:56px;margin-bottom:16px; }
+.enq-success h3 { font-family:'Instrument Sans',sans-serif;font-size:22px;font-weight:700;color:#0a1628;margin-bottom:8px; }
+.enq-success p  { color:#64748b;font-size:15px;max-width:300px;margin:0 auto 24px; }
+@media(max-width:480px) {
+  .enq-body { padding:18px 18px 22px; }
+  .enq-row-2 { grid-template-columns:1fr; }
+}
+</style>
+<style>
+/* Overlay */
+.enq-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .22s;
+}
+.enq-overlay.open {
+  opacity: 1; pointer-events: all;
+}
+
+/* Box */
+.enq-box {
+  background: #fff;
+  border-radius: 22px;
+  width: 100%; max-width: 460px;
+  max-height: 92vh; overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,.22);
+  transform: translateY(20px);
+  transition: transform .25s;
+  scrollbar-width: thin;
+}
+.enq-overlay.open .enq-box {
+  transform: translateY(0);
+}
+
+/* Close */
+.enq-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px;
+  border-radius: 50%; border: none;
+  background: rgba(0,0,0,.08);
+  color: #555; font-size: 15px;
+  cursor: pointer; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.enq-close:hover { background: rgba(0,0,0,.15); }
+
+/* Header */
+.enq-header {
+  padding: 28px 24px 22px;
+  text-align: center;
+  position: relative;
+}
+.enq-header-auth {
+  background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 100%);
+}
+.enq-header-form {
+  background: linear-gradient(135deg, #09B850 0%, #00c264 100%);
+}
+.enq-header h3 {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 4px;
+}
+.enq-header p { color: rgba(255,255,255,.75); font-size: 13px; margin: 0; }
+.enq-header-icon { font-size: 32px; margin-bottom: 10px; }
+
+/* Room pill */
+.enq-room-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 50px; padding: 5px 14px;
+  font-size: 13px; font-weight: 600; color: white;
+  margin-bottom: 10px;
+}
+.enq-room-price { font-weight: 400; opacity: .82; }
+
+/* Body */
+.enq-body { padding: 22px 24px 24px; }
+
+/* Alert */
+.enq-alert {
+  display: none; padding: 10px 14px; border-radius: 10px;
+  font-size: 13px; margin-bottom: 14px;
+}
+.enq-alert.show { display: block; }
+.enq-alert.error   { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+.enq-alert.success { background: #e8faf0; color: #078a3c; border: 1px solid #9ae6b4; }
+
+/* Step indicator */
+.enq-steps-ind {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 20px;
+}
+.enq-step-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #e2e8f0; color: #94a3b8;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  transition: background .2s, color .2s;
+  flex-shrink: 0;
+}
+.enq-step-dot.active { background: #09B850; color: white; }
+.enq-step-dot.done   { background: #0a1628; color: white; }
+.enq-step-line { flex: 1; height: 2px; background: #e2e8f0; border-radius: 2px; }
+
+/* Fields */
+.enq-field { margin-bottom: 14px; }
+.enq-field label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: #3d4f63; margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.req { color: #09B850; }
+
+.enq-input, .enq-field input[type="text"],
+.enq-field input[type="tel"], .enq-field input[type="date"],
+.enq-field select, .enq-field textarea {
+  width: 100%; padding: 11px 13px;
+  border: 1.5px solid #d6e4d9; border-radius: 12px;
+  font-size: 14.5px; font-family: inherit; color: #0a1628;
+  background: #fff; outline: none;
+  transition: border-color .18s, box-shadow .18s;
+  box-sizing: border-box;
+}
+.enq-input:focus,
+.enq-field input:focus,
+.enq-field select:focus,
+.enq-field textarea:focus {
+  border-color: #09B850;
+  box-shadow: 0 0 0 3px rgba(9,184,80,.12);
+}
+.enq-field input::placeholder,
+.enq-field textarea::placeholder { color: #b0bec5; }
+
+/* OTP row */
+.enq-otp-row { display: flex; gap: 10px; }
+
+.enq-btn-otp {
+  padding: 10px 14px;
+  background: #e8faf0; color: #078a3c;
+  border: 1.5px solid #09B850; border-radius: 12px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; font-family: inherit;
+  transition: all .18s; flex-shrink: 0;
+}
+.enq-btn-otp:hover { background: #09B850; color: white; }
+.enq-btn-otp:disabled { opacity: .5; cursor: not-allowed; }
+
+.enq-countdown {
+  font-size: 12px; color: #64748b; margin-top: 5px;
+}
+.enq-countdown span { color: #09B850; font-weight: 600; }
+
+.enq-verified-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #e8faf0; color: #078a3c;
+  font-size: 12px; font-weight: 600;
+  padding: 4px 12px; border-radius: 20px;
+}
+
+/* 2-col row */
+.enq-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Contact option cards */
+.enq-contact-opts { display: flex; gap: 10px; }
+.enq-opt { flex: 1; cursor: pointer; }
+.enq-opt input { display: none; }
+.enq-opt-card {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; padding: 12px 8px;
+  border: 1.5px solid #d6e4d9; border-radius: 12px;
+  font-size: 12.5px; font-weight: 600; color: #3d4f63;
+  transition: all .18s; text-align: center;
+}
+.enq-opt-card i { font-size: 18px; color: #94a3b8; }
+.enq-opt input:checked + .enq-opt-card {
+  border-color: #09B850; background: #e8faf0; color: #09B850;
+}
+.enq-opt input:checked + .enq-opt-card i { color: #09B850; }
+
+/* Primary button */
+.enq-btn-primary {
+  width: 100%; padding: 13px;
+  background: #09B850; color: white;
+  border: none; border-radius: 13px;
+  font-size: 15px; font-weight: 700;
+  font-family: 'Instrument Sans', sans-serif;
+  cursor: pointer; margin-top: 6px;
+  transition: background .18s, transform .15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.enq-btn-primary:hover { background: #078a3c; }
+.enq-btn-primary:active { transform: scale(.98); }
+.enq-btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Login note */
+.enq-login-note {
+  text-align: center; font-size: 13px; color: #64748b; margin-top: 14px;
+}
+.enq-login-note a { color: #09B850; font-weight: 600; text-decoration: none; }
+
+/* Trust row */
+.enq-trust-row {
+  display: flex; justify-content: center; gap: 16px;
+  margin-top: 14px; font-size: 12px; color: #94a3b8; flex-wrap: wrap;
+}
+.enq-trust-row i { color: #09B850; margin-right: 3px; }
+
+/* Success state */
+.enq-success {
+  text-align: center; padding: 48px 24px;
+}
+.enq-success-icon { font-size: 56px; margin-bottom: 16px; }
+.enq-success h3 {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 22px; font-weight: 700; color: #0a1628; margin-bottom: 8px;
+}
+.enq-success p { color: #64748b; font-size: 15px; max-width: 300px; margin: 0 auto 24px; }
+
+@media (max-width: 480px) {
+  .enq-body { padding: 18px 18px 22px; }
+  .enq-row-2 { grid-template-columns: 1fr; }
+  .enq-contact-opts { gap: 7px; }
+  .enq-opt-card { padding: 10px 6px; font-size: 11.5px; }
+}
+</style>
+<style>
+    /* ═══════════════════════════════════════════════════════
+       STUDENT PROFILE PILL + DROPDOWN
+       Scoped with .sn- prefix to avoid collisions
+    ═══════════════════════════════════════════════════════ */
+
+    /* The clickable pill in the navbar */
+    .sn-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px 5px 5px;
+      border-radius: 50px;
+      border: 1.5px solid rgba(9, 184, 80, 0.30);
+      background: rgba(9, 184, 80, 0.07);
+      cursor: pointer;
+      user-select: none;
+      position: relative;           /* anchor for dropdown */
+      transition: border-color .2s, background .2s;
+    }
+    .sn-pill:hover {
+      border-color: rgba(9, 184, 80, 0.55);
+      background: rgba(9, 184, 80, 0.12);
+    }
+
+    /* Avatar circle */
+    .sn-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #09b850;
+      background: #e8faf0;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .sn-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Name text */
+    .sn-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #0a1628;
+      max-width: 110px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Chevron */
+    .sn-chevron {
+      font-size: 10px;
+      color: #09b850;
+      transition: transform .2s;
+    }
+    .sn-pill.open .sn-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* ── Dropdown panel ── */
+    .sn-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 240px;
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8f0ea;
+      box-shadow: 0 8px 40px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.06);
+      overflow: hidden;
+      z-index: 9999;
+
+      /* hidden by default */
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .sn-pill.open .sn-dropdown {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    /* Green header inside dropdown */
+    .sn-dd-header {
+      padding: 16px;
+      background: linear-gradient(135deg, #09B850 0%, #00c264 100%);
+    }
+    .sn-dd-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .sn-dd-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .sn-dd-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .sn-dd-phone {
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      margin-top: 2px;
+    }
+
+    /* Incomplete-profile nudge strip */
+    .sn-nudge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 12px;
+      padding: 8px 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #92400e;
+      text-decoration: none;
+      transition: background .15s;
+    }
+    .sn-nudge:hover { background: #fef3c7; color: #92400e; }
+    .sn-nudge i { color: #f59e0b; }
+
+    /* Menu links */
+    .sn-dd-items { padding: 6px 0; }
+
+    .sn-dd-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #0a1628;
+      text-decoration: none;
+      transition: background .14s;
+    }
+    .sn-dd-link:hover { background: #f5fbf7; color: #09b850; }
+    .sn-dd-link i {
+      width: 16px;
+      text-align: center;
+      color: #09b850;
+      font-size: 13px;
+    }
+
+    .sn-dd-divider { height: 1px; background: #eef3ee; margin: 4px 0; }
+
+    /* Logout — red */
+    .sn-dd-logout {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      width: 100%;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #e53e3e;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .14s;
+    }
+    .sn-dd-logout:hover { background: #fff5f5; }
+    .sn-dd-logout i { width: 16px; text-align: center; }
+
+    /* ═══════════════════════════════════════════════════════
+       MOBILE NAV — profile strip (when logged in)
+    ═══════════════════════════════════════════════════════ */
+    .sn-mob-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #09B850, #00c264);
+    }
+    .sn-mob-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .sn-mob-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-mob-name  { font-size: 15px; font-weight: 700; color: #fff; }
+    .sn-mob-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
+
+    /* logout link colour in mobile drawer */
+    .mobile-nav-drawer .sn-logout-link { color: #e53e3e !important; }
+    .mobile-nav-drawer .sn-logout-link:hover { background: #fff5f5 !important; }
+  </style>
+<body>
+
+<!-- ==================================================
+     NAVBAR
+============================================================ -->
+ <%- include("../includes/navbar-user-hostel.ejs") %>
+<!-- ============================================================
+     GALLERY
+============================================================ -->
+<section class="gallery-section" id="gallerySection">
+  <div class="gallery-grid">
+
+    <!-- Main image -->
+    <div class="gallery-main" onclick="openLightbox(0)"> 
+      <img id="mainImage" src="/listing-images/<%= hostel.images[0] %>" alt="<%= hostel.name %> main photo">
+      <div class="gallery-main-overlay">
+        <i class="fa-solid fa-expand"></i>
+      </div>
+      
+    </div>
+
+    <!-- Side images -->
+    <div class="gallery-side">
+      <% hostel.images.slice(1, 5).forEach((img, i) => { %>
+        <div class="gallery-thumb <%= i === 3 ? 'last-thumb' : '' %>"
+             onclick="<%= i === 3 ? 'openLightbox(' + (i+1) + ')' : 'swapMain(this,' + (i+1) + ')' %>">
+          <img src="/listing-images/<%= img %>" alt="Hostel photo <%= i+2 %>">
+          <% if (i === 3) { %>
+            <div class="gallery-more-overlay">
+              <i class="fa-solid fa-images"></i>
+              <span>+<%= Math.max(0, hostel.images.length - 5) %> more</span>
+            </div>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     LIGHTBOX
+============================================================ -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lb-close" onclick="closeLightbox()"><i class="fa-solid fa-xmark"></i></button>
+  <button class="lb-prev"  onclick="lbNav(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+  <button class="lb-next"  onclick="lbNav(1)"><i class="fa-solid fa-chevron-right"></i></button>
+  <div class="lb-inner">
+    <img id="lbImg" src="" alt="">
+    <div class="lb-counter" id="lbCounter"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     STICKY PROGRESS NAV (desktop)
+============================================================ -->
+<div class="progress-nav" id="progressNav">
+  <a href="#overview"   class="pnav-link active">Overview</a>
+  <a href="#rooms"      class="pnav-link">Rooms</a>
+  <a href="#amenities"  class="pnav-link">Amenities</a>
+  <a href="#policies"   class="pnav-link">Policies</a>
+  <a href="#location"   class="pnav-link">Location</a>
+  <a href="#reviews"    class="pnav-link">Reviews</a>
+</div>
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+<div class="hv-container">
+
+  <!-- ======= LEFT COLUMN ======= -->
+  <div class="hv-left">
+
+    <!-- OVERVIEW -->
+    <section class="hv-section" id="overview">
+
+      <!-- Title row -->
+      <div class="title-row">
+        <div class="title-left">
+          <div class="title-tags">
+            
+
+            <% const type = (hostel.propertyType || 'Hostel').toLowerCase(); %>
+
+              <span class="htag htag-type htag-<%= type %>">
+
+                <i class="fa-solid 
+                  <%= type === 'pg' ? 'fa-bed' :
+                      type === 'flat' ? 'fa-house' :
+                      'fa-building' %>">
+                </i>
+                <%= hostel.propertyType %>
+              </span>
+
+            <span class="htag htag-gender">
+              <i class="fa-solid fa-<%= hostel.gender === 'Girls' ? 'venus' : (hostel.gender === 'Boys' ? 'mars' : 'venus-mars') %>"></i>
+              <%= hostel.gender %>
+            </span>
+            <!-- <span class="htag htag-verified"><i class="fa-solid fa-shield-halved"></i> Verified</span> -->
+             <% if (hostel.isVerified) { %>
+                   <span class="htag htag-verified"><i class="fa-solid fa-shield-halved"></i> Verified</span> 
+                <% } %>
+            <!-- Share button -->
+             <button class="hn-share-nav" onclick="shareHostel()" title="Share"> 
+              <i class="fa-solid fa-share-nodes"></i>
+            <span>Share</span>
+            </button> 
+            
+          </div>
+          <h1 class="hv-title"><%= hostel.title %> </h1>
+  
+          <div class="hv-loc">
+            
+            <span> <i class="fa-solid fa-location-dot"></i> <%= hostel.location.address %>, <%= hostel.location.city %> , <%= hostel.location.state %>,  <%= hostel.location.pincode %> </span>
+            
+            <span class="loc-divider">·</span>
+            <span class="near-college"><i class="fa-solid fa-location"></i> Near by <%= hostel.location.nearCollege || '0.8 km from college' %></span>
+          </div>
+        </div>
+
+        <div class="title-right">
+          <div class="rating-badge">
+            <div class="rating-num"><%= hostel.rating || '4.7' %></div>
+            <div class="rating-stars">
+              <% const r = hostel.rating || 4.7; %>
+              <% for(let s=1;s<=5;s++) { %>
+                <i class="fa-<%= s <= Math.round(r) ? 'solid' : 'regular' %> fa-star"></i>
+              <% } %>
+            </div>
+            <div class="rating-count"><%= hostel.reviewCount || 48 %> reviews</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick stats strip -->
+      <div class="quick-stats">
+        <div class="qstat">
+          <i class="fa-solid fa-bed"></i>
+          <div>
+            <div class="qstat-val"><%= hostel.rooms ? hostel.rooms.length : 3 %> types</div>
+            <div class="qstat-label">Room options</div>
+          </div>
+        </div>
+        <div class="qstat">
+          <i class="fa-solid fa-users"></i>
+          <div>
+            <div class="qstat-val"><%= hostel.capacity || '50+' %></div>
+            <div class="qstat-label">Residents</div>
+          </div>
+        </div>
+        <div class="qstat">
+          <i class="fa-solid fa-calendar-check"></i>
+          <div>
+            <div class="qstat-val"><%= hostel.availability || 'Available' %></div>
+            <div class="qstat-label">Move-in</div>
+          </div>
+        </div>
+        <div class="qstat">
+          <i class="fa-solid fa-indian-rupee-sign"></i>
+          <div>
+            <div class="qstat-val">₹<%= hostel.deposit || '5,000' %></div>
+            <div class="qstat-label">Min. deposit</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="about-block">
+        <h2 class="hv-h2">About this property</h2>
+        <p class="about-text" id="aboutText"><%= hostel.description %></p>
+        <button class="read-more-btn" id="readMoreBtn" onclick="toggleReadMore()">
+          Read more <i class="fa-solid fa-chevron-down"></i>
+        </button>
+      </div>
+
+    </section><!-- /overview -->
+
+    <!-- ROOM TYPES -->
+    <section class="hv-section" id="rooms">
+      <h2 class="hv-h2">Room Types & Pricing</h2>
+      <div class="rooms-grid">
+        <% hostel.rooms.forEach((room, i) => { %>
+        <div class="room-card animate-in" style="animation-delay: <%= i * 0.08 %>s">
+          <div class="room-card-top">
+            <div class="room-icon">
+              <i class="fa-solid fa-<%= room.type.toLowerCase().includes('single') ? 'user' : room.type.toLowerCase().includes('double') ? 'user-group' : 'users' %>"></i>
+            </div>
+            <div class="room-info">
+              <h4 class="room-name"><%= room.type %></h4>
+              <div class="room-price">
+                <span class="price-main">₹<%= room.price.toLocaleString('en-IN') %></span>
+                <span class="price-period"> / month</span>
+              </div>
+              <div class="room-deposit">Security deposit: ₹<%= room.deposit.toLocaleString('en-IN') %></div>
+            </div>
+          </div>
+          <div class="room-card-features">
+            <% if(room.features) { room.features.forEach(f => { %>
+            <span class="room-feat"><i class="fa-solid fa-check"></i> <%= f %></span>
+            <% }) } %>
+          </div>
+          <div class="room-card-footer">
+            <span class="room-avail <%= room.available ? 'avail-yes' : 'avail-no' %>">
+              <i class="fa-solid fa-circle"></i>
+              <%= room.available ? 'Available now' : 'Waitlist' %>
+            </span>
+            <button class="btn-book-room" onclick="openBooking('<%= room.type %>', <%= room.price %>)">
+              Enquire Now
+            </button>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <!-- AMENITIES -->
+    <section class="hv-section" id="amenities">
+      <h2 class="hv-h2">Amenities</h2>
+      <div class="amenities-grid">
+        <% const amenityIcons = {
+          'WiFi': 'wifi', 'wifi': 'wifi',
+          'AC': 'snowflake', 'Air Conditioning': 'snowflake',
+          'Meals': 'utensils', 'Food': 'utensils',
+          'Laundry': 'shirt', 'Washing Machine': 'shirt',
+          'Security': 'shield-halved', '24/7 Security': 'shield-halved',
+          'Parking': 'car', 'Gym': 'dumbbell',
+          'TV': 'tv', 'CCTV': 'camera',
+          'Hot Water': 'droplet', 'Water Purifier': 'droplet',
+          'Power Backup': 'bolt', 'Study Room': 'book',
+          'Attached Bathroom': 'bath', 'Common Bathroom': 'bath',
+          'Geyser': 'fire-flame-simple', 'Housekeeping': 'broom',
+          'Cafeteria': 'mug-saucer', 'Library': 'book-open'
+        }; %>
+        <% hostel.amenities.forEach(a => { %>
+        <div class="amenity-item animate-in">
+          <div class="amenity-icon">
+            <i class="fa-solid fa-<%= amenityIcons[a] || 'check' %>"></i>
+          </div>
+          <span class="amenity-label"><%= a %></span>
+        </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <!-- POLICIES -->
+    <section class="hv-section" id="policies">
+      <h2 class="hv-h2">Policies & Rules</h2>
+      <div class="policies-grid">
+        <% hostel.rules.forEach((r, i) => { %>
+        <div class="policy-item animate-in" style="animation-delay: <%= i * 0.05 %>s">
+          <div class="policy-icon">
+            <i class="fa-solid fa-circle-info"></i>
+          </div>
+          <span><%= r %></span>
+        </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <!-- LOCATION / MAP -->
+<section class="hv-section" id="location">
+  <h2 class="hv-h2">Location</h2>
+
+  <div class="map-address-row">
+    
+    <!-- ADDRESS -->
+    <div class="map-address">
+      <i class="fa-solid fa-location-dot"></i>
+      <div>
+        <div class="map-addr-text">
+          <%= hostel.location.address %>, <%= hostel.location.city %>
+        </div>
+
+        <% if (hostel.location.nearCollege) { %>
+          <div class="map-near">
+            Near <%= hostel.location.nearCollege %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- DIRECTIONS BUTTON -->
+    <a 
+      href="<%= hostel.location.coordinates?.lat && hostel.location.coordinates?.lng 
+        ? `https://www.google.com/maps?q=${hostel.location.coordinates.lat},${hostel.location.coordinates.lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+            hostel.location.address + ', ' + hostel.location.city
+          )}` %>"
+      target="_blank"
+      class="btn-directions"
+    >
+      <i class="fa-solid fa-diamond-turn-right"></i> Get directions
+    </a>
+
+  </div>
+
+  <!-- MAP -->
+  <div class="map-frame-wrap">
+    <% if (hostel.location.coordinates?.lat && hostel.location.coordinates?.lng) { %>
+
+      <iframe
+        src="https://maps.google.com/maps?q=<%= hostel.location.coordinates.lat %>,<%= hostel.location.coordinates.lng %>&output=embed"
+        allowfullscreen
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="Hostel location map">
+      </iframe>
+
+    <% } else { %>
+
+      <!-- fallback -->
+      <iframe
+        src="https://maps.google.com/maps?q=<%= encodeURIComponent(hostel.location.address + ', ' + hostel.location.city) %>&output=embed"
+        allowfullscreen
+        loading="lazy"
+        title="Hostel location map">
+      </iframe>
+
+    <% } %>
+  </div>
+
+</section>
+
+    <!-- REVIEWS -->
+     
+<section class="hv-section" id="reviews">
+  <div class="reviews-header">
+    <h2 class="hv-h2">Student Reviews</h2>
+    <div class="overall-rating">
+      <div class="overall-num" id="overallNum"><%= hostel.rating || '0' %></div>
+      <div>
+        <div class="overall-stars">
+          <% const rr = hostel.rating || 0; %>
+          <% for(let s=1; s<=5; s++) { %>
+            <i class="fa-solid fa-star<%= s <= Math.round(rr) ? '' : '-half-stroke' %>"></i>
+          <% } %>
+        </div>
+        <div class="overall-count" id="overallCount">
+          Based on <%= hostel.reviewCount || 0 %> reviews
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WRITE A REVIEW (logged-in students only) ══ -->
+  <% if (student) { %>
+    <% if (studentReview) { %>
+
+      <!-- Already reviewed — show their review with delete option -->
+      <div class="your-review-banner">
+        <div class="yrb-left">
+          <i class="fa-solid fa-circle-check"></i>
+          <div>
+            <div class="yrb-title">Your review</div>
+            <div class="yrb-stars">
+              <% for(let s=1; s<=5; s++) { %>
+                <i class="fa-solid fa-star<%= s <= studentReview.rating ? '' : ' star-empty' %>"></i>
+              <% } %>
+            </div>
+            <div class="yrb-comment"><%= studentReview.comment || 'No comment added.' %></div>
+          </div>
+        </div>
+        <button class="yrb-delete-btn"
+          onclick="deleteReview('<%= hostel._id %>')"
+          title="Delete your review">
+          <i class="fa-solid fa-trash-can"></i> Delete
+        </button>
+      </div>
+
+    <% } else { %>
+
+      <!-- Review form -->
+      <div class="review-form-wrap" id="reviewFormWrap">
+        <h3 class="rf-title">
+          <i class="fa-solid fa-star"></i> Rate this hostel
+        </h3>
+
+        <!-- Star picker -->
+        <div class="star-picker" id="starPicker">
+          <% for(let s=1; s<=5; s++) { %>
+            <button class="sp-star" data-val="<%= s %>" onclick="pickStar(<%= s %>)"
+              title="<%= s %> star<%= s > 1 ? 's' : '' %>">
+              <i class="fa-regular fa-star"></i>
+            </button>
+          <% } %>
+          <span class="sp-label" id="spLabel">Tap to rate</span>
+        </div>
+
+        <!-- Comment -->
+        <textarea
+          id="reviewComment"
+          class="rf-textarea"
+          placeholder="Share your experience — cleanliness, food, security, location…"
+          rows="4"
+          maxlength="500">
+        </textarea>
+        <div class="rf-char-count">
+          <span id="charCount">0</span>/500
+        </div>
+
+        <!-- Submit -->
+        <button class="rf-submit-btn" id="rfSubmitBtn"
+          onclick="submitReview('<%= hostel._id %>')">
+          <i class="fa-solid fa-paper-plane"></i> Submit Review
+        </button>
+      </div>
+
+    <% } %>
+  <% } else { %>
+
+    <!-- Guest nudge -->
+    <a href="/student/login" class="review-login-nudge">
+      <i class="fa-solid fa-user-circle"></i>
+      <span>Login to rate and review this hostel</span>
+      <i class="fa-solid fa-arrow-right"></i>
+    </a>
+
+  <% } %>
+
+  <!-- ══ REVIEWS LIST ══ -->
+  <div class="reviews-list" id="reviewsList">
+    <% const reviews = hostel.reviews && hostel.reviews.length > 0
+        ? hostel.reviews
+        : []; %>
+
+    <% if (reviews.length === 0) { %>
+      <div class="no-reviews-msg" id="noReviewsMsg">
+        <i class="fa-regular fa-comment-dots"></i>
+        <p>No reviews yet. Be the first to review!</p>
+      </div>
+    <% } %>
+
+    <% reviews.slice().reverse().forEach(rev => { %>
+      <div class="review-card animate-in">
+        <div class="review-top">
+          <div class="rev-avatar-wrap">
+            <% if (rev.avatar) { %>
+              <img src="/student-images/<%= rev.avatar %>" alt="<%= rev.userName %>"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="rev-avatar-fallback" style="display:none">
+                <%= rev.userName?.charAt(0) || '?' %>
+              </div>
+            <% } else { %>
+              <div class="rev-avatar-fallback" style="display:flex">
+                <%= rev.userName?.charAt(0) || '?' %>
+              </div>
+            <% } %>
+          </div>
+          <div class="rev-meta">
+            <div class="rev-name"><%= rev.userName %></div>
+            <div class="rev-date">
+              <%= new Date(rev.date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %>
+            </div>
+          </div>
+          <div class="rev-stars">
+            <% for(let s=1; s<=5; s++) { %>
+              <i class="fa-solid fa-star<%= s <= rev.rating ? '' : ' star-empty' %>"></i>
+            <% } %>
+          </div>
+        </div>
+        <% if (rev.comment) { %>
+          <p class="rev-text"><%= rev.comment %></p>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+
+</section>
+
+
+  </div><!-- /hv-left -->
+
+  <!-- ======= RIGHT SIDEBAR ======= -->
+  <div class="hv-right">
+    <div class="booking-card" id="bookingCard">
+
+      <!-- Price -->
+      <div class="bc-price-row">
+        <div>
+          <div class="bc-from">Starting from</div>
+          <div class="bc-price">
+            ₹<%= hostel.startingPrice ? hostel.startingPrice.toLocaleString('en-IN') : '4,000' %>
+            <span>/month</span>
+          </div>
+        </div>
+        <button class="bc-wish" id="wishBtn" onclick="toggleWishlist()" title="Save">
+          <i class="fa-regular fa-heart"></i>
+        </button>
+      </div>
+
+      <!-- Rating mini -->
+      <div class="bc-rating">
+        <% for(let s=1;s<=5;s++) { %>
+          <i class="fa-solid fa-star<%= s <= Math.round(hostel.rating || 4.7) ? '' : ' dimstar' %>"></i>
+        <% } %>
+        <span><%= hostel.rating || '4.9' %> · <%= hostel.reviewCount || 48 %> reviews</span>
+      </div>
+
+      <!-- CTA buttons -->
+      <div class="bc-actions">
+        <button class="bc-btn-primary" onclick="scrollToRooms()">
+          <i class="fa-solid fa-bed"></i> View Rooms & Enquire
+        </button>
+        <button class="bc-btn-call"   onclick="callHostel('<%= hostel.contact?.phone %>')">
+          <i class="fa-solid fa-phone"></i> Call Owner
+        </button>
+        <button class="bc-btn-whatsapp" onclick="whatsappHostel( '<%= hostel.contact?.phone %>' )">
+          <i class="fa-brands fa-whatsapp"></i> WhatsApp
+        </button>
+      </div>
+
+      <!-- Trust signals -->
+      <!-- <div class="bc-shortlist">
+        <i class="fa-solid fa-fire"></i>
+        <span><strong>16 students</strong> shortlisted this week</span>
+      </div> -->
+
+      <div class="bc-trust">
+        <div class="trust-item">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Verified listing</span>
+        </div>
+        <div class="trust-item">
+          <i class="fa-solid fa-lock"></i>
+          <span>Secure contact</span>
+        </div>
+        <div class="trust-item">
+          <i class="fa-solid fa-headset"></i>
+          <span>24/7 support</span>
+        </div>
+        <div class="trust-item">
+          <i class="fa-solid fa-ban"></i>
+          <span>Zero broker fee</span>
+        </div>
+      </div>
+
+      <!-- EMI note -->
+      <div class="bc-emi">
+        <i class="fa-solid fa-calendar-days"></i>
+        Monthly rent — no advance booking fee
+      </div>
+
+    </div><!-- /booking-card -->
+
+    <!-- Host card -->
+    <div class="host-card">
+      <h4 class="host-title">Hosted by</h4>
+      <div class="host-info">
+        <div class="host-avatar">
+          <%= (hostel.owner?.name || 'Owner').charAt(0) %>
+        </div>
+        <div>
+          <div class="host-name"> Property Owner</div>
+        <div class="host-since">
+  Member since 
+  <%= hostel.owner?.createdAt 
+      ? new Date(hostel.owner.createdAt).toLocaleString('en-IN', { month: 'long', year: 'numeric' }) 
+      : '2022' %>
+</div>
+        </div>
+      </div>
+      <div class="host-stats">
+        <div class="hstat">
+          <div class="hstat-val"><%= hostel.responseRate || '98%' %></div>
+          <div class="hstat-label">Response rate</div>
+        </div>
+        
+        <div class="hstat">
+          <div class="hstat-val"><%= hostel.responseTime || '< 1 hr' %></div>
+          <div class="hstat-label">Response time</div>   
+        </div>
+        <div class="hstat">
+          <div class="hstat-val"><%= hostel.hostedCount || '20+' %></div>
+          <div class="hstat-label">Hostings</div>         
+        </div>  
+        <div class="hstat">
+          <span class="hostel-website">
+             <% if ("hostel.website") { %>
+                <a href="/ketan" target="_blank"  class="near-college">
+                   <i class="fa-solid fa-globe"></i>  Visit Website
+                </a>
+            <% } else { %>
+            <span style="color: gray;">www.hostelnode.com</span>
+            <% } %>
+         </span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /hv-right -->
+
+</div><!-- /hv-container -->
+
+<!-- ============================================================
+     SIMILAR HOSTELS
+============================================================ -->
+<section class="similar-section">
+  <div class="similar-inner">
+    <div class="similar-header">
+      <h2>Similar hostels nearby</h2>
+      <a href="/findHostels" class="see-all-link">See all <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+    <div class="similar-grid" id="similarGrid">
+      <% similar.forEach((h, i) => { %>
+      <div class="similar-card animate-in" style="animation-delay:<%= i*0.1 %>s"
+           onclick="location.href='/hostel/<%= h.slug %>'">
+        <div class="sc-img-wrap">
+          <img src="<%= h.image %>" alt="<%= h.name %>"
+            onerror="this.parentNode.style.background='#e8f9ef'">
+          <div class="sc-badge"><%= h.gender || 'Co-ed' %></div>
+          <div class="sc-wishlist" onclick="event.stopPropagation();this.classList.toggle('active')">
+            <i class="fa-regular fa-heart"></i>
+          </div>
+        </div>
+        <div class="sc-body">
+          <div class="sc-rating">
+            <i class="fa-solid fa-star"></i> <%= h.rating || '4.5' %>
+          </div>
+          <h5 class="sc-name"><%= h.name %></h5>
+          <div class="sc-loc"><i class="fa-solid fa-location-dot"></i> <%= h.location || h.city %></div>
+          <div class="sc-price-row">
+            <div class="sc-price">₹<%= (h.startingPrice || 0).toLocaleString('en-IN') %><span>/mo</span></div>
+            <button class="sc-cta">View</button>
+          </div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL HTML { LOGIN/SIGNUP + ENQUIRY FORM } for GUESTS Users
+═══════════════════════════════════════════════════════════ -->
+<div class="enq-overlay" id="enqOverlay" onclick="enqOverlayClick(event)">
+  <div class="enq-box">
+
+    <button class="enq-close" onclick="closeEnquiry()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <!-- ══ GUEST: Quick Login/Signup ══ -->
+    <div id="enqStepAuth" style="display:none">
+      <div class="enq-header enq-header-auth">
+        <div class="enq-header-icon">🔑</div>
+        <h3>Quick login to enquire</h3>
+        <p>30 seconds — no password needed</p>
+      </div>
+      <div class="enq-body">
+        <div class="enq-alert" id="authAlert"></div>
+
+        <!-- Signup Panel -->
+        <div id="authPanel1">
+          <div class="enq-row-2">
+            <div class="enq-field">
+              <label>First Name *</label>
+              <input type="text" id="authFirst" placeholder="Rahul">
+            </div>
+            <div class="enq-field">
+              <label>Last Name *</label>
+              <input type="text" id="authLast" placeholder="Sharma">
+            </div>
+          </div>
+          <div class="enq-field">
+            <label>WhatsApp Mobile *</label>
+            <div class="enq-otp-row">
+              <input type="tel" id="authPhone" placeholder="10-digit number" maxlength="10" inputmode="numeric" style="flex:1">
+              <button class="enq-btn-otp" id="authSendBtn" onclick="authSendOtp()">Send OTP</button>
+            </div>
+            <div class="enq-countdown" id="authCountdown" style="display:none">
+              Resend in <span id="authTimer">60</span>s
+            </div>
+          </div>
+          <div class="enq-field" id="authOtpField" style="display:none">
+            <label>OTP (WhatsApp) *</label>
+            <div class="enq-otp-row">
+              <input type="text" id="authOtp" placeholder="———" maxlength="4" inputmode="numeric"
+                style="flex:1;letter-spacing:5px;font-size:20px;font-weight:700;text-align:center">
+              <button class="enq-btn-otp" id="authVerifyBtn" onclick="authVerifyOtp()">Verify</button>
+            </div>
+            <div id="authVerifiedBadge" style="display:none;margin-top:6px">
+              <span class="enq-verified-badge">✅ Verified</span>
+            </div>
+          </div>
+          <button class="enq-btn-primary" id="authNextBtn" onclick="authNext()" disabled>
+            Continue to Enquiry →
+          </button>
+          <p class="enq-login-note">Already have an account? <a href="#" onclick="switchToLogin()">Login instead</a></p>
+        </div>
+
+        <!-- Login Panel -->
+        <div id="authPanel2" style="display:none">
+          <div class="enq-field">
+            <label>Your Mobile *</label>
+            <div class="enq-otp-row">
+              <input type="tel" id="loginPhone" placeholder="10-digit number" maxlength="10" inputmode="numeric" style="flex:1">
+              <button class="enq-btn-otp" id="loginSendBtn" onclick="loginSendOtp()">Send OTP</button>
+            </div>
+            <div class="enq-countdown" id="loginCountdown" style="display:none">
+              Resend in <span id="loginTimer">60</span>s
+            </div>
+          </div>
+          <div class="enq-field" id="loginOtpField" style="display:none">
+            <label>OTP (WhatsApp) *</label>
+            <input type="text" id="loginOtp" placeholder="————" maxlength="4" inputmode="numeric"
+              style="letter-spacing:5px;font-size:20px;font-weight:700;text-align:center;width:100%;padding:11px 13px;border:1.5px solid #d6e4d9;border-radius:12px;outline:none">
+            <div id="loginVerifiedBadge" style="display:none;margin-top:6px">
+              <span class="enq-verified-badge">✅ Verified</span>
+            </div>
+          </div>
+          <button class="enq-btn-primary" id="loginNextBtn" onclick="loginNext()" disabled>
+            Login & Continue →
+          </button>
+          <p class="enq-login-note">New here? <a href="#" onclick="switchToSignup()">Sign up instead</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ LOGGED IN: Enquiry Form ══ -->
+    <div id="enqStepForm" style="display:none">
+      <div class="enq-header enq-header-form">
+        <div class="enq-room-pill">
+          <i class="fa-solid fa-bed"></i>
+          <span id="enqRoomName"></span>
+          <span id="enqRoomPrice" style="opacity:.8"></span>
+        </div>
+        <h3>Send Enquiry</h3>
+        <p id="enqHostelName" style="font-size:13px;color:rgba(255,255,255,.75);margin:0"></p>
+      </div>
+      <div class="enq-body">
+        <div class="enq-alert" id="formAlert"></div>
+
+        <div class="enq-field">
+          <label>How to connect? *</label>
+          <div class="enq-contact-opts">
+            <label class="enq-opt">
+              <input type="radio" name="contactMethod" value="call" checked>
+              <div class="enq-opt-card"><i class="fa-solid fa-phone"></i><span>Call</span></div>
+            </label>
+            <label class="enq-opt">
+              <input type="radio" name="contactMethod" value="whatsapp">
+              <div class="enq-opt-card"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></div>
+            </label>
+            <label class="enq-opt">
+              <input type="radio" name="contactMethod" value="visit">
+              <div class="enq-opt-card"><i class="fa-solid fa-handshake"></i><span>Visit</span></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="enq-field">
+          <label>Preferred Date *</label>
+          <input type="date" id="enqDate" class="enq-input" min="<%= new Date().toISOString().split('T')[0] %>">
+        </div>
+
+        <div class="enq-field">
+          <label>Expected Move-in</label>
+          <select id="enqMoveIn" class="enq-input">
+            <option value="">Select…</option>
+            <option>Immediately</option>
+            <option>Within 1 week</option>
+            <option>Within 1 month</option>
+            <option>1–3 months</option>
+            <option>Just exploring</option>
+          </select>
+        </div>
+
+        <div class="enq-field">
+          <label>Message <span style="color:#aaa;font-weight:400">(optional)</span></label>
+          <textarea id="enqMessage" class="enq-input" rows="3"
+            placeholder="Any questions about the room, food, security…" maxlength="300"></textarea>
+          <div style="text-align:right;font-size:11.5px;color:#aaa;margin-top:3px">
+            <span id="enqCharCount">0</span>/300
+          </div>
+        </div>
+
+        <button class="enq-btn-primary" id="enqSubmitBtn" onclick="submitEnquiry()">
+          <i class="fa-solid fa-paper-plane"></i> Send Enquiry
+        </button>
+
+        <div class="enq-trust-row">
+          <span><i class="fa-solid fa-lock"></i> Private</span>
+          <span><i class="fa-solid fa-ban"></i> No broker fee</span>
+          <span><i class="fa-solid fa-shield-halved"></i> Verified</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SUCCESS ══ -->
+    <div id="enqStepSuccess" style="display:none">
+      <div class="enq-success">
+        <div class="enq-success-icon">🎉</div>
+        <h3>Enquiry Sent!</h3>
+        <p>The owner will contact you shortly.</p>
+        <button class="enq-btn-primary" onclick="closeEnquiry()">Done</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- /enq-overlay -->
+
+<!-- ============================================================
+     SHARE TOAST
+============================================================ -->
+<div class="toast-msg" id="toastMsg">
+  <i class="fa-solid fa-check-circle"></i> <span id="toastText">Link copied!</span>
+</div>
+
+<!-- ============================================================
+     MOBILE BOTTOM BAR
+============================================================ -->
+<div class="mobile-bottom-bar">
+  <div class="mbb-price">
+    <div class="mbb-from">From</div>
+    <div class="mbb-val">₹<%= hostel.startingPrice ? hostel.startingPrice.toLocaleString('en-IN') : '4,000' %>/mo</div>
+  </div>
+  <div class="mbb-actions">
+    <button class="mbb-call" onclick="callHostel('<%= hostel.contact?.phone %>')">
+      <i class="fa-solid fa-phone"></i> Call
+    </button>
+    <button class="mbb-book" onclick="scrollToRooms()">
+      View Rooms
+    </button>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+  // Pass EJS data to JS
+  const HOSTEL_DATA = {
+    name:     "<%= hostel.name %>",
+    phone:    "<%= hostel.contact.phone || '+917879884375' %>",
+    whatsapp: "<%= hostel.contact.whatsapp || hostel.contact.phone || '+917879884375' %>",
+    images:   <%- JSON.stringify(hostel.images) %>,
+    price:    <%= hostel.startingPrice || 4000 %>
+  };
+
+</script>
+<script src="/js/hostel-view.js"></script>
+<script>
+/* ===== LOADER ===== */
+document.addEventListener('DOMContentLoaded', function () {
+  setTimeout(function () {
+    const loader = document.getElementById('hn-loader');
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 400);
+  }, 1400);
+});
+
+/* ===== NAVBAR SCROLL ===== */
+window.addEventListener('scroll', function () {
+  document.getElementById('hnNav').classList.toggle('scrolled', window.scrollY > 10);
+}, { passive: true });
+
+/* ===== MOBILE NAV ===== */
+function openMobileNav() {
+  document.getElementById('mobileNav').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileNav(e) {
+  if (e.target === document.getElementById('mobileNav')) {
+    document.getElementById('mobileNav').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROFILE DROPDOWN
+   - click pill  → toggle open class
+   - click outside → close
+   - stopPropagation prevents the document listener from
+     immediately closing it on the same click that opens it
+═══════════════════════════════════════════════════════ */
+function snToggle(e) {
+  e.stopPropagation();
+  const pill = document.getElementById('snPill');
+  if (pill) pill.classList.toggle('open');
+}
+
+document.addEventListener('click', function () {
+  const pill = document.getElementById('snPill');
+  if (pill) pill.classList.remove('open');
+});
+
+/* ===== SEARCH TABS ===== */
+function switchTab(el) {
+  document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ===== QUICK CHIPS ===== */
+function fillSearch(college) {
+  document.getElementById('collegeInput').value = college;
+  document.getElementById('collegeInput').focus();
+}
+
+/* ===== PRICE RANGE ===== */
+function updatePrice(val) {
+  document.getElementById('priceVal').textContent = '₹' + Number(val).toLocaleString('en-IN');
+}
+
+/* ===== WISHLIST TOGGLE ===== */
+async function toggleWish(e, btn) {
+  e.stopPropagation();
+
+  const card = btn.closest('.hostel-card');
+  const listingId = card?.dataset.id;
+
+  if (!listingId) {
+    window.location.href = '/student/login';
+    return;
+  }
+
+  // Optimistic UI update first
+  const isSaved = btn.classList.contains('saved');
+  btn.classList.toggle('saved', !isSaved);
+  btn.querySelector('i').className = !isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+
+  try {
+    const res = await fetch(`/student/wishlist/toggle/${listingId}`, { method: 'POST' });
+
+    if (res.redirected || res.status === 401) {
+      // Not logged in — revert and redirect
+      btn.classList.toggle('saved', isSaved);
+      btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+      window.location.href = '/student/login';
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Confirm the real state from server
+      btn.classList.toggle('saved', data.saved);
+      btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+      showToast(data.saved ? '❤️ Saved to wishlist' : '🤍 Removed from wishlist');
+    } else {
+      // Revert on failure
+      btn.classList.toggle('saved', isSaved);
+      btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+      showToast('Could not update wishlist');
+    }
+
+  } catch (err) {
+    // Revert on network error
+    btn.classList.toggle('saved', isSaved);
+    btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+    console.error('Wishlist error:', err);
+  }
+}
+
+function showToast(msg) {
+  let t = document.getElementById('hn-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'hn-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1a2e;color:white;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:500;z-index:9999;transition:transform .3s,opacity .3s;opacity:0;pointer-events:none;white-space:nowrap;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(80px)';
+  }, 2500);
+}
+
+/* ===== SORT ===== */
+function setSort(el, type) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ===== FILTERS ===== */
+function applyFilters() {
+  const btn = document.querySelector('.btn-apply-filter');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Applying…';
+  setTimeout(() => {
+    btn.innerHTML = '<i class="fa-solid fa-sliders"></i> Apply filters';
+  }, 900);
+}
+function clearFilters() {
+  document.querySelectorAll('.sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
+  document.getElementById('priceRange').value = 8000;
+  updatePrice(8000);
+}
+
+/* ===== VIEW HOSTEL ===== */
+function viewHostel(slug) { window.location.href = '/hostel/' + slug; }
+
+/* ===== CALL / WHATSAPP ===== */
+function callHostel(phone) { window.location.href = 'tel:' + phone; }
+function waHostel(phone) {
+  const num = (phone || '').replace(/[^0-9]/g, '');
+  if (!num) return;
+  window.open('https://wa.me/' + num + '?text=' +
+    encodeURIComponent('Hi! I found your hostel on HostelNode. I am interested in a room. Can you share details?'),
+    '_blank');
+}
+
+/* ===== COLLEGE CHIP ===== */
+function searchCollege(name) {
+  window.location.href = '/findHostels/results?college=' + encodeURIComponent(name);
+}
+
+/* ===== MAP ===== */
+function openMap() {
+  alert('Map view coming soon! Add your Google Maps API key to enable this.');
+}
+
+/* ===== LOAD MORE ===== */
+function loadMore(btn) {
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading…';
+  setTimeout(() => {
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Load more hostels';
+  }, 1200);
+}
+
+/* ===== IMAGE SLIDER ===== */
+function slideImage(e, btn, direction) {
+  e.stopPropagation();
+  const wrap   = btn.closest('.card-img-wrap');
+  const slides = wrap.querySelectorAll('.slide');
+  const dots   = wrap.querySelectorAll('.dot');
+  let idx = [...slides].findIndex(s => s.classList.contains('active'));
+  slides[idx].classList.remove('active');
+  dots[idx]?.classList.remove('active');
+  idx = (idx + direction + slides.length) % slides.length;
+  slides[idx].classList.add('active');
+  dots[idx]?.classList.add('active');
+}
+
+function goToSlide(e, dot, idx) {
+  e.stopPropagation();
+  const wrap   = dot.closest('.card-img-wrap');
+  const slides = wrap.querySelectorAll('.slide');
+  const dots   = wrap.querySelectorAll('.dot');
+  slides.forEach(s => s.classList.remove('active'));
+  dots.forEach(d => d.classList.remove('active'));
+  slides[idx].classList.add('active');
+  dots[idx].classList.add('active');
+}
+</script>
+<script>
+function shareHostel() {
+  const url = window.location.href;
+
+  if (navigator.share) {
+    navigator.share({
+      title: document.title,
+      text: "Check out this hostel on HostelNode 🏠",
+      url: url
+    })
+    .then(() => console.log("Shared successfully"))
+    .catch((err) => console.log("Share cancelled", err));
+  } else {
+    // fallback
+    window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
+  }
+}
+
+
+/* ══════════════════════════════════════
+   STAR PICKER
+══════════════════════════════════════ */
+let selectedRating = 0;
+const starLabels = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+
+function pickStar(val) {
+  selectedRating = val;
+  document.querySelectorAll('.sp-star').forEach((btn, i) => {
+    const icon = btn.querySelector('i');
+    if (i < val) {
+      icon.className = 'fa-solid fa-star';
+      btn.classList.add('active');
+    } else {
+      icon.className = 'fa-regular fa-star';
+      btn.classList.remove('active');
+    }
+  });
+  document.getElementById('spLabel').textContent = starLabels[val];
+}
+
+/* ── char counter ── */
+const reviewComment = document.getElementById('reviewComment');
+if (reviewComment) {
+  reviewComment.addEventListener('input', function () {
+    document.getElementById('charCount').textContent = this.value.length;
+  });
+}
+
+/* ══════════════════════════════════════
+   SUBMIT REVIEW
+══════════════════════════════════════ */
+async function submitReview(listingId) {
+  if (!selectedRating) {
+    showToastMsg('Please select a star rating first', 'fa-star');
+    return;
+  }
+
+  const comment = document.getElementById('reviewComment').value.trim();
+  const btn = document.getElementById('rfSubmitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
+
+  try {
+    const res = await fetch(`/student/review/${listingId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: selectedRating, comment })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Hide form
+      document.getElementById('reviewFormWrap').style.display = 'none';
+
+      // Add new review card to top of list
+      const list = document.getElementById('reviewsList');
+      const noMsg = document.getElementById('noReviewsMsg');
+      if (noMsg) noMsg.remove();
+
+      const card = buildReviewCard(data.review);
+      list.insertAdjacentHTML('afterbegin', card);
+
+      // Update rating display
+      document.getElementById('overallNum').textContent = data.newRating;
+      document.getElementById('overallCount').textContent =
+        `Based on ${data.newReviewCount} review${data.newReviewCount !== 1 ? 's' : ''}`;
+
+      showToastMsg('✅ Review submitted!');
+    } else {
+      showToastMsg(data.error || 'Could not submit review');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Review';
+    }
+
+  } catch (err) {
+    console.error(err);
+    showToastMsg('Network error. Try again.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Review';
+  }
+}
+
+function buildReviewCard(rev) {
+  const date = new Date(rev.date).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  });
+  const stars = [1,2,3,4,5].map(s =>
+    `<i class="fa-solid fa-star${s <= rev.rating ? '' : ' star-empty'}"></i>`
+  ).join('');
+  const avatarHtml = rev.avatar
+    ? `<img src="/student-images/${rev.avatar}" alt="${rev.userName}"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <div class="rev-avatar-fallback" style="display:none">${rev.userName?.charAt(0)}</div>`
+    : `<div class="rev-avatar-fallback" style="display:flex">${rev.userName?.charAt(0)}</div>`;
+
+  return `
+    <div class="review-card animate-in">
+      <div class="review-top">
+        <div class="rev-avatar-wrap">${avatarHtml}</div>
+        <div class="rev-meta">
+          <div class="rev-name">${rev.userName}</div>
+          <div class="rev-date">${date}</div>
+        </div>
+        <div class="rev-stars">${stars}</div>
+      </div>
+      ${rev.comment ? `<p class="rev-text">${rev.comment}</p>` : ''}
+    </div>`;
+}
+
+/* ══════════════════════════════════════
+   DELETE REVIEW
+══════════════════════════════════════ */
+async function deleteReview(listingId) {
+  if (!confirm('Delete your review?')) return;
+
+  try {
+    const res = await fetch(`/student/review/${listingId}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (data.success) {
+      // Reload so the form reappears — simplest UX
+      showToastMsg('Review deleted');
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      showToastMsg(data.error || 'Could not delete');
+    }
+  } catch (err) {
+    showToastMsg('Network error');
+  }
+}
+
+/* ══════════════════════════════════════
+   TOAST HELPER (reuses existing toast)
+══════════════════════════════════════ */
+function showToastMsg(msg) {
+  const el = document.getElementById('toastMsg');
+  const txt = document.getElementById('toastText');
+  if (!el || !txt) return;
+  txt.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+<script>
+
+  /* ============================================================
+   ENQUIRY MODAL JS
+   Paste this REPLACING your old openBooking(), closeBooking(),
+   submitBooking() functions inside your <script> block
+============================================================ */
+
+let enqRoomType = '';
+let enqRoomPrice = 0;
+let authOtpVerified = false;
+let loginOtpVerified = false;
+
+/* ── OPEN ── */
+function openBooking(roomType, roomPrice) {
+  enqRoomType  = roomType;
+  enqRoomPrice = roomPrice;
+
+  document.getElementById('enqRoomName').textContent  = roomType;
+  document.getElementById('enqRoomPrice').textContent = roomPrice
+    ? ' · ₹' + roomPrice.toLocaleString('en-IN') + '/mo' : '';
+  document.getElementById('enqHostelName').textContent = HOSTEL_DATA.name || '';
+
+  // If logged in → show form directly, else → show auth
+  const isLoggedIn = <%= student ? 'true' : 'false' %>;
+  showEnqStep(isLoggedIn ? 'form' : 'auth');
+
+  document.getElementById('enqOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+/* ── CLOSE ── */
+function closeEnquiry() {
+  document.getElementById('enqOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+
+  // 🔄 Refresh page
+  location.reload();
+}
+function enqOverlayClick(e) {
+  if (e.target.id === 'enqOverlay') closeEnquiry();
+}
+
+/* ── SWITCH STEPS ── */
+function showEnqStep(step) {
+  ['auth','form','success'].forEach(s => {
+    document.getElementById('enqStep' + s.charAt(0).toUpperCase() + s.slice(1)).style.display =
+      s === step ? 'block' : 'none';
+  });
+}
+
+/* ── SWITCH SIGNUP ↔ LOGIN ── */
+function switchToLogin() {
+  document.getElementById('authPanel1').style.display = 'none';
+  document.getElementById('authPanel2').style.display = 'block';
+}
+function switchToSignup() {
+  document.getElementById('authPanel1').style.display = 'block';
+  document.getElementById('authPanel2').style.display = 'none';
+}
+
+/* ── ALERT HELPERS ── */
+function showAuthAlert(msg, type = 'error') {
+  const el = document.getElementById('authAlert');
+  el.textContent = msg;
+  el.className = 'enq-alert show ' + type;
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+function showFormAlert(msg, type = 'error') {
+  const el = document.getElementById('formAlert');
+  el.textContent = msg;
+  el.className = 'enq-alert show ' + type;
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+/* ── COUNTDOWN TIMER ── */
+function startCountdown(timerId, countdownId, btnId) {
+  let s = 60;
+  const cd = document.getElementById(countdownId);
+  const t  = document.getElementById(timerId);
+  const b  = document.getElementById(btnId);
+  cd.style.display = 'block';
+  b.disabled = true;
+  const iv = setInterval(() => {
+    t.textContent = --s;
+    if (s <= 0) {
+      clearInterval(iv);
+      cd.style.display = 'none';
+      b.disabled = false;
+      b.textContent = 'Resend';
+    }
+  }, 1000);
+}
+
+/* ════════════════════
+   SIGNUP FLOW
+════════════════════ */
+async function authSendOtp() {
+  const phone = document.getElementById('authPhone').value.trim();
+  if (!/^[6-9]\d{9}$/.test(phone)) return showAuthAlert('Enter a valid 10-digit number');
+
+  const btn = document.getElementById('authSendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  const res  = await fetch('/student/send-otp', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone })
+  }).catch(() => null);
+
+  if (!res) { btn.disabled=false; btn.textContent='Send OTP'; return showAuthAlert('Network error'); }
+
+  const data = await res.json();
+
+  if (!data.success) {
+    btn.disabled=false; btn.textContent='Send OTP';
+    // already registered → auto-switch to login
+    if (data.error?.toLowerCase().includes('registered')) {
+      showAuthAlert('Already registered — switching to login', 'success');
+      return setTimeout(switchToLogin, 1200);
+    }
+    return showAuthAlert(data.error || 'Failed to send OTP');
+  }
+
+  document.getElementById('authOtpField').style.display = 'block';
+  showAuthAlert('OTP sent to WhatsApp ✅', 'success');
+  startCountdown('authTimer', 'authCountdown', 'authSendBtn');
+}
+
+async function authVerifyOtp() {
+  const phone = document.getElementById('authPhone').value.trim();
+  const otp   = document.getElementById('authOtp').value.trim();
+  if (otp.length !== 4) return;
+
+  const res  = await fetch('/student/verify-otp', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone, otp })
+  }).catch(() => null);
+
+  if (!res) return showAuthAlert('Network error');
+  const data = await res.json();
+  if (!data.success) return showAuthAlert(data.error || 'Wrong OTP');
+
+  authOtpVerified = true;
+  document.getElementById('authVerifiedBadge').style.display = 'block';
+  document.getElementById('authOtp').disabled = true;
+  document.getElementById('authVerifyBtn').disabled = true;
+  document.getElementById('authNextBtn').disabled = false;
+  showAuthAlert('Verified! Click Continue ✅', 'success');
+}
+
+async function authNext() {
+  if (!authOtpVerified) return showAuthAlert('Verify your mobile first');
+
+  const firstName = document.getElementById('authFirst').value.trim();
+  const lastName  = document.getElementById('authLast').value.trim();
+  const phone     = document.getElementById('authPhone').value.trim();
+
+  if (firstName.length < 2) return showAuthAlert('Enter your first name');
+  if (lastName.length  < 2) return showAuthAlert('Enter your last name');
+
+  const btn = document.getElementById('authNextBtn');
+  btn.disabled = true; btn.textContent = 'Setting up…';
+
+  const res  = await fetch('/student/signup', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ firstName, lastName, phone })
+  }).catch(() => null);
+
+  if (!res) { btn.disabled=false; btn.textContent='Continue to Enquiry →'; return showAuthAlert('Network error'); }
+
+  const data = await res.json();
+  if (!data.success) {
+    btn.disabled=false; btn.textContent='Continue to Enquiry →';
+    return showAuthAlert(data.error || 'Signup failed');
+  }
+
+  showEnqStep('form');   // ← JWT cookie set, move to enquiry
+}
+
+/* ════════════════════
+   LOGIN FLOW
+════════════════════ */
+async function loginSendOtp() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  if (!/^[6-9]\d{9}$/.test(phone)) return showAuthAlert('Enter a valid 10-digit number');
+
+  const btn = document.getElementById('loginSendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  const res  = await fetch('/student/send-otp', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone })
+  }).catch(() => null);
+
+  if (!res) { btn.disabled=false; btn.textContent='Send OTP'; return showAuthAlert('Network error'); }
+
+  const data = await res.json();
+  if (!data.success) {
+    btn.disabled=false; btn.textContent='Send OTP';
+    if (data.error?.toLowerCase().includes('no account')) {
+      showAuthAlert('No account found — switching to signup', 'success');
+      return setTimeout(switchToSignup, 1200);
+    }
+    return showAuthAlert(data.error || 'Failed to send OTP');
+  }
+
+  document.getElementById('loginOtpField').style.display = 'block';
+  showAuthAlert('OTP sent ✅', 'success');
+  startCountdown('loginTimer', 'loginCountdown', 'loginSendBtn');
+
+  // auto-verify when 6 digits typed
+  document.getElementById('loginOtp').addEventListener('input', async function () {
+    if (this.value.length !== 4 || loginOtpVerified) return;
+    const r = await fetch('/student/verify-otp', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phone, otp: this.value })
+    }).catch(() => null);
+    if (!r) return;
+    const d = await r.json();
+    if (d.success) {
+      loginOtpVerified = true;
+      this.disabled = true;
+      document.getElementById('loginVerifiedBadge').style.display = 'block';
+      document.getElementById('loginNextBtn').disabled = false;
+      showAuthAlert('Verified! Click Login ✅', 'success');
+    } else {
+      showAuthAlert(d.error || 'Wrong OTP');
+    }
+  });
+}
+
+async function loginNext() {
+  if (!loginOtpVerified) return showAuthAlert('Verify OTP first');
+
+  const phone = document.getElementById('loginPhone').value.trim();
+  const btn   = document.getElementById('loginNextBtn');
+  btn.disabled = true; btn.textContent = 'Logging in…';
+
+  const res  = await fetch('/student/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone })
+  }).catch(() => null);
+
+  if (!res) { btn.disabled=false; btn.textContent='Login & Continue →'; return showAuthAlert('Network error'); }
+
+  const data = await res.json();
+  if (!data.success) {
+    btn.disabled=false; btn.textContent='Login & Continue →';
+    return showAuthAlert(data.error || 'Login failed');
+  }
+
+  showEnqStep('form');   // ← JWT cookie set, move to enquiry
+}
+
+/* ════════════════════
+   ENQUIRY SUBMIT
+════════════════════ */
+// char counter
+document.addEventListener('DOMContentLoaded', () => {
+  const msg = document.getElementById('enqMessage');
+  if (msg) msg.addEventListener('input', () => {
+    document.getElementById('enqCharCount').textContent = msg.value.length;
+  });
+});
+
+async function submitEnquiry() {
+  const contactMethod = document.querySelector('input[name="contactMethod"]:checked')?.value;
+  const date          = document.getElementById('enqDate').value;
+  const moveIn        = document.getElementById('enqMoveIn').value;
+  const message       = document.getElementById('enqMessage').value.trim();
+
+  if (!contactMethod) return showFormAlert('Select a contact method');
+  if (!date)          return showFormAlert('Select a preferred date');
+
+  const btn = document.getElementById('enqSubmitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
+
+  const res = await fetch('/student/enquiry', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      roomType:      enqRoomType,
+      roomPrice:     enqRoomPrice,
+      contactMethod,
+      preferredDate: date,
+      moveIn,
+      message,
+      hostelId:      '<%= hostel._id %>',
+      hostelName:    '<%= hostel.title %>'
+    })
+  }).catch(() => null);
+
+  if (!res) {
+    btn.disabled=false;
+    btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Send Enquiry';
+    return showFormAlert('Network error. Try again.');
+  }
+
+  const data = await res.json();
+  if (data.success) {
+    showEnqStep('success');
+  } else {
+    btn.disabled=false;
+    btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Send Enquiry';
+    showFormAlert(data.error || 'Could not send. Try again.');
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<nav class="navbar navbar-dark fixed-top shadow-lg" 
+style="background: linear-gradient(135deg, #22C55E, #09B850, #0fa18e);">
+  <div class="container-fluid">
+
+    <!-- LEFT MENU -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas"
+      data-bs-target="#offcanvasDarkNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- LOGO -->
+    <span class="d-flex align-items-center gap-2">
+      <img style="height: 3.5rem;" src="/images/hostelnode-logo-cutout.png">
+      <a class="navbar-brand montserrat-subrayada-regular" href="#" style="color: #FFFFFF;">
+        HostelNode
+      </a>
+    </span>
+
+    <!-- LEFT SIDEBAR -->
+    <div class="offcanvas bg-white offcanvas-start" tabindex="-1" id="offcanvasDarkNavbar"
+      style="background-color: var(--bg); color: var(--text);">
+
+      <div class="offcanvas-header" style="border-bottom: 1px solid var(--border);">
+        <a class="nav-link fw-bold" href="/user" style="color: var(--primary);">
+          <i class="fa-solid fa-house me-2"></i> Dashboard
+        </a>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+      </div>
+
+      <div class="offcanvas-body" style="overflow-y:auto;">
+        <ul class="navbar-nav pe-3">
+
+          <!-- REPORT -->
+          <li class="nav-item mb-2">
+            <a class="nav-link" href="/user/revenue" style="color: var(--text);">
+              <i class="fa-solid fa-chart-pie me-2"></i> Revenue Reports
+            </a>
+          </li>
+
+          <!-- MEMBERS -->
+          <li class="nav-item dropdown mb-2">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" style="color: var(--text);">
+              <i class="fa-solid fa-users me-2"></i> Manage Members
+            </a>
+            <ul class="dropdown-menu" style="border:1px solid var(--border);">
+              <li><a class="dropdown-item" href="/user/newmember">
+                <i class="fa-solid fa-user-plus me-2"></i> Add Members</a></li>
+              <li><a class="dropdown-item" href="/user/activeMember">Active Members</a></li>
+              <li><a class="dropdown-item" href="/user/members">All Members</a></li>
+            </ul>
+          </li>
+
+          <!-- PAYMENTS -->
+          <li class="nav-item dropdown mb-2">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" style="color: var(--text);">
+              <i class="fa-solid fa-indian-rupee-sign me-2"></i> Payments
+            </a>
+            <ul class="dropdown-menu" style="border:1px solid var(--border);">
+              <li><a class="dropdown-item" href="/user/allfeesrecords">
+                <i class="fa-solid fa-file-invoice-dollar me-2"></i> Fees Structure</a></li>
+              <li><a class="dropdown-item" href="/user/upcomingPayments">
+                <i class="fa-solid fa-clock me-2"></i> Upcoming</a></li>
+              <li><a class="dropdown-item" href="/user/deureports">
+                <i class="fa-solid fa-money-bill-wave me-2"></i> Dues</a></li>
+            </ul>
+          </li>
+
+          <!-- ROOMS -->
+          <li class="nav-item dropdown mb-2">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" style="color: var(--text);">
+              <i class="fa-solid fa-building me-2"></i> Rooms
+            </a>
+            <ul class="dropdown-menu" style="border:1px solid var(--border);">
+              <li><a class="dropdown-item" href="/user/allrooms">All Rooms</a></li>
+              <li><a class="dropdown-item" href="/user/managerooms">Manage Rooms</a></li>
+            </ul>
+          </li>
+
+          <!-- FLOORS -->
+          <li class="nav-item dropdown mb-2">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" style="color: var(--text);">
+              <i class="fa-solid fa-layer-group me-2"></i> Floors
+            </a>
+            <ul class="dropdown-menu" style="border:1px solid var(--border);">
+              <li><a class="dropdown-item" href="/user/floors">All Floors</a></li>
+              <li><a class="dropdown-item" href="/user/managefloor">Manage Floors</a></li>
+            </ul>
+          </li>
+
+          <!-- FEEDBACK -->
+          <li class="nav-item mt-3">
+            <a class="nav-link" target="_blank"
+              href="https://mail.google.com/mail/?view=cm&fs=1&to=hostelnodehelp@gmail.com"
+              style="color: var(--text);">
+              <i class="fa-solid fa-comment-dots me-2"></i> Send Feedback
+            </a>
+          </li>
+
+        </ul>
+
+        <!-- SEARCH -->
+        <form class="d-flex mt-3">
+          <input class="form-control me-2" type="search" placeholder="Search..."
+            style="background: var(--card); border:1px solid var(--border); color: var(--text);">
+          <button class="btn" style="background: var(--primary); color:#fff;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <span class="d-flex align-items-center ">
+
+      <!-- NOTIFICATION -->
+      <i class="fa-solid fa-bell text-white me-3 fs-5" style="cursor:pointer;"></i>
+
+      <!-- PROFILE -->
+      <img data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
+        style="height: 2rem;width: 2rem;  border-radius: 50%; cursor:pointer; border:2px solid #fff;"
+        src="/profile-image/<%= user.profileImage %>">
+
+    </span>
+
+    <!-- PROFILE PANEL -->
+    <div class="offcanvas bg-white offcanvas-end" tabindex="-1" id="offcanvasNavbar"
+      style="background-color: var(--bg); color: var(--text);">
+
+      <div class="offcanvas-header border-bottom" style="border-color: var(--border);">
+        <div>
+                  <h4>
+                    <img src="/profile-image/<%= user.profileImage %>" 
+                        alt="Profile Picture"
+                        class="rounded-circle me-2"
+                        style="width:40px; height:40px; object-fit:cover;">
+                    <%= user.name %> &nbsp;&nbsp; <a href="/user/editOwner" style="color: var(--text);"><i class="fa-solid fa-pen-to-square"></i></a><br> 
+                  </h4>   <small style="color: var(--muted);"> 
+                      <i class="fa-solid fa-user-tie me-1"></i> <%= user.role %> -   <%= user.businessName %> <span class="mx-2 text-muted" style="font-size:18px;">•</span> <%= user.businessType %><br>
+            <i class="fa-solid fa-phone me-1"></i> <%= user.phone %> &nbsp; <i class="fa-brands fa-whatsapp me-1 "></i><%= user.whatsapp %>  <br>
+            <i class="fa-solid  fa-envelope me-1"></i> <%= user.email %> <br>
+             <i class="fa-solid fa-location-dot me-1"></i> <%= user.location %>  
+          </small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+      </div>
+
+      <div class="offcanvas-body">
+
+        <ul class="navbar-nav">
+          <li class="nav-item mb-2">
+            <a class="nav-link" style="color: var(--text);">
+               
+               <i class="fa-solid fa-hotel me-2"></i> 
+                  <%= selectedHostel?.hostelId || 'No Hostel Found ' %> - 
+                  <%= selectedHostel?.hostelName ||  ' Create Your First Hostel' %>
+            </a>
+          </li>
+          <hr>
+          <li>
+            <a class="nav-link" href="/user/list-property" style="color: var(--text);">
+             <i class="fa-solid fa-file-circle-plus"></i> List Your Property
+            </a>
+          </li>
+           <li>
+            <a class="nav-link" href="/user/my-listings" style="color: var(--text);">
+              <i class="fa-solid fa-house-chimney me-2"></i> My Listings
+            </a>
+          </li>
+            <li class="nav-item dropdown">
+  <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" style="color: var(--text);">
+    <i class="fa-solid fa-hotel me-2"></i> Manage Hostels
+  </a>
+
+  <ul class="dropdown-menu shadow border-0 p-2" 
+      style="border-radius: 12px; min-width: 250px;">
+
+    <!-- 🏨 Hostel List -->
+    <% if (hostels && hostels.length > 0) { %>
+      <% hostels.forEach(hostel => { %>
+        <li>
+          <a href="/user/hostel/<%= hostel._id %>" 
+             class="dropdown-item d-flex align-items-center gap-2"
+             style="border-radius: 8px; padding: 8px 10px;">
+
+            <i class="fa-solid fa-building text-success"></i>
+
+            <div>
+              <div style="font-weight: 600;">
+                <%= hostel.hostelName %>
+              </div>
+              <small style="color: gray;">
+                <%= hostel.city %>
+              </small>
+            </div>
+
+          </a>
+        </li>
+      <% }) %>
+    <% } else { %>
+      <li>
+        <span class="dropdown-item text-muted text-center">
+          No Hostels Found
+        </span>
+      </li>
+    <% } %>
+
+    <li><hr class="dropdown-divider"></li>
+
+    <!-- ➕ Add New Hostel -->
+    <li>
+      <a href="/user/addnewhostel" 
+         class="dropdown-item text-success fw-semibold">
+        <i class="fa-solid fa-plus me-2"></i> Add New Hostel
+      </a>
+    </li>
+
+  </ul>
+</li>
+
+          <li><a class="nav-link" href="/wardens" style="color: var(--text);">
+            <i class="fa-solid fa-user-tie me-2"></i> Manage Wardens</a></li>
+
+        
+
+          <li>
+            <a class="nav-link d-flex align-items-center" href="/billing" style="color: var(--text);">
+              <i class="fa-solid fa-credit-card me-2"></i> Billing - <% if(user.status === 'Active'){ %>
+                <span class="status-badge bg-success ms-2">Active</span>
+                <% } else if(user.status === 'Inactive'){ %>
+                  <span class="status-badge bg-danger ms-2">Inactive</span>
+                <% } else { %>
+                <span class="status-badge bg-warning text-dark ms-2">Pending</span>
+                <% } %>
+            </a>
+          </li>
+
+          <li><a class="nav-link" href="/account/settings" style="color: var(--text);">
+            <i class="fa-solid fa-gear me-2"></i> Settings</a></li>
+
+          <hr>
+
+          <!-- HELP -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" style="color: var(--text);">
+              <i class="fa-solid fa-headset me-2"></i> Help Center
+            </a>
+            <ul class="dropdown-menu" style="border:1px solid var(--border);">
+              <li><a class="dropdown-item" href="tel:+917879884375">
+                <i class="fa-solid fa-phone me-2"></i> Call Support</a></li>
+              <li><a class="dropdown-item" href="#">
+                <i class="fa-solid fa-envelope me-2"></i> Email Support</a></li>
+            </ul>
+          </li>
+
+        </ul>
+
+        <hr>
+
+        <!-- LOGOUT -->
+        <a class="btn w-100 mt-2" href="/user/logout"
+           style="background: var(--primary); color:#fff;">
+          <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
+        </a>
+
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+<br><br>
+
+<script>
+(function () {
+  if (sessionStorage.getItem("locationSent")) return;
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      fetch("/track-location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat:      pos.coords.latitude,
+          lng:      pos.coords.longitude,
+          accuracy: pos.coords.accuracy
+        })
+      }).then(() => {
+        sessionStorage.setItem("locationSent", "true");
+      }).catch(() => {});
+    },
+    function () {
+      sessionStorage.setItem("locationSent", "true");
+    },
+    { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }
+  );
+})();
+</script>

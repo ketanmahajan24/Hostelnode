@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Signup | HostelNode</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Inter',sans-serif;
+  background: linear-gradient(135deg, #09B850, #0f172a);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  position:relative;
+}
+
+/* Background subtle glow */
+body::before{
+  content:"";
+  position:absolute;
+  width:200%;
+  height:200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.05) 10%, transparent 10%);
+  background-size:70px 70px;
+  animation:move 30s linear infinite;
+  z-index:0;
+}
+@keyframes move{0%{transform:translate(0,0);}50%{transform:translate(-100px,-120px);}100%{transform:translate(0,0);}}
+
+/* Wrapper */
+.signup-wrapper{
+  width:100%;
+  max-width:600px;
+  background:rgba(255,255,255,0.95);
+  border-radius:22px;
+  box-shadow:0 25px 70px rgba(0,0,0,0.35);
+  overflow:hidden;
+  padding:40px;
+  position:relative;
+  z-index:1;
+}
+
+/* Logo */
+.logo{text-align:center;margin-bottom:25px;}
+.logo img{height:80px;transition:.3s;}
+.logo img:hover{transform:scale(1.05) rotate(-2deg);}
+
+/* Title & Sub */
+.signup-title{text-align:center;font-size:28px;font-weight:700;color:#09B850;margin-bottom:5px;}
+.signup-sub{text-align:center;font-size:14px;color:#64748B;margin-bottom:25px;}
+
+/* Progress */
+.progress-wrapper{margin-bottom:30px;}
+.progress-label{text-align:center;font-size:13px;color:#64748B;margin-bottom:6px;}
+.progress-container{width:100%;height:12px;background:#E5E7EB;border-radius:12px;overflow:hidden;}
+.progress-bar{height:12px;width:50%;background:linear-gradient(135deg,#09B850,#22C55E);border-radius:12px;transition:width 0.5s ease-in-out;}
+
+/* Form Steps */
+.form-step{display:none;transform:translateX(100%);opacity:0;transition:all 0.5s ease;}
+.form-step.active{display:block;transform:translateX(0);opacity:1;}
+
+.form-control{
+  width:100%;
+  padding:14px 16px;
+  margin:10px 0;
+  border-radius:12px;
+  border:1px solid #CBD5E1;
+  font-size:14px;
+  transition:0.25s;
+}
+.form-control:focus{
+  border-color:#09B850;
+  box-shadow:0 0 0 3px rgba(9,184,80,0.2);
+  outline:none;
+}
+
+/* Password Eye */
+.password-container{position:relative;}
+.eye-icon{position:absolute;right:15px;top:40%;cursor:pointer;color:#94A3B8;}
+.eye-icon:hover{color:#09B850;}
+
+/* Buttons */
+.btn-login, .btn-verify, .btn-confirm{
+  width:100%;
+  padding:14px;
+  margin-top:18px;
+  border:none;
+  border-radius:12px;
+  font-weight:600;
+  color:white;
+  background:linear-gradient(135deg,#09B850,#22C55E);
+  cursor:pointer;
+  font-size:15px;
+  transition:.3s;
+}
+.btn-login:hover, .btn-verify:hover, .btn-confirm:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,0.25);}
+
+/* Role Box */
+.role-box{display:flex;background:#F1F5F9;border-radius:12px;padding:5px;gap:5px;margin:15px 0;}
+.role-box input{display:none;}
+.role-box label{
+  flex:1;text-align:center;padding:10px;border-radius:10px;font-size:14px;cursor:pointer;transition:.3s;color:#475569;
+}
+.role-box input:checked + label{
+  background:linear-gradient(135deg,#09B850,#22C55E);
+  color:white;
+  box-shadow:0 6px 18px rgba(9,184,80,0.3);
+}
+.role-box label:hover{color:#09B850;}
+
+/* Signup Link */
+.signup-link{text-align:center;margin-top:18px;font-size:14px;}
+.signup-link a{color:#09B850;text-decoration:none;font-weight:600;}
+.signup-link a:hover{text-decoration:underline;}
+
+/* OTP */
+.phone-otp{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap;}
+.otp-container{display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap;}
+.otp-box{width:50px;height:50px;text-align:center;font-size:20px;border-radius:10px;border:1px solid #CBD5E1;}
+.otp-box:focus{border-color:#09B850;box-shadow:0 0 0 3px rgba(9,184,80,0.2);outline:none;}
+
+/* Responsive */
+@media(max-width:480px){
+  .signup-wrapper{padding:25px;}
+  .signup-title{font-size:24px;}
+  .form-control{padding:12px;}
+  .btn-login, .btn-verify, .btn-confirm{padding:12px;font-size:14px;}
+  .phone-otp{flex-direction:column;}
+  .phone-otp button{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<div class="signup-wrapper">
+
+  <div class="logo">
+    <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode Logo">
+  </div>
+
+  <div class="signup-title">Owner Signup</div>
+  <div class="signup-sub">Create your account in 2 easy steps</div>
+
+  <!-- Progress -->
+  <div class="progress-wrapper">
+    <div class="progress-label" id="progressLabel">Step 1 of 2</div>
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- <form id="signupForm"> -->
+<form id="signupForm" method="POST" enctype="multipart/form-data" action="/user/signup">
+
+<!-- Step 1 -->
+<div class="form-step step-1 active">
+
+<input type="text" name="name" placeholder="Full Name" id="fullName" class="form-control" required>
+
+<input type="email" name="email" placeholder="Email" id="email" class="form-control" required>
+
+<div class="phone-otp">
+  <input 
+  type="tel" 
+  name="phone" 
+  id="phone" 
+  class="form-control"
+  placeholder="Phone Number"
+  required
+  pattern="[6-9][0-9]{9}"
+  maxlength="10"
+  inputmode="numeric"
+  oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+/>
+
+ <div id="errorBox" style="
+  display:none;
+  background:#fee2e2;
+  color:#dc2626;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
+  font-size:14px;
+"></div>
+<button type="button" id="verifyPhone" class="btn-verify">Verify</button>
+</div>
+
+<div id="otpContainer" style="display:none;">
+<input type="text" maxlength="1" class="otp-box">
+<input type="text" maxlength="1" class="otp-box">
+<input type="text" maxlength="1" class="otp-box">
+<input type="text" maxlength="1" class="otp-box">
+<button type="button" id="confirmOtp" class="btn-confirm">Confirm OTP</button>
+</div>
+
+<div class="password-container">
+<input type="password" name="password" placeholder="Password" id="password" class="form-control" required>
+<i class="fa-solid fa-eye eye-icon" id="togglePassword"></i>
+</div>
+
+<button type="button" class="btn-login" id="nextStep1" disabled>Next Step →</button>
+
+</div>
+
+<!-- Step 2 -->
+<div class="form-step step-2">
+
+<input type="file" name="profileImage" class="form-control" required>
+
+<select name="gender" class="form-control" required>
+<option value="">Select Gender</option>
+<option value="male">Male</option>
+<option value="female">Female</option>
+<option value="other">Other</option>
+</select>
+
+<input type="date" name="dob" class="form-control" required>
+
+<input type="text" name="businessName" placeholder="Business Name" class="form-control" required>
+
+<select name="businessType" class="form-control" required>
+<option value="">Business Type</option>
+<option value="individual">Individual</option>
+<option value="company">Company</option>
+</select>
+
+<input type="tel" name="whatsapp" placeholder="WhatsApp Number" class="form-control">
+
+<input type="text" name="city" placeholder="City" class="form-control" required>
+<input type="text" name="state" placeholder="State" class="form-control" required>
+<input type="text" name="country" placeholder="Country" class="form-control" required>
+<input type="text" name="pincode" placeholder="Pincode" class="form-control" required>
+
+<button type="submit" class="btn-login">Complete Signup</button>
+
+</div>
+</form>  <div class="signup-link">
+    Already have an account? <a href="/login">Login</a>
+  </div>
+
+</div>
+
+<script>
+  // DOM Elements
+const verifyPhoneBtn = document.getElementById("verifyPhone");
+const otpContainer = document.getElementById("otpContainer");
+const confirmOtpBtn = document.getElementById("confirmOtp");
+// OTP Confirmation
+confirmOtpBtn.addEventListener("click", async () => {
+  clearError();
+
+  const otpInputs = Array.from(document.querySelectorAll(".otp-box"));
+  const otp = otpInputs.map(i => i.value).join("");
+  const phone = document.getElementById("phone").value;
+
+  if (otp.length !== 4) {
+    showError("Enter valid OTP");
+    return;
+  }
+
+  try {
+    const res = await fetch("/user/verify-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ phone, otp })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      clearError();
+
+      verifyPhoneBtn.disabled = true;
+      document.getElementById("phone").readOnly = true;
+      document.getElementById("nextStep1").disabled = false;
+
+    } else {
+      showError(data.error);
+    }
+
+  } catch {
+    showError("Server error");
+  }
+});
+
+function showSuccess(msg) {
+  const box = document.getElementById("errorBox");
+  box.style.background = "#dcfce7";
+  box.style.color = "#16a34a";
+  box.innerText = msg;
+  box.style.display = "block";
+}
+// Password toggle
+const togglePassword = document.getElementById("togglePassword");
+const passwordInput = document.getElementById("password");
+togglePassword.addEventListener("click", ()=>{passwordInput.type=passwordInput.type==="password"?"text":"password"; togglePassword.classList.toggle("fa-eye-slash");});
+ function showError(msg) {
+  const box = document.getElementById("errorBox");
+  box.innerText = msg;
+  box.style.display = "block";
+}
+
+function clearError() {
+  const box = document.getElementById("errorBox");
+  box.style.display = "none";
+}
+
+
+// verify phone
+verifyPhoneBtn.addEventListener("click", async () => {
+  clearError();
+
+  const phone = document.getElementById("phone").value;
+
+  if (!/^[6-9]\d{9}$/.test(phone)) {
+    showError("Enter valid phone number");
+    return;
+  }
+
+  // 🔥 Disable button
+  verifyPhoneBtn.disabled = true;
+  verifyPhoneBtn.innerText = "Sending...";
+
+  try {
+    const res = await fetch("/user/send-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ phone })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      otpContainer.style.display = "flex";
+    } else {
+      showError(data.error);
+    }
+
+  } catch {
+    showError("Server error");
+  }
+
+  // 🔥 Enable again
+  verifyPhoneBtn.disabled = false;
+  verifyPhoneBtn.innerText = "Verify";
+});
+// Auto-focus OTP
+document.querySelectorAll(".otp-box").forEach((input, idx, arr)=>{
+  input.addEventListener("input",()=>{
+    if(input.value.length===1 && idx<arr.length-1){arr[idx+1].focus();}
+  });
+});
+
+// Step Control
+const nextStepBtn=document.getElementById("nextStep1");
+const step1=document.querySelector(".step-1");
+const step2=document.querySelector(".step-2");
+const progressBar=document.getElementById("progressBar");
+const progressLabel=document.getElementById("progressLabel");
+nextStepBtn.addEventListener("click", ()=>{
+  if(!document.getElementById("fullName").checkValidity() ||
+     !document.getElementById("email").checkValidity() ||
+     !document.getElementById("phone").checkValidity() ||
+     !document.getElementById("password").checkValidity()){
+    alert("Please fill all fields correctly before proceeding!");
+    return;
+  }
+  step1.classList.remove("active");
+  step2.classList.add("active");
+  progressBar.style.width="100%";
+  progressLabel.textContent="Step 2 of 2";
+});
+
+document.getElementById("signupForm").addEventListener("submit",(e)=>{
+
+  // 🔥 CHECK OTP FIRST
+ if (document.getElementById("nextStep1").disabled) {
+    alert("Please verify phone first");
+    e.preventDefault();
+    return;
+  }
+
+  // Existing validation
+  const step2Fields = ["profileImage","gender","dob","businessName","businessType","city","state","country","pincode"];
+  
+  for(let id of step2Fields){
+    const el=document.getElementsByName(id)[0];
+    if(!el || !el.checkValidity()){
+      alert("Please fill all required fields correctly!");
+      if(el) el.focus();
+      e.preventDefault();
+      return;
+    }
+  }
+
+});
+
+// Init progress
+progressBar.style.width="50%";
+progressLabel.textContent="Step 1 of 2";
+</script>
+
+
+
+
+
+</body>
+</html>

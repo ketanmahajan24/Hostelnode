@@ -1,0 +1,57 @@
+pipeline {
+	agent any
+
+	
+	stages{
+		stage ('source code checkout'){
+			steps{
+				echo "Hostelnode source code contains below files " 
+				sh 'ls -la'
+			}		
+		}
+		
+
+		stage ('Available Docker images '){
+			steps{
+				sh 'docker images'
+			}
+		}
+	
+		stage('Build Docker Image'){
+			steps{
+				echo "building docker image with name hostelnode:latest with build number : $BUILD_NUMBER "
+				sh 'docker build -t hostelnode:$BUILD_NUMBER . '
+				sh 'docker tag hostelnode:$BUILD_NUMBER hostelnode:latest ' 
+			}
+		}
+		stage('Deploy Docker container'){
+			steps {
+				sh 'docker rm -f hostelnode-app || true ' 
+				echo "contaner deploying ..."
+				sh '''
+					 docker run -d \
+                        -p 6060:6060 \
+                        --name hostelnode-app \
+                        --shm-size=2gb \
+                        --restart=unless-stopped \
+                        -v /root/secure_uploads:/app/secure_uploads \
+                        -v /root/whatsapp_session:/app/whatsapp_session \
+                        -e PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+                        -e WA_SESSION_PATH=/app/whatsapp_session \
+                        -e NODE_ENV=production \
+                        hostelnode:latest
+				'''
+				echo "container is Running....! "			 
+			}
+		}
+
+		
+
+	}
+
+	post {
+		success {
+		echo "Pipeline successfully completed....!"
+		}
+	}
+}

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login | HostelNode</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="/css/adminstyle.css">
+</head>
+<body class="auth-body">
+
+<div class="auth-card">
+
+  <!-- Header -->
+  <div class="auth-card-header">
+    <div class="auth-header-inner">
+      <div class="auth-brand">
+        <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+        <span>HostelNode</span>
+      </div>
+      <div class="auth-badge"><div class="dot"></div> Super Admin Portal</div>
+      <div class="auth-title">Secure Admin Login</div>
+      <div class="auth-sub">3-factor authentication — Phone OTP → Email OTP → Password</div>
+
+      <!-- Step dots -->
+      <div class="auth-steps" style="margin-top:16px">
+        <div class="auth-step-dot active" id="sd1"></div>
+        <div class="auth-step-dot" id="sd2"></div>
+        <div class="auth-step-dot" id="sd3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="auth-body-section">
+    <div class="auth-alert" id="alertBox"></div>
+
+    <!-- STEP 1: Phone OTP -->
+    <div class="form-panel active" id="step1">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">
+        Step 1 — Verify Mobile
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">Mobile Number</label>
+        <div class="auth-row">
+          <input type="tel" id="phone" class="auth-input"
+            placeholder="10-digit number" maxlength="10"
+            inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <button type="button" class="auth-btn-sm" id="btnPhoneOtp" onclick="sendPhoneOtp()">
+            <i class="fa-solid fa-paper-plane"></i> Send OTP
+          </button>
+        </div>
+        <div class="resend-row" id="phoneResendRow" style="display:none">
+          Didn't receive? <span class="resend-link disabled" id="phoneResendLink" onclick="sendPhoneOtp()">Resend</span>
+          <span id="phoneTimer"></span>
+        </div>
+      </div>
+
+      <div id="phoneOtpSection" style="display:none">
+        <div class="auth-label" style="margin-bottom:8px">Enter 6-digit OTP</div>
+        <div class="otp-row">
+          <% for(let i=1;i<=6;i++) { %>
+            <input type="text" maxlength="1" class="otp-box phone-otp-box" id="po<%= i %>" inputmode="numeric">
+          <% } %>
+        </div>
+        <div class="verify-status" id="phoneVerifyStatus" style="display:none"></div>
+      </div>
+
+      <button type="button" class="auth-btn" id="btnStep1Next" onclick="goStep2()" disabled style="margin-top:18px">
+        Next <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- STEP 2: Email OTP -->
+    <div class="form-panel" id="step2">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">
+        Step 2 — Verify Email
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">Email Address</label>
+        <div class="auth-row">
+          <input type="email" id="email" class="auth-input" placeholder="admin@hostelnode.com">
+          <button type="button" class="auth-btn-sm" id="btnEmailOtp" onclick="sendEmailOtp()">
+            <i class="fa-solid fa-envelope"></i> Send OTP
+          </button>
+        </div>
+        <div class="resend-row" id="emailResendRow" style="display:none">
+          Didn't receive? <span class="resend-link disabled" id="emailResendLink" onclick="sendEmailOtp()">Resend</span>
+          <span id="emailTimer"></span>
+        </div>
+      </div>
+
+      <div id="emailOtpSection" style="display:none">
+        <div class="auth-label" style="margin-bottom:8px">Enter 6-digit OTP</div>
+        <div class="otp-row">
+          <% for(let i=1;i<=6;i++) { %>
+            <input type="text" maxlength="1" class="otp-box email-otp-box" id="eo<%= i %>" inputmode="numeric">
+          <% } %>
+        </div>
+        <div class="verify-status" id="emailVerifyStatus" style="display:none"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button type="button" class="auth-btn" style="background:#f1f5f9;color:var(--ink);box-shadow:none;flex:0 0 auto;width:auto;padding:13px 18px" onclick="backStep(1)">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <button type="button" class="auth-btn" id="btnStep2Next" onclick="goStep3()" disabled style="flex:1">
+          Next <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Password -->
+    <div class="form-panel" id="step3">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">
+        Step 3 — Enter Password
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">Admin Password</label>
+        <div class="pass-wrap">
+          <input type="password" id="password" class="auth-input" placeholder="Your secure password">
+          <i class="fa-solid fa-eye pass-eye" id="passEye"></i>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button type="button" class="auth-btn" style="background:#f1f5f9;color:var(--ink);box-shadow:none;flex:0 0 auto;width:auto;padding:13px 18px" onclick="backStep(2)">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <button type="button" class="auth-btn" id="btnLogin" onclick="submitLogin()" style="flex:1">
+          <i class="fa-solid fa-shield-halved"></i> Login to Admin Panel
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let phoneVerified = false, emailVerified = false;
+let phoneTimer = null, emailTimer = null;
+
+/* ── Alert ── */
+function showAlert(msg, type = 'error') {
+  const box = document.getElementById('alertBox');
+  box.innerHTML = `<i class="fa-solid fa-${type==='error'?'triangle-exclamation':'circle-check'}"></i> ${msg}`;
+  box.className = `auth-alert ${type}`;
+  setTimeout(() => box.className = 'auth-alert', 4000);
+}
+
+function setVerify(elId, msg, type) {
+  const el = document.getElementById(elId);
+  el.style.display = 'flex';
+  el.className = `verify-status ${type}`;
+  el.innerHTML = `<i class="fa-solid fa-${type==='success'?'circle-check':'circle-xmark'}"></i> ${msg}`;
+}
+
+/* ── Step navigation ── */
+function updateStepDots(active) {
+  [1,2,3].forEach(n => {
+    const dot = document.getElementById('sd'+n);
+    dot.classList.remove('active','done');
+    if (n < active) dot.classList.add('done');
+    if (n === active) dot.classList.add('active');
+  });
+}
+
+function goStep2() {
+  if (!phoneVerified) { showAlert('Please verify your phone number first'); return; }
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  updateStepDots(2);
+}
+function goStep3() {
+  if (!emailVerified) { showAlert('Please verify your email first'); return; }
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step3').classList.add('active');
+  updateStepDots(3);
+}
+function backStep(to) {
+  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('step'+to).classList.add('active');
+  updateStepDots(to);
+}
+
+/* ── Timer ── */
+function startTimer(linkId, timerId, intervalRef) {
+  const link  = document.getElementById(linkId);
+  const timer = document.getElementById(timerId);
+  link.classList.add('disabled');
+  let t = 60;
+  const iv = setInterval(() => {
+    timer.textContent = ` (${t}s)`; t--;
+    if (t < 0) { clearInterval(iv); timer.textContent = ''; link.classList.remove('disabled'); }
+  }, 1000);
+  return iv;
+}
+
+/* ── Phone OTP ── */
+async function sendPhoneOtp() {
+  const phone = document.getElementById('phone').value.trim();
+  if (!/^[6-9]\d{9}$/.test(phone)) { showAlert('Enter a valid 10-digit number'); return; }
+  const btn = document.getElementById('btnPhoneOtp');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    const res  = await fetch('/admin/send-phone-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone}) });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('phoneOtpSection').style.display = 'block';
+      document.getElementById('phoneResendRow').style.display = 'block';
+      document.getElementById('po1').focus();
+      phoneTimer = startTimer('phoneResendLink','phoneTimer', phoneTimer);
+      showAlert('OTP sent to your WhatsApp!', 'success');
+    } else { showAlert(data.error || 'Failed'); btn.disabled = false; }
+  } catch { showAlert('Server error'); btn.disabled = false; }
+  btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Sent';
+}
+
+/* Phone OTP boxes */
+const phoneBoxes = ['po1','po2','po3','po4','po5','po6'];
+phoneBoxes.forEach((id, idx) => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    el.value = el.value.replace(/[^0-9]/g,'');
+    if (el.value && idx < 5) document.getElementById(phoneBoxes[idx+1]).focus();
+    el.classList.toggle('filled', !!el.value);
+    const all = phoneBoxes.map(i => document.getElementById(i).value).join('');
+    if (all.length === 6) verifyPhoneOtp(all);
+  });
+  el.addEventListener('keydown', e => { if (e.key==='Backspace' && !el.value && idx>0) document.getElementById(phoneBoxes[idx-1]).focus(); });
+});
+
+async function verifyPhoneOtp(otp) {
+  const phone = document.getElementById('phone').value.trim();
+  const res  = await fetch('/admin/verify-phone-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone,otp}) });
+  const data = await res.json();
+  if (data.success) {
+    phoneVerified = true;
+    setVerify('phoneVerifyStatus', 'Phone verified!', 'success');
+    document.getElementById('btnStep1Next').disabled = false;
+    document.getElementById('phone').classList.add('success');
+  } else {
+    phoneVerified = false;
+    setVerify('phoneVerifyStatus', data.error || 'Incorrect OTP', 'error');
+    phoneBoxes.forEach(i => { const el=document.getElementById(i); el.value=''; el.classList.remove('filled'); });
+    document.getElementById('po1').focus();
+  }
+}
+
+/* ── Email OTP ── */
+async function sendEmailOtp() {
+  const email = document.getElementById('email').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAlert('Enter a valid email'); return; }
+  const btn = document.getElementById('btnEmailOtp');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    const res  = await fetch('/admin/send-email-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email}) });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('emailOtpSection').style.display = 'block';
+      document.getElementById('emailResendRow').style.display = 'block';
+      document.getElementById('eo1').focus();
+      emailTimer = startTimer('emailResendLink','emailTimer', emailTimer);
+      showAlert('OTP sent to your email!', 'success');
+    } else { showAlert(data.error || 'Failed'); btn.disabled = false; }
+  } catch { showAlert('Server error'); btn.disabled = false; }
+  btn.innerHTML = '<i class="fa-solid fa-envelope"></i> Sent';
+}
+
+/* Email OTP boxes */
+const emailBoxes = ['eo1','eo2','eo3','eo4','eo5','eo6'];
+emailBoxes.forEach((id, idx) => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    el.value = el.value.replace(/[^0-9]/g,'');
+    if (el.value && idx < 5) document.getElementById(emailBoxes[idx+1]).focus();
+    el.classList.toggle('filled', !!el.value);
+    const all = emailBoxes.map(i => document.getElementById(i).value).join('');
+    if (all.length === 6) verifyEmailOtp(all);
+  });
+  el.addEventListener('keydown', e => { if (e.key==='Backspace' && !el.value && idx>0) document.getElementById(emailBoxes[idx-1]).focus(); });
+});
+
+async function verifyEmailOtp(otp) {
+  const email = document.getElementById('email').value.trim();
+  const res  = await fetch('/admin/verify-email-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,otp}) });
+  const data = await res.json();
+  if (data.success) {
+    emailVerified = true;
+    setVerify('emailVerifyStatus', 'Email verified!', 'success');
+    document.getElementById('btnStep2Next').disabled = false;
+    document.getElementById('email').classList.add('success');
+  } else {
+    emailVerified = false;
+    setVerify('emailVerifyStatus', data.error || 'Incorrect OTP', 'error');
+    emailBoxes.forEach(i => { const el=document.getElementById(i); el.value=''; el.classList.remove('filled'); });
+    document.getElementById('eo1').focus();
+  }
+}
+
+/* ── Password toggle ── */
+document.getElementById('passEye').addEventListener('click', function () {
+  const inp = document.getElementById('password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  this.classList.toggle('fa-eye-slash');
+});
+
+/* ── Submit ── */
+async function submitLogin() {
+  const phone    = document.getElementById('phone').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  if (!password) { showAlert('Enter your password'); return; }
+
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authenticating…';
+
+  try {
+    const res  = await fetch('/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone,email,password}) });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('Login successful!', 'success');
+      setTimeout(() => window.location.href = data.redirect || '/admin', 700);
+    } else {
+      showAlert(data.error || 'Login failed');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Login to Admin Panel';
+    }
+  } catch {
+    showAlert('Server error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Login to Admin Panel';
+  }
+}
+</script>
+</body>
+</html>

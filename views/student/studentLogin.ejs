@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Login | HostelNode</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+<style>
+:root {
+  --g:      #09B850;
+  --g-dark: #078040;
+  --g-light:#e8f9ef;
+  --ink:    #0f1117;
+  --muted:  #64748b;
+  --border: #e2e8f0;
+  --white:  #ffffff;
+  --font-d:   sans-serif;
+  --font-b: 'DM Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-b);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #0a1f12 0%, #09B850 50%, #0a1f12 100%);
+  position: relative;
+  overflow: hidden;
+}
+body::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.04) 1.5px, transparent 1.5px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: absolute;
+  width: 500px; height: 500px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(9,184,80,0.25) 0%, transparent 70%);
+  top: -120px; left: -120px; pointer-events: none;
+}
+
+/* Card */
+.login-card {
+  position: relative; z-index: 1;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 44px 40px;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+  animation: cardIn 0.5s cubic-bezier(.22,.68,0,1.2) both;
+}
+@keyframes cardIn { from{opacity:0;transform:translateY(28px) scale(0.97)} to{opacity:1;transform:none} }
+
+/* Brand */
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  justify-content: center; margin-bottom: 28px;
+}
+.brand img { height: 44px; }
+.brand span { font-family: var(--font-d); font-size: 1.2rem; font-weight: 800; color: var(--ink); }
+
+/* Badge */
+.student-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--g-light); border: 1px solid rgba(9,184,80,0.3);
+  padding: 5px 14px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--g);
+  margin-bottom: 14px;
+}
+.student-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--g); animation: pulse 2s ease infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(1.6)} }
+
+.card-title { font-family: var(--font-d); font-size: 1.55rem; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; margin-bottom: 4px; }
+.card-sub { font-size: 0.83rem; color: var(--muted); margin-bottom: 26px; line-height: 1.5; }
+
+/* Inputs */
+.input-group { margin-bottom: 14px; }
+.input-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; }
+.hn-input {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--border); border-radius: 12px;
+  font-family: var(--font-b); font-size: 0.88rem; color: var(--ink);
+  background: #f8fafc; outline: none;
+  transition: all 0.2s;
+}
+.hn-input:hover { border-color: #94a3b8; }
+.hn-input:focus { border-color: var(--g); box-shadow: 0 0 0 3px rgba(9,184,80,0.12); background: #fff; }
+.hn-input::placeholder { color: #94a3b8; }
+.hn-input.success { border-color: var(--g); background: var(--g-light); }
+.hn-input.error   { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+
+/* Phone + OTP row */
+.phone-row { display: flex; gap: 10px; align-items: flex-end; }
+.phone-row .hn-input { flex: 1; }
+.btn-otp {
+  height: 46px; padding: 0 16px; white-space: nowrap;
+  border: none; border-radius: 12px;
+  background: var(--g); color: #fff;
+  font-family: var(--font-d); font-size: 0.8rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.btn-otp:hover { background: var(--g-dark); }
+.btn-otp:disabled { background: #94a3b8; cursor: not-allowed; }
+
+/* OTP boxes */
+.otp-wrap { display: none; margin-top: 12px; }
+.otp-row { display: flex; gap: 10px; }
+.otp-box {
+  width: 54px; height: 54px; text-align: center;
+  font-family: var(--font-d); font-size: 1.4rem; font-weight: 700;
+  border: 2px solid var(--border); border-radius: 12px; outline: none;
+  transition: all 0.2s; background: #f8fafc; color: var(--ink);
+}
+.otp-box:focus { border-color: var(--g); box-shadow: 0 0 0 3px rgba(9,184,80,0.12); background: #fff; }
+.otp-box.filled { border-color: var(--g); background: var(--g-light); }
+
+/* Status */
+.status-msg {
+  display: none; align-items: center; gap: 7px;
+  font-size: 0.78rem; font-weight: 600; margin-top: 9px; padding: 8px 12px;
+  border-radius: 8px;
+}
+.status-msg.success { display: flex; background: var(--g-light); color: #065f46; }
+.status-msg.error   { display: flex; background: #fef2f2; color: #dc2626; }
+
+/* Resend */
+.resend-row { font-size: 0.77rem; color: var(--muted); margin-top: 7px; }
+.resend-btn { color: var(--g); font-weight: 600; cursor: pointer; }
+.resend-btn:hover { text-decoration: underline; }
+.resend-btn.disabled { opacity: 0.4; pointer-events: none; }
+
+/* Main button */
+.btn-main {
+  width: 100%; padding: 14px;
+  border: none; border-radius: 12px;
+  background: linear-gradient(135deg, var(--g), #22c55e);
+  color: #fff; font-family: var(--font-d); font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; margin-top: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(9,184,80,0.3);
+}
+.btn-main:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(9,184,80,0.38); }
+.btn-main:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; }
+
+/* Alert */
+.alert {
+  padding: 10px 14px; border-radius: 10px; margin-bottom: 16px;
+  font-size: 0.8rem; font-weight: 500; display: none;
+  animation: shake 0.35s ease;
+}
+.alert.error   { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; display: flex; align-items: center; gap: 7px; }
+.alert.success { background: var(--g-light); border: 1px solid #a8e6bf; color: #065f46; display: flex; align-items: center; gap: 7px; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+/* Links */
+.links-row { text-align: center; margin-top: 20px; }
+.links-row a { font-size: 0.82rem; color: var(--g); font-weight: 600; text-decoration: none; }
+.links-row a:hover { text-decoration: underline; }
+.links-row span { color: var(--muted); font-size: 0.82rem; }
+
+/* Owner login note */
+.owner-note {
+  margin-top: 18px; padding: 11px 14px;
+  background: #f8fafc; border: 1px solid var(--border);
+  border-radius: 10px; text-align: center;
+  font-size: 0.77rem; color: var(--muted);
+}
+.owner-note a { color: var(--ink); font-weight: 600; text-decoration: none; }
+.owner-note a:hover { color: var(--g); }
+
+@media (max-width: 480px) {
+  .login-card { padding: 28px 20px; }
+  .otp-box { width: 46px; height: 46px; font-size: 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="login-card">
+
+  <div class="brand">
+    <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+    <span>HostelNode</span>
+  </div>
+
+  <div class="student-badge"><div class="dot"></div> Student Login</div>
+
+  <div class="card-title">Welcome back </div>
+  <div class="card-sub">Enter your mobile number to receive an OTP and log in instantly.</div>
+
+  <!-- Server-side error (EJS) -->
+  <% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert error" style="display:flex">
+    <i class="fa-solid fa-triangle-exclamation"></i> <%= error %>
+  </div>
+  <% } %>
+
+  <!-- JS alert -->
+  <div class="alert" id="alertBox"></div>
+
+  <!-- Phone -->
+  <div class="input-group">
+    <label class="input-label">Mobile Number</label>
+    <div class="phone-row">
+      <input type="tel" id="phone" class="hn-input"
+        placeholder="10-digit number" maxlength="10"
+        inputmode="numeric"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      <button class="btn-otp" id="btnOtp" onclick="sendOtp()">
+        <i class="fa-solid fa-paper-plane"></i> OTP
+      </button>
+    </div>
+  </div>
+
+  <!-- OTP -->
+  <div class="otp-wrap" id="otpWrap">
+    <div style="font-size:0.78rem;font-weight:600;color:var(--muted);margin-bottom:8px">Enter 4-digit OTP</div>
+    <div class="otp-row">
+      <input type="text" maxlength="1" class="otp-box" id="o1" inputmode="numeric">
+      <input type="text" maxlength="1" class="otp-box" id="o2" inputmode="numeric">
+      <input type="text" maxlength="1" class="otp-box" id="o3" inputmode="numeric">
+      <input type="text" maxlength="1" class="otp-box" id="o4" inputmode="numeric">
+    </div>
+    <div class="status-msg" id="statusMsg"></div>
+    <div class="resend-row">
+      Didn't receive?
+      <span class="resend-btn disabled" id="resendBtn" onclick="resendOtp()">Resend OTP</span>
+      <span id="timerDisplay"></span>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <button class="btn-main" id="btnLogin" onclick="submitLogin()" disabled>
+    <i class="fa-solid fa-right-to-bracket"></i> Login with OTP
+  </button>
+
+  <div class="links-row">
+    <span>New student? </span>
+    <a href="/student/signup">Sign up free →</a>
+  </div>
+
+  <div class="owner-note">
+    Are you a hostel owner? <a href="/login">Owner Login →</a>
+  </div>
+
+</div>
+
+<script>
+let verified = false;
+let timer = null;
+
+function showAlert(msg, type = 'error') {
+  const box = document.getElementById('alertBox');
+  box.innerHTML = `<i class="fa-solid fa-${type === 'error' ? 'triangle-exclamation' : 'circle-check'}"></i> ${msg}`;
+  box.className = `alert ${type}`;
+  setTimeout(() => box.className = 'alert', 4000);
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'circle-check' : 'circle-xmark'}"></i> ${msg}`;
+  el.className = `status-msg ${type}`;
+}
+
+async function sendOtp() {
+  const phone = document.getElementById('phone').value.trim();
+  if (!/^[6-9]\d{9}$/.test(phone)) { showAlert('Enter a valid 10-digit mobile number'); return; }
+
+  const btn = document.getElementById('btnOtp');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+  try {
+    const res  = await fetch('/student/send-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone }) });
+    const data = await res.json();
+
+    if (data.success) {
+      document.getElementById('otpWrap').style.display = 'block';
+      document.getElementById('o1').focus();
+      startTimer(60);
+      showAlert('OTP sent!', 'success');
+    } else {
+      showAlert(data.error || 'Failed to send OTP');
+      btn.disabled = false;
+    }
+  } catch { showAlert('Server error'); btn.disabled = false; }
+
+  btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Sent';
+}
+
+async function resendOtp() {
+  verified = false;
+  document.getElementById('btnLogin').disabled = true;
+  ['o1','o2','o3','o4'].forEach(id => { const el=document.getElementById(id); el.value=''; el.classList.remove('filled'); });
+  document.getElementById('statusMsg').className = 'status-msg';
+  document.getElementById('btnOtp').disabled = false;
+  await sendOtp();
+}
+
+function startTimer(sec) {
+  clearInterval(timer);
+  const rb = document.getElementById('resendBtn');
+  const td = document.getElementById('timerDisplay');
+  rb.classList.add('disabled');
+  let t = sec;
+  timer = setInterval(() => {
+    td.textContent = ` (${t}s)`;
+    t--;
+    if (t < 0) {
+      clearInterval(timer);
+      td.textContent = '';
+      rb.classList.remove('disabled');
+    }
+  }, 1000);
+}
+
+/* OTP inputs */
+['o1','o2','o3','o4'].forEach((id, idx, arr) => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    el.value = el.value.replace(/[^0-9]/g,'');
+    if (el.value) { el.classList.add('filled'); if (idx < 3) document.getElementById(arr[idx+1]).focus(); }
+    else el.classList.remove('filled');
+    const full = arr.map(i => document.getElementById(i).value).join('');
+    if (full.length === 4) checkOtp(full);
+  });
+  el.addEventListener('keydown', e => { if (e.key==='Backspace' && !el.value && idx>0) document.getElementById(arr[idx-1]).focus(); });
+});
+
+async function checkOtp(otp) {
+  const phone = document.getElementById('phone').value.trim();
+  try {
+    const res  = await fetch('/student/verify-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone, otp}) });
+    const data = await res.json();
+    if (data.success) {
+      verified = true;
+      setStatus('Phone verified!', 'success');
+      document.getElementById('btnLogin').disabled = false;
+      document.getElementById('phone').classList.add('success');
+    } else {
+      verified = false;
+      setStatus(data.error || 'Incorrect OTP', 'error');
+      document.getElementById('btnLogin').disabled = true;
+      ['o1','o2','o3','o4'].forEach(id => { const el=document.getElementById(id); el.value=''; el.classList.remove('filled'); });
+      document.getElementById('o1').focus();
+    }
+  } catch { setStatus('Verification failed', 'error'); }
+}
+
+async function submitLogin() {
+  if (!verified) { showAlert('Please verify OTP first'); return; }
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging in…';
+
+  try {
+    const res  = await fetch('/student/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ phone: document.getElementById('phone').value.trim() }) });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('Login successful! Redirecting…', 'success');
+      setTimeout(() => window.location.href = data.redirect || '/student/dashboard', 700);
+    } else {
+      showAlert(data.error || 'Login failed');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login with OTP';
+    }
+  } catch {
+    showAlert('Server error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login with OTP';
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Setup | HostelNode</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="/css/adminstyle.css">
+</head>
+<body class="auth-body">
+
+<div class="auth-card">
+  <div class="auth-card-header">
+    <div class="auth-header-inner">
+      <div class="auth-brand">
+        <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+        <span>HostelNode</span>
+      </div>
+      <div class="auth-badge"><div class="dot"></div> One-Time Admin Setup</div>
+      <div class="auth-title">Create Super Admin</div>
+      <div class="auth-sub">This page is only accessible once — when no admin exists.</div>
+      <div class="auth-steps" style="margin-top:16px">
+        <div class="auth-step-dot active" id="sd1"></div>
+        <div class="auth-step-dot" id="sd2"></div>
+        <div class="auth-step-dot" id="sd3"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-body-section">
+    <div class="auth-alert" id="alertBox"></div>
+
+    <!-- STEP 1: Basic Info -->
+    <div class="form-panel active" id="step1">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">
+        Step 1 — Your Details
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="auth-input-group">
+          <label class="auth-label">Full Name <span style="color:#ef4444">*</span></label>
+          <input type="text" id="name" class="auth-input" placeholder="Super Admin Name" maxlength="60">
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label">Address</label>
+          <input type="text" id="address" class="auth-input" placeholder="City, State">
+        </div>
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">Password <span style="color:#ef4444">*</span></label>
+        <div class="pass-wrap">
+          <input type="password" id="password" class="auth-input" placeholder="Min 8 characters">
+          <i class="fa-solid fa-eye pass-eye" id="passEye"></i>
+        </div>
+      </div>
+
+      <button type="button" class="auth-btn" onclick="goStep2()">
+        Continue <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- STEP 2: Phone OTP -->
+    <div class="form-panel" id="step2">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">
+        Step 2 — Verify Phone
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">Mobile Number <span style="color:#ef4444">*</span></label>
+        <div class="auth-row">
+          <input type="tel" id="phone" class="auth-input" placeholder="10-digit" maxlength="10"
+            inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <button type="button" class="auth-btn-sm" id="btnPhoneOtp" onclick="sendPhoneOtp()">
+            <i class="fa-solid fa-paper-plane"></i> Send
+          </button>
+        </div>
+      </div>
+
+      <div id="phoneOtpSection" style="display:none">
+        <div class="auth-label" style="margin-bottom:8px">6-digit OTP</div>
+        <div class="otp-row">
+          <% for(let i=1;i<=6;i++) { %>
+            <input type="text" maxlength="1" class="otp-box phone-otp-box" id="po<%= i %>" inputmode="numeric">
+          <% } %>
+        </div>
+        <div class="verify-status" id="phoneVerifyStatus" style="display:none"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button type="button" class="auth-btn" style="background:#f1f5f9;color:var(--ink);box-shadow:none;flex:0 0 auto;width:auto;padding:13px 18px" onclick="backStep(1)">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <button type="button" class="auth-btn" id="btnToStep3" onclick="goStep3()" disabled style="flex:1">
+          Next <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Email OTP + Submit -->
+    <div class="form-panel" id="step3">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">
+        Step 3 — Verify Email
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">Email Address <span style="color:#ef4444">*</span></label>
+        <div class="auth-row">
+          <input type="email" id="email" class="auth-input" placeholder="admin@hostelnode.com">
+          <button type="button" class="auth-btn-sm" id="btnEmailOtp" onclick="sendEmailOtp()">
+            <i class="fa-solid fa-envelope"></i> Send
+          </button>
+        </div>
+      </div>
+
+      <div id="emailOtpSection" style="display:none">
+        <div class="auth-label" style="margin-bottom:8px">6-digit OTP</div>
+        <div class="otp-row">
+          <% for(let i=1;i<=6;i++) { %>
+            <input type="text" maxlength="1" class="otp-box email-otp-box" id="eo<%= i %>" inputmode="numeric">
+          <% } %>
+        </div>
+        <div class="verify-status" id="emailVerifyStatus" style="display:none"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button type="button" class="auth-btn" style="background:#f1f5f9;color:var(--ink);box-shadow:none;flex:0 0 auto;width:auto;padding:13px 18px" onclick="backStep(2)">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <button type="button" class="auth-btn" id="btnSubmit" onclick="submitSignup()" disabled style="flex:1">
+          <i class="fa-solid fa-crown"></i> Create Admin Account
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let phoneVerified = false, emailVerified = false;
+
+function showAlert(msg, type = 'error') {
+  const box = document.getElementById('alertBox');
+  box.innerHTML = `<i class="fa-solid fa-${type==='error'?'triangle-exclamation':'circle-check'}"></i> ${msg}`;
+  box.className = `auth-alert ${type}`;
+  setTimeout(() => box.className = 'auth-alert', 4000);
+}
+function setVerify(elId, msg, type) {
+  const el = document.getElementById(elId);
+  el.style.display = 'flex'; el.className = `verify-status ${type}`;
+  el.innerHTML = `<i class="fa-solid fa-${type==='success'?'circle-check':'circle-xmark'}"></i> ${msg}`;
+}
+function updateDots(active) {
+  [1,2,3].forEach(n => {
+    const d = document.getElementById('sd'+n);
+    d.classList.remove('active','done');
+    if (n < active) d.classList.add('done');
+    if (n === active) d.classList.add('active');
+  });
+}
+function goStep2() {
+  const name = document.getElementById('name').value.trim();
+  const pass = document.getElementById('password').value;
+  if (name.length < 3) { showAlert('Name must be at least 3 characters'); return; }
+  if (pass.length < 8) { showAlert('Password must be 8+ characters'); return; }
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  updateDots(2);
+}
+function goStep3() {
+  if (!phoneVerified) { showAlert('Verify phone first'); return; }
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step3').classList.add('active');
+  updateDots(3);
+}
+function backStep(to) {
+  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('step'+to).classList.add('active');
+  updateDots(to);
+}
+
+document.getElementById('passEye').addEventListener('click', function () {
+  const inp = document.getElementById('password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  this.classList.toggle('fa-eye-slash');
+});
+
+async function sendPhoneOtp() {
+  const phone = document.getElementById('phone').value.trim();
+  if (!/^[6-9]\d{9}$/.test(phone)) { showAlert('Invalid phone'); return; }
+  const btn = document.getElementById('btnPhoneOtp');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  const res = await fetch('/admin/send-phone-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone}) });
+  const data = await res.json();
+  if (data.success) { document.getElementById('phoneOtpSection').style.display='block'; document.getElementById('po1').focus(); showAlert('OTP sent!','success'); }
+  else { showAlert(data.error||'Failed'); btn.disabled=false; }
+  btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Sent';
+}
+async function sendEmailOtp() {
+  const email = document.getElementById('email').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAlert('Invalid email'); return; }
+  const btn = document.getElementById('btnEmailOtp');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  const res = await fetch('/admin/send-email-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email}) });
+  const data = await res.json();
+  if (data.success) { document.getElementById('emailOtpSection').style.display='block'; document.getElementById('eo1').focus(); showAlert('OTP sent to email!','success'); }
+  else { showAlert(data.error||'Failed'); btn.disabled=false; }
+  btn.innerHTML = '<i class="fa-solid fa-envelope"></i> Sent';
+}
+
+/* OTP boxes */
+function setupOtpBoxes(ids, verifyFn) {
+  ids.forEach((id, idx) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      el.value = el.value.replace(/[^0-9]/g,'');
+      if (el.value && idx < ids.length-1) document.getElementById(ids[idx+1]).focus();
+      el.classList.toggle('filled', !!el.value);
+      const all = ids.map(i => document.getElementById(i).value).join('');
+      if (all.length === 6) verifyFn(all);
+    });
+    el.addEventListener('keydown', e => { if (e.key==='Backspace' && !el.value && idx>0) document.getElementById(ids[idx-1]).focus(); });
+  });
+}
+
+const phoneBoxes = ['po1','po2','po3','po4','po5','po6'];
+const emailBoxes = ['eo1','eo2','eo3','eo4','eo5','eo6'];
+
+setupOtpBoxes(phoneBoxes, async otp => {
+  const phone = document.getElementById('phone').value.trim();
+  const res = await fetch('/admin/verify-phone-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone,otp}) });
+  const data = await res.json();
+  if (data.success) { phoneVerified=true; setVerify('phoneVerifyStatus','Phone verified!','success'); document.getElementById('btnToStep3').disabled=false; }
+  else { phoneVerified=false; setVerify('phoneVerifyStatus',data.error||'Incorrect','error'); phoneBoxes.forEach(i=>{const e=document.getElementById(i);e.value='';e.classList.remove('filled');}); document.getElementById('po1').focus(); }
+});
+
+setupOtpBoxes(emailBoxes, async otp => {
+  const email = document.getElementById('email').value.trim();
+  const res = await fetch('/admin/verify-email-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,otp}) });
+  const data = await res.json();
+  if (data.success) { emailVerified=true; setVerify('emailVerifyStatus','Email verified!','success'); document.getElementById('btnSubmit').disabled=false; }
+  else { emailVerified=false; setVerify('emailVerifyStatus',data.error||'Incorrect','error'); emailBoxes.forEach(i=>{const e=document.getElementById(i);e.value='';e.classList.remove('filled');}); document.getElementById('eo1').focus(); }
+});
+
+async function submitSignup() {
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating…';
+  const payload = {
+    name:    document.getElementById('name').value.trim(),
+    email:   document.getElementById('email').value.trim(),
+    phone:   document.getElementById('phone').value.trim(),
+    password:document.getElementById('password').value,
+    address: document.getElementById('address').value.trim()
+  };
+  try {
+    const res  = await fetch('/admin/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.success) { showAlert('Admin created! Redirecting…','success'); setTimeout(()=>window.location.href=data.redirect||'/admin/login',800); }
+    else { showAlert(data.error||'Failed'); btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-crown"></i> Create Admin Account'; }
+  } catch { showAlert('Server error'); btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-crown"></i> Create Admin Account'; }
+}
+</script>
+</body>
+</html>

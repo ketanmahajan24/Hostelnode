@@ -1,0 +1,24 @@
+# WhatsApp session (large cache files - never push)
+models/whatsapp_session/
+whatsapp_session/
+*.sqldb
+session/
+# Node modules
+node_modules/
+
+# # Uploads
+# secure_uploads/
+
+uploads/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

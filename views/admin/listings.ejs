@@ -1,0 +1,105 @@
+<% locals.pageTitle = 'Listings'; locals.activePage = 'listings'; %>
+<%- include('layout', { body: `
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Listings</h1>
+    <p>${total} total listing${total!==1?'s':''}</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <form method="GET" action="/admin/listings" style="display:contents">
+    <div class="filter-input">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="search" placeholder="Search title, city…" value="${filters.search||''}">
+    </div>
+    <select name="status" class="filter-select" onchange="this.form.submit()">
+      <option value="all">All Status</option>
+      <option value="Pending"  ${filters.status==='Pending' ?'selected':''}>Pending</option>
+      <option value="Approved" ${filters.status==='Approved'?'selected':''}>Approved</option>
+      <option value="Rejected" ${filters.status==='Rejected'?'selected':''}>Rejected</option>
+    </select>
+    <select name="type" class="filter-select" onchange="this.form.submit()">
+      <option value="all">All Types</option>
+      <option value="Hostel" ${filters.type==='Hostel'?'selected':''}>Hostel</option>
+      <option value="PG"     ${filters.type==='PG'    ?'selected':''}>PG</option>
+      <option value="Flat"   ${filters.type==='Flat'  ?'selected':''}>Flat</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+    <a href="/admin/listings" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Listing</th><th>Owner</th><th>Price</th><th>Type</th><th>Status</th><th>Verified</th><th>Views</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        ${listings.length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No listings found</td></tr>' :
+        listings.map(l => `
+        <tr>
+          <td>
+            <div class="cell-name">${l.title}</div>
+            <div class="cell-sub">${l.location?.city||'—'}, ${l.location?.state||'—'}</div>
+          </td>
+          <td>
+            <div class="cell-name">${l.owner?.name||'—'}</div>
+            <div class="cell-sub">${l.owner?.phone||'—'}</div>
+          </td>
+          <td style="font-weight:700;color:var(--g)">₹${(l.startingPrice||0).toLocaleString('en-IN')}</td>
+          <td><span class="badge badge-blue">${l.propertyType}</span></td>
+          <td>
+            <select class="filter-select" style="padding:4px 28px 4px 8px;font-size:0.72rem"
+              onchange="quickListingStatus('/admin/listings/${l._id}/status', {status:this.value}, this)">
+              ${['Pending','Approved','Rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </td>
+          <td>
+            <button class="btn btn-sm ${l.isVerified?'btn-primary':'btn-outline'}"
+              onclick="toggleVerify('${l._id}', ${l.isVerified}, this)">
+              <i class="fa-solid fa-shield-halved"></i> ${l.isVerified?'Verified':'Verify'}
+            </button>
+          </td>
+          <td><span style="font-weight:600">${l.views||0}</span></td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <a href="/admin/listings/${l._id}" class="icon-btn" title="View"><i class="fa-solid fa-eye"></i></a>
+              <a href="/hostel/${l.slug}" target="_blank" class="icon-btn" title="Live"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+              <button class="icon-btn danger" title="Delete"
+                onclick="openConfirm('Delete Listing','Delete this listing? This cannot be undone.',()=>deleteRecord('/admin/listings/${l._id}','Listing deleted','/admin/listings'))">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  ${totalPages > 1 ? `
+  <div class="card-footer">
+    <div class="pagination">
+      <a href="?page=${currentPage-1}" class="page-btn ${currentPage===1?'disabled':''}"><i class="fa-solid fa-chevron-left"></i></a>
+      ${Array.from({length:totalPages},(_,i)=>`<a href="?page=${i+1}" class="page-btn ${currentPage===i+1?'active':''}">${i+1}</a>`).join('')}
+      <a href="?page=${currentPage+1}" class="page-btn ${currentPage===totalPages?'disabled':''}"><i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+  </div>` : ''}
+</div>
+
+<script>
+async function quickListingStatus(url, payload, select) {
+  await updateStatus(url, payload, 'Status updated');
+}
+async function toggleVerify(id, current, btn) {
+  const ok = await updateStatus('/admin/listings/'+id+'/status', {isVerified:!current}, !current?'Marked as verified':'Verification removed');
+  if (ok) {
+    const newState = !current;
+    btn.className = 'btn btn-sm ' + (newState ? 'btn-primary' : 'btn-outline');
+    btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> ' + (newState ? 'Verified' : 'Verify');
+    btn.setAttribute('onclick', 'toggleVerify("'+id+'",'+newState+',this)');
+  }
+}
+</script>
+` }) %>

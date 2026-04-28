@@ -1,0 +1,98 @@
+<% locals.pageTitle = 'Owners'; locals.activePage = 'owners'; %>
+<%- include('layout', { body: `
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Owners</h1>
+    <p>${total} total owner${total!==1?'s':''} registered</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <form method="GET" action="/admin/owners" style="display:contents">
+    <div class="filter-input">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="search" placeholder="Search name, email, phone…" value="${filters.search||''}">
+    </div>
+    <select name="status" class="filter-select" onchange="this.form.submit()">
+      <option value="all" ${!filters.status||filters.status==='all'?'selected':''}>All Status</option>
+      <option value="Active"   ${filters.status==='Active'  ?'selected':''}>Active</option>
+      <option value="Pending"  ${filters.status==='Pending' ?'selected':''}>Pending</option>
+      <option value="Inactive" ${filters.status==='Inactive'?'selected':''}>Inactive</option>
+      <option value="Banned"   ${filters.status==='Banned'  ?'selected':''}>Banned</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+    <a href="/admin/owners" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Owner</th><th>Business</th><th>Location</th>
+          <th>Status</th><th>Joined</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${owners.length === 0 ? '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">No owners found</td></tr>' :
+        owners.map(o => `
+        <tr>
+          <td>
+            <div class="cell-avatar">
+              <div class="cell-avatar-img">${o.name.charAt(0)}</div>
+              <div>
+                <div class="cell-name">${o.name}</div>
+                <div class="cell-sub">${o.email}</div>
+                <div class="cell-sub">${o.phone}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="cell-name">${o.businessName||'—'}</div>
+            <div class="cell-sub">${o.businessType||'—'}</div>
+          </td>
+          <td><div class="cell-sub">${o.city||'—'}, ${o.state||'—'}</div></td>
+          <td>
+            <select class="filter-select" style="padding:4px 28px 4px 8px;font-size:0.72rem"
+              onchange="quickStatusUpdate('/admin/owners/${o._id}/status', this.value, this)">
+              ${['Active','Pending','Inactive','Banned'].map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </td>
+          <td><div class="cell-sub">${new Date(o.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div></td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <a href="/admin/owners/${o._id}" class="icon-btn" title="View"><i class="fa-solid fa-eye"></i></a>
+              <button class="icon-btn danger" title="Delete"
+                onclick="openConfirm('Delete Owner','Delete ${o.name.replace(/'/g,"\\'")}? This cannot be undone.',()=>deleteRecord('/admin/owners/${o._id}','Owner deleted','/admin/owners'))">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  ${totalPages > 1 ? `
+  <div class="card-footer">
+    <div class="pagination">
+      <a href="?page=${currentPage-1}&status=${filters.status||''}&search=${filters.search||''}"
+        class="page-btn ${currentPage===1?'disabled':''}"><i class="fa-solid fa-chevron-left"></i></a>
+      ${Array.from({length:totalPages},(_,i)=>`
+        <a href="?page=${i+1}&status=${filters.status||''}&search=${filters.search||''}"
+          class="page-btn ${currentPage===i+1?'active':''}">${i+1}</a>`).join('')}
+      <a href="?page=${currentPage+1}&status=${filters.status||''}&search=${filters.search||''}"
+        class="page-btn ${currentPage===totalPages?'disabled':''}"><i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+  </div>` : ''}
+</div>
+
+<script>
+async function quickStatusUpdate(url, status, select) {
+  const ok = await updateStatus(url, { status }, 'Status updated');
+  if (!ok) select.value = select.dataset.prev || select.value;
+  else select.dataset.prev = status;
+}
+</script>
+` }) %>

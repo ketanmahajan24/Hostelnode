@@ -1,0 +1,460 @@
+<% locals.pageTitle = 'Visitors'; locals.activePage = 'visitors'; %>
+<%- include('layout', { body: `
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Visitor Analytics</h1>
+    <p>Real-time traffic, locations, and behaviour tracking</p>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="live-dot" id="liveDot">Live</div>
+    <div class="range-tabs">
+      <a href="?range=1d&route=${filters.route}"  class="range-tab ${filters.range==='1d' ?'active':''}">Today</a>
+      <a href="?range=7d&route=${filters.route}"  class="range-tab ${filters.range==='7d' ?'active':''}">7 Days</a>
+      <a href="?range=30d&route=${filters.route}" class="range-tab ${filters.range==='30d'?'active':''}">30 Days</a>
+      <a href="?range=90d&route=${filters.route}" class="range-tab ${filters.range==='90d'?'active':''}">90 Days</a>
+      <a href="?range=all&route=${filters.route}" class="range-tab ${filters.range==='all'?'active':''}">All Time</a>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="openConfirm('Clear Old Logs','Delete visitor logs older than 30 days?',()=>clearLogs())">
+      <i class="fa-solid fa-trash"></i> Clear Logs
+    </button>
+  </div>
+</div>
+
+<!-- STAT CARDS -->
+<div class="stats-grid" style="margin-bottom:20px">
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fa-solid fa-eye"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Total Visits</div>
+      <div class="stat-value">${stats.totalVisits.toLocaleString('en-IN')}</div>
+      <div class="stat-sub">in selected range</div>
+    </div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Unique Visitors</div>
+      <div class="stat-value">${stats.uniqueIPs.toLocaleString('en-IN')}</div>
+      <div class="stat-sub">unique IPs</div>
+    </div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon purple"><i class="fa-solid fa-rotate"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Returning</div>
+      <div class="stat-value">${stats.returningCount.toLocaleString('en-IN')}</div>
+      <div class="stat-sub">${stats.totalVisits>0?Math.round((stats.returningCount/stats.totalVisits)*100):0}% return rate</div>
+    </div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><i class="fa-solid fa-mobile-screen"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Mobile</div>
+      <div class="stat-value">${stats.mobileCount.toLocaleString('en-IN')}</div>
+      <div class="stat-sub">${stats.totalVisits>0?Math.round((stats.mobileCount/stats.totalVisits)*100):0}% of visits</div>
+    </div>
+  </div>
+  <!-- ✅ NEW GPS CARD -->
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fa-solid fa-satellite-dish"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">GPS Located</div>
+      <div class="stat-value">${stats.gpsCount.toLocaleString('en-IN')}</div>
+      <div class="stat-sub">exact GPS visits</div>
+    </div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><i class="fa-solid fa-robot"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Bots</div>
+      <div class="stat-value">${stats.botCount.toLocaleString('en-IN')}</div>
+      <div class="stat-sub">crawlers detected</div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div class="charts-grid" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-chart-line"></i> Daily Traffic Trend</div>
+    </div>
+    <div class="card-body chart-wrap">
+      <canvas id="dailyChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-clock"></i> Today by Hour</div>
+    </div>
+    <div class="card-body">
+      <div class="hourly-bar-wrap" id="hourlyBars"></div>
+      <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--muted);margin-top:4px;padding:0 4px">
+        <span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROUTE + DEVICE + BROWSER -->
+<div class="charts-grid-3" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-route"></i> Top Pages</div>
+    </div>
+    <div class="card-body">
+      ${topRoutes.map((r,i)=>`
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:3px">
+          <span style="font-weight:600;color:var(--ink)">${r._id.label||r._id.route}</span>
+          <span style="color:var(--g);font-weight:700">${r.count}</span>
+        </div>
+        <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${topRoutes[0]?.count>0?Math.round((r.count/topRoutes[0].count)*100):0}%;background:var(--g);border-radius:3px"></div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-laptop"></i> Devices</div>
+    </div>
+    <div class="card-body chart-wrap" style="display:flex;align-items:center;justify-content:center">
+      <canvas id="deviceChart" style="max-height:200px;max-width:200px"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-globe"></i> Browsers</div>
+    </div>
+    <div class="card-body">
+      ${browserData.map(b=>`
+      <div class="country-row">
+        <span style="font-weight:600;min-width:80px">${b._id||'Unknown'}</span>
+        <div class="country-bar-bg">
+          <div class="country-bar-fill" style="width:${browserData[0]?.count>0?Math.round((b.count/browserData[0].count)*100):0}%"></div>
+        </div>
+        <span style="font-weight:700;color:var(--ink);min-width:32px;text-align:right">${b.count}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+</div>
+
+<!-- MAP + TOP COUNTRIES -->
+<div class="charts-grid" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-map-location-dot"></i> Visitor World Map</div>
+      <span style="font-size:0.72rem;color:var(--muted)">
+        ${mapPins.length} locations &nbsp;|&nbsp;
+        <!-- ✅ GPS vs IP count on map legend -->
+        <span style="color:#09B850;font-weight:600">● GPS exact</span> &nbsp;
+        <span style="color:#3b82f6;font-weight:600">● IP approx</span> &nbsp;
+        <span style="color:#ef4444;font-weight:600">● Hot spot</span>
+      </span>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div id="visitorMap"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-earth-asia"></i> Top Countries</div>
+    </div>
+    <div class="card-body">
+      ${topCountries.map(c=>`
+      <div class="country-row">
+        <span style="font-weight:600;min-width:100px;font-size:0.8rem">${c._id||'Unknown'}</span>
+        <div class="country-bar-bg">
+          <div class="country-bar-fill" style="width:${topCountries[0]?.count>0?Math.round((c.count/topCountries[0].count)*100):0}%"></div>
+        </div>
+        <span style="font-weight:700;color:var(--ink);min-width:36px;text-align:right;font-size:0.8rem">${c.count}</span>
+      </div>`).join('')}
+
+      <div style="margin-top:20px">
+        <div class="card-title" style="margin-bottom:10px"><i class="fa-solid fa-location-dot" style="color:var(--g)"></i> Top Cities</div>
+        ${topCities.map(c=>`
+        <div class="country-row">
+          <span style="font-weight:600;min-width:110px;font-size:0.78rem">${c._id.city||'—'}, ${c._id.country||''}</span>
+          <div class="country-bar-bg">
+            <div class="country-bar-fill" style="width:${topCities[0]?.count>0?Math.round((c.count/topCities[0].count)*100):0}%;background:var(--blue)"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-weight:700;color:var(--ink);min-width:28px;text-align:right;font-size:0.78rem">${c.count}</span>
+            ${c._id.lat&&c._id.lng?`<a href="https://www.google.com/maps?q=${c._id.lat},${c._id.lng}" target="_blank" class="btn btn-sm btn-outline" style="padding:2px 7px;font-size:0.65rem"><i class="fa-solid fa-map-pin"></i></a>`:''}
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VISITOR LOG TABLE -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="fa-solid fa-list"></i> Visitor Log</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <form method="GET" action="/admin/visitors" style="display:flex;gap:8px">
+        <input type="hidden" name="range" value="${filters.range}">
+        <div class="filter-input" style="min-width:unset;width:160px">
+          <i class="fa-solid fa-filter"></i>
+          <select name="route" style="border:none;background:transparent;outline:none;font-size:0.78rem;color:var(--ink);width:100%" onchange="this.form.submit()">
+            <option value="all" ${filters.route==='all'?'selected':''}>All Pages</option>
+            <option value="/" ${filters.route==='/'?'selected':''}>Home</option>
+            <option value="/student/login" ${filters.route==='/student/login'?'selected':''}>Student Login</option>
+            <option value="/student/signup" ${filters.route==='/student/signup'?'selected':''}>Student Signup</option>
+            <option value="/login" ${filters.route==='/login'?'selected':''}>Owner Login</option>
+            <option value="/findHostels" ${filters.route==='/findHostels'?'selected':''}>Find Hostels</option>
+            <option value="/hostel" ${filters.route==='/hostel'?'selected':''}>Hostel Detail</option>
+            <option value="/findHostels/results" ${filters.route==='/findHostels/results'?'selected':''}>Results</option>
+          </select>
+        </div>
+      </form>
+      <button class="btn btn-ghost btn-sm" onclick="toggleLive()" id="liveBtn">
+        <i class="fa-solid fa-play"></i> Auto-refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Row header -->
+  <div class="visitor-row header">
+    <div></div>
+    <div>Visitor</div>
+    <div>Page</div>
+    <div>Location</div>
+    <div>Type</div>
+    <div>Returning</div>
+    <div>Time</div>
+  </div>
+
+  <!-- ✅ Visitor rows — show GPS badge if GPS location available -->
+  <div id="visitorRows">
+    ${recentVisitors.map(v => `
+    <div class="visitor-row">
+      <div>
+        <div class="device-icon ${(v.device||'unknown').toLowerCase()}">
+          <i class="fa-solid fa-${v.device==='Mobile'?'mobile-screen':v.device==='Tablet'?'tablet-screen-button':v.device==='Bot'?'robot':'desktop'}"></i>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:0.8rem;color:var(--ink)">${v.ip}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">${v.browser||'—'}</div>
+        <div style="font-size:0.68rem;color:var(--muted-l)">${v.isp||''}</div>
+      </div>
+      <div>
+        <span class="route-pill" title="${v.route}">${v.routeLabel||v.route}</span>
+      </div>
+      <div>
+        <div style="font-size:0.78rem;font-weight:600">${v.city||'—'}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">${v.country||'—'}</div>
+
+        <!-- ✅ Show GPS badge if GPS location exists -->
+        ${v.locationSource==='GPS' ? `
+          <span style="font-size:0.62rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:10px;font-weight:700">
+            📡 GPS Exact
+          </span>
+          <a href="https://www.google.com/maps?q=${v.gpsLat},${v.gpsLng}" target="_blank"
+            style="font-size:0.65rem;color:#09B850;display:flex;align-items:center;gap:3px;margin-top:2px">
+            <i class="fa-solid fa-map-pin"></i> GPS Map
+          </a>
+        ` : v.lat&&v.lng ? `
+          <span style="font-size:0.62rem;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:10px;font-weight:700">
+            🌐 IP Approx
+          </span>
+          <a href="https://www.google.com/maps?q=${v.lat},${v.lng}" target="_blank"
+            style="font-size:0.65rem;color:var(--blue);display:flex;align-items:center;gap:3px;margin-top:2px">
+            <i class="fa-solid fa-map-pin"></i> IP Map
+          </a>
+        ` : ''}
+      </div>
+      <div>
+        ${v.userType?`<span class="badge ${v.userType==='Student'?'badge-blue':v.userType==='Owner'?'badge-amber':'badge-purple'}">${v.userType}</span>`:'<span class="badge badge-gray">Guest</span>'}
+      </div>
+      <div>
+        <span class="returning-badge ${v.isReturning?'yes':'no'}">
+          ${v.isReturning?'↩ Return':'✦ New'}
+        </span>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted)">
+        ${new Date(v.visitedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+      </div>
+    </div>`).join('')}
+  </div>
+
+  <!-- Pagination -->
+  ${totalPages > 1 ? `
+  <div class="card-footer">
+    <div class="pagination">
+      <a href="?range=${filters.range}&route=${filters.route}&page=${currentPage-1}" class="page-btn ${currentPage===1?'disabled':''}"><i class="fa-solid fa-chevron-left"></i></a>
+      ${Array.from({length:Math.min(totalPages,7)},(_,i)=>`<a href="?range=${filters.range}&route=${filters.route}&page=${i+1}" class="page-btn ${currentPage===i+1?'active':''}">${i+1}</a>`).join('')}
+      ${totalPages>7?`<span class="page-btn">…</span><a href="?range=${filters.range}&route=${filters.route}&page=${totalPages}" class="page-btn ${currentPage===totalPages?'active':''}">${totalPages}</a>`:''}
+      <a href="?range=${filters.range}&route=${filters.route}&page=${currentPage+1}" class="page-btn ${currentPage===totalPages?'disabled':''}"><i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+  </div>` : ''}
+</div>
+
+<!-- Leaflet + Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+const MAP_PINS    = ${JSON.stringify(mapPins)};
+const DAILY_TREND = ${JSON.stringify(dailyTrend)};
+const DEVICE_DATA = ${JSON.stringify(deviceBreakdown)};
+const HOURLY_DATA = ${JSON.stringify(hourlyData)};
+const BROWSER_DATA= ${JSON.stringify(browserData)};
+
+/* ── Leaflet Map ── */
+const map = L.map('visitorMap', { zoomControl: true, scrollWheelZoom: false }).setView([20, 78], 3);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors', maxZoom: 18
+}).addTo(map);
+
+/* ✅ 3 pin types: GPS (green), IP (blue), Hot (red) */
+const gpsIcon = L.divIcon({
+  html: '<div style="width:12px;height:12px;border-radius:50%;background:#09B850;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',
+  iconSize:[12,12], iconAnchor:[6,6], popupAnchor:[0,-8], className:''
+});
+const ipIcon = L.divIcon({
+  html: '<div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',
+  iconSize:[10,10], iconAnchor:[5,5], popupAnchor:[0,-8], className:''
+});
+const hotIcon = L.divIcon({
+  html: '<div style="width:14px;height:14px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,0.4)"></div>',
+  iconSize:[14,14], iconAnchor:[7,7], popupAnchor:[0,-10], className:''
+});
+
+MAP_PINS.forEach(pin => {
+  if (!pin.lat || !pin.lng) return;
+
+  // ✅ pick icon: red = hot, green = GPS, blue = IP
+  let icon = pin.visits >= 5 ? hotIcon : (pin.hasGPS ? gpsIcon : ipIcon);
+
+  const marker = L.marker([pin.lat, pin.lng], { icon }).addTo(map);
+  const routeList = (pin.routes||[]).slice(0,3).join(', ');
+
+  marker.bindPopup(\`
+    <div class="map-popup">
+      <strong>\${pin.city||'Unknown'}, \${pin.country||''}</strong>
+      <!-- ✅ GPS badge in popup -->
+      \${pin.hasGPS ? '<span style="font-size:0.65rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:10px;font-weight:700;margin-left:4px">📡 GPS</span>' : '<span style="font-size:0.65rem;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:10px;font-weight:700;margin-left:4px">🌐 IP</span>'}
+      <div class="mp-row"><i class="fa-solid fa-eye"></i> \${pin.visits} visit\${pin.visits!==1?'s':''}</div>
+      <div class="mp-row"><i class="fa-solid fa-network-wired"></i> \${pin._id}</div>
+      <div class="mp-row"><i class="fa-solid fa-route"></i> \${routeList||'—'}</div>
+      <div class="mp-row"><i class="fa-solid fa-clock"></i> \${new Date(pin.lastSeen).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+      <a href="https://www.google.com/maps?q=\${pin.lat},\${pin.lng}" target="_blank" class="mp-btn">
+        <i class="fa-solid fa-map-pin"></i> Open in Google Maps
+      </a>
+    </div>
+  \`, { maxWidth: 220 });
+});
+
+/* ── Daily Chart ── */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dlabels = DAILY_TREND.map(d => MONTHS[d._id.m-1]+' '+d._id.d);
+new Chart(document.getElementById('dailyChart'), {
+  type: 'line',
+  data: {
+    labels: dlabels,
+    datasets: [
+      { label:'Total Visits',    data:DAILY_TREND.map(d=>d.count),       borderColor:'#09B850', backgroundColor:'rgba(9,184,80,0.08)',   tension:0.4, fill:true, pointRadius:3 },
+      { label:'Unique Visitors', data:DAILY_TREND.map(d=>d.uniqueCount), borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.06)', tension:0.4, fill:true, pointRadius:3 }
+    ]
+  },
+  options:{ responsive:true, plugins:{legend:{position:'bottom'}}, scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},y:{beginAtZero:true,ticks:{precision:0}}} }
+});
+
+/* ── Device Doughnut ── */
+new Chart(document.getElementById('deviceChart'), {
+  type:'doughnut',
+  data:{
+    labels: DEVICE_DATA.map(d=>d._id||'Unknown'),
+    datasets:[{ data:DEVICE_DATA.map(d=>d.count), backgroundColor:['rgba(59,130,246,0.8)','rgba(9,184,80,0.8)','rgba(245,158,11,0.8)','rgba(239,68,68,0.8)','rgba(156,163,175,0.8)'], borderWidth:2, borderColor:'#fff' }]
+  },
+  options:{ responsive:true, plugins:{legend:{position:'bottom'}}, cutout:'62%' }
+});
+
+/* ── Hourly Bars ── */
+const hourMap = {};
+HOURLY_DATA.forEach(h => { hourMap[h._id] = h.count; });
+const maxH = Math.max(...Object.values(hourMap), 1);
+const container = document.getElementById('hourlyBars');
+for (let h = 0; h < 24; h++) {
+  const count = hourMap[h] || 0;
+  const bar = document.createElement('div');
+  bar.className = 'hourly-bar';
+  bar.style.height = Math.max(Math.round((count/maxH)*100), 3) + '%';
+  bar.setAttribute('data-tip', h+':00 — '+count+' visit'+(count!==1?'s':''));
+  container.appendChild(bar);
+}
+
+/* ── Live refresh ── */
+let liveInterval = null;
+let liveActive   = false;
+
+function toggleLive() {
+  liveActive = !liveActive;
+  const btn = document.getElementById('liveBtn');
+  if (liveActive) {
+    btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+    btn.classList.add('btn-primary'); btn.classList.remove('btn-ghost');
+    liveInterval = setInterval(fetchLive, 15000);
+    fetchLive();
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-play"></i> Auto-refresh';
+    btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost');
+    clearInterval(liveInterval);
+  }
+}
+
+async function fetchLive() {
+  try {
+    const res  = await fetch('/admin/visitors/api/live');
+    const data = await res.json();
+    if (!data.success || !data.visitors.length) return;
+    const rows = document.getElementById('visitorRows');
+    rows.innerHTML = data.visitors.map(v => \`
+    <div class="visitor-row" style="animation:fadeIn 0.3s ease">
+      <div><div class="device-icon \${(v.device||'unknown').toLowerCase()}">
+        <i class="fa-solid fa-\${v.device==='Mobile'?'mobile-screen':v.device==='Tablet'?'tablet-screen-button':v.device==='Bot'?'robot':'desktop'}"></i>
+      </div></div>
+      <div>
+        <div style="font-weight:600;font-size:0.8rem;color:var(--ink)">\${v.ip}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">\${v.browser||'—'}</div>
+      </div>
+      <div><span class="route-pill">\${v.routeLabel||v.route}</span></div>
+      <div>
+        <div style="font-size:0.78rem;font-weight:600">\${v.city||'—'}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">\${v.country||'—'}</div>
+        <!-- ✅ GPS badge in live rows too -->
+        \${v.locationSource==='GPS'
+          ? '<span style="font-size:0.62rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:10px;font-weight:700">📡 GPS</span><a href="https://www.google.com/maps?q='+v.gpsLat+','+v.gpsLng+'" target="_blank" style="font-size:0.65rem;color:#09B850;display:flex;align-items:center;gap:3px;margin-top:2px"><i class="fa-solid fa-map-pin"></i> GPS Map</a>'
+          : v.lat&&v.lng ? '<a href="https://www.google.com/maps?q='+v.lat+','+v.lng+'" target="_blank" style="font-size:0.65rem;color:var(--blue)"><i class="fa-solid fa-map-pin"></i> IP Map</a>' : ''
+        }
+      </div>
+      <div>\${v.userType?'<span class="badge '+(v.userType==='Student'?'badge-blue':v.userType==='Owner'?'badge-amber':'badge-purple')+'">'+v.userType+'</span>':'<span class="badge badge-gray">Guest</span>'}</div>
+      <div><span class="returning-badge \${v.isReturning?'yes':'no'}">\${v.isReturning?'↩ Return':'✦ New'}</span></div>
+      <div style="font-size:0.72rem;color:var(--muted)">\${new Date(v.visitedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>\`).join('');
+  } catch (err) { console.error('Live fetch failed', err); }
+}
+
+/* ── Clear logs ── */
+async function clearLogs() {
+  try {
+    const res  = await fetch('/admin/visitors/clear', { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({days:30}) });
+    const data = await res.json();
+    if (data.success) showToast('Deleted '+data.deleted+' old records');
+    else showToast('Failed to clear', 'error');
+  } catch { showToast('Network error', 'error'); }
+}
+
+const style = document.createElement('style');
+style.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}';
+document.head.appendChild(style);
+</script>
+` }) %>

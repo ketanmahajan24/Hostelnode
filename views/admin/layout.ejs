@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%- typeof pageTitle !== 'undefined' ? pageTitle + ' | ' : '' %>HostelNode Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="/css/adminstyle.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="admin-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-brand">
+      <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+      <div>
+        <div class="sidebar-brand-text">HostelNode</div>
+        <div class="sidebar-brand-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <div class="sidebar-admin-pill">
+      <div class="sap-avatar"><%= admin.name.charAt(0).toUpperCase() %></div>
+      <div>
+        <div class="sap-name"><%= admin.name.split(' ')[0] %></div>
+        <div class="sap-role">Super Admin</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+
+      <a href="/admin" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'active' : '' %>">
+        <i class="fa-solid fa-gauge-high"></i> Dashboard
+      </a>
+
+      <div class="nav-section-label">Users</div>
+
+      <a href="/admin/owners" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'owners' ? 'active' : '' %>">
+        <i class="fa-solid fa-crown"></i> Owners
+        <% if (typeof stats !== 'undefined' && stats.pendingOwners > 0) { %>
+          <span class="nav-badge amber"><%= stats.pendingOwners %></span>
+        <% } %>
+      </a>
+
+      <a href="/admin/students" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'students' ? 'active' : '' %>">
+        <i class="fa-solid fa-graduation-cap"></i> Students
+      </a>
+
+      <div class="nav-section-label">Properties</div>
+
+      <a href="/admin/listings" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'listings' ? 'active' : '' %>">
+        <i class="fa-solid fa-building"></i> Listings
+        <% if (typeof stats !== 'undefined' && stats.pendingListings > 0) { %>
+          <span class="nav-badge amber"><%= stats.pendingListings %></span>
+        <% } %>
+      </a>
+
+      <a href="/admin/hostels" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'hostels' ? 'active' : '' %>">
+        <i class="fa-solid fa-house-chimney"></i> Hostels
+      </a>
+
+      <a href="/admin/enquiries" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'enquiries' ? 'active' : '' %>">
+        <i class="fa-solid fa-inbox"></i> Enquiries
+      </a>
+
+      <div class="nav-section-label">Insights</div>
+
+      <a href="/admin/analytics" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'analytics' ? 'active' : '' %>">
+        <i class="fa-solid fa-chart-line"></i> Analytics
+      </a>
+      <!-- Add after the Analytics nav item -->
+      <a href="/admin/visitors" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'visitors' ? 'active' : '' %>">
+      <i class="fa-solid fa-satellite-dish"></i> Visitors
+      </a>
+
+      <div class="nav-section-label">Account</div>
+
+      <a href="/admin/profile" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'profile' ? 'active' : '' %>">
+        <i class="fa-solid fa-user-shield"></i> Profile
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <a href="/admin/logout" class="nav-item" style="color:#ef4444">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+
+    <!-- TOPBAR -->
+    <div class="admin-topbar">
+      <div class="topbar-left">
+        <button class="topbar-icon-btn" onclick="toggleSidebar()" style="display:none" id="menuBtn">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <div class="topbar-title"><%- typeof pageTitle !== 'undefined' ? pageTitle : 'Dashboard' %></div>
+          <div class="topbar-breadcrumb">
+            Admin <i class="fa-solid fa-chevron-right"></i>
+            <%- typeof pageTitle !== 'undefined' ? pageTitle : 'Dashboard' %>
+          </div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Quick search…" id="globalSearch">
+        </div>
+        <button class="topbar-icon-btn" title="Notifications">
+          <i class="fa-solid fa-bell"></i>
+          <% if (typeof stats !== 'undefined' && (stats.pendingOwners + stats.pendingListings) > 0) { %>
+            <div class="topbar-notif-dot"></div>
+          <% } %>
+        </button>
+        <a href="/admin/profile" class="topbar-icon-btn" title="Profile">
+          <i class="fa-solid fa-user-shield"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- PAGE CONTENT -->
+    <div class="admin-page">
+      <%- body %>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <div class="modal-title" id="confirmTitle">Confirm Action</div>
+    <div class="modal-sub"  id="confirmMsg">Are you sure?</div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Sidebar toggle (mobile) ── */
+function toggleSidebar() {
+  document.getElementById('adminSidebar').classList.toggle('open');
+}
+window.addEventListener('resize', () => {
+  const btn = document.getElementById('menuBtn');
+  btn.style.display = window.innerWidth < 900 ? 'flex' : 'none';
+});
+window.dispatchEvent(new Event('resize'));
+
+/* ── Toast ── */
+function showToast(msg, type = 'success', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<i class="fa-solid fa-${type==='success'?'circle-check':type==='error'?'circle-xmark':'triangle-exclamation'}"></i> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), duration);
+}
+
+/* ── Confirm Modal ── */
+let confirmCallback = null;
+function openConfirm(title, msg, cb, btnClass = 'btn-danger') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent   = msg;
+  document.getElementById('confirmBtn').className = `btn ${btnClass}`;
+  confirmCallback = cb;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('open');
+  confirmCallback = null;
+}
+document.getElementById('confirmBtn').onclick = () => {
+  if (confirmCallback) confirmCallback();
+  closeConfirm();
+};
+document.getElementById('confirmModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('confirmModal')) closeConfirm();
+});
+
+/* ── Status update helper ── */
+async function updateStatus(url, payload, successMsg) {
+  try {
+    const res  = await fetch(url, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.success) { showToast(successMsg || 'Updated!'); return true; }
+    else { showToast(data.error || 'Failed', 'error'); return false; }
+  } catch { showToast('Network error', 'error'); return false; }
+}
+
+/* ── Delete helper ── */
+async function deleteRecord(url, successMsg, redirectUrl) {
+  try {
+    const res  = await fetch(url, { method:'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(successMsg || 'Deleted');
+      if (redirectUrl) setTimeout(() => window.location.href = redirectUrl, 800);
+      return true;
+    } else { showToast(data.error || 'Failed', 'error'); return false; }
+  } catch { showToast('Network error', 'error'); return false; }
+}
+</script>
+</body>
+</html>

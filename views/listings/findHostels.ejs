@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Hostel ,Flat & PG Near You | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+<!-- ===== PRIMARY SEO ===== -->
+<!-- <title>Find Hostels & PG Near Your College in India | HostelNode</title> -->
+  <!-- ✅ STRUCTURED DATA (ADD HERE) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "HostelNode",
+    "url": "https://www.hostelnode.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.hostelnode.com/findHostels/results?college={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script> 
+<meta name="description" content="Search 2400+ verified hostels, PGs, and flat sharing near your college across India. Compare prices, amenities, and contact owners directly. No brokerage on HostelNode.">
+
+<meta name="keywords" content="hostel near me, pg near me, student hostel india, boys hostel near college, girls pg india, cheap hostel near me, pg near IIT Bombay, hostel near Delhi University, student accommodation india">
+
+<meta name="author" content="HostelNode">
+<meta name="robots" content="index, follow">
+
+<!-- ===== CANONICAL ===== -->
+<link rel="canonical" href="https://www.hostelnode.com/findHostels">
+
+<!-- ===== OPEN GRAPH (WHATSAPP / FACEBOOK) ===== -->
+<meta property="og:title" content="Find Hostels & PG Near Your College | HostelNode">
+<meta property="og:description" content="Discover verified hostels and PGs near your college. Compare prices, amenities and connect instantly with owners.">
+<meta property="og:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
+<meta property="og:url" content="https://www.hostelnode.com/findHostels">
+<meta property="og:type" content="website">
+
+<!-- ===== TWITTER SEO ===== -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Find Hostels & PG Near College | HostelNode">
+<meta name="twitter:description" content="Find the best student hostels, PGs and flat sharing options near your college.">
+<meta name="twitter:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
+
+<!-- ===== GEO SEO (INDIA TARGET) ===== -->
+<meta name="geo.region" content="IN">
+<meta name="geo.placename" content="India">
+<meta name="geo.position" content="19.0760;72.8777">
+<meta name="ICBM" content="19.0760,72.8777">
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/findhostel.css">
+
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       STUDENT PROFILE PILL + DROPDOWN
+       Scoped with .sn- prefix to avoid collisions
+    ═══════════════════════════════════════════════════════ */
+
+    /* The clickable pill in the navbar */
+    .sn-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px 5px 5px;
+      border-radius: 50px;
+      border: 1.5px solid rgba(9, 184, 80, 0.30);
+      background: rgba(9, 184, 80, 0.07);
+      cursor: pointer;
+      user-select: none;
+      position: relative;           /* anchor for dropdown */
+      transition: border-color .2s, background .2s;
+    }
+    .sn-pill:hover {
+      border-color: rgba(9, 184, 80, 0.55);
+      background: rgba(9, 184, 80, 0.12);
+    }
+
+    /* Avatar circle */
+    .sn-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #09b850;
+      background: #e8faf0;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .sn-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Name text */
+    .sn-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #0a1628;
+      max-width: 110px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Chevron */
+    .sn-chevron {
+      font-size: 10px;
+      color: #09b850;
+      transition: transform .2s;
+    }
+    .sn-pill.open .sn-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* ── Dropdown panel ── */
+    .sn-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 240px;
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8f0ea;
+      box-shadow: 0 8px 40px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.06);
+      overflow: hidden;
+      z-index: 9999;
+
+      /* hidden by default */
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .sn-pill.open .sn-dropdown {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    /* Green header inside dropdown */
+    .sn-dd-header {
+      padding: 16px;
+      background: linear-gradient(135deg, #09B850 0%, #00c264 100%);
+    }
+    .sn-dd-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .sn-dd-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .sn-dd-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .sn-dd-phone {
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      margin-top: 2px;
+    }
+
+    /* Incomplete-profile nudge strip */
+    .sn-nudge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 12px;
+      padding: 8px 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #92400e;
+      text-decoration: none;
+      transition: background .15s;
+    }
+    .sn-nudge:hover { background: #fef3c7; color: #92400e; }
+    .sn-nudge i { color: #f59e0b; }
+
+    /* Menu links */
+    .sn-dd-items { padding: 6px 0; }
+
+    .sn-dd-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #0a1628;
+      text-decoration: none;
+      transition: background .14s;
+    }
+    .sn-dd-link:hover { background: #f5fbf7; color: #09b850; }
+    .sn-dd-link i {
+      width: 16px;
+      text-align: center;
+      color: #09b850;
+      font-size: 13px;
+    }
+
+    .sn-dd-divider { height: 1px; background: #eef3ee; margin: 4px 0; }
+
+    /* Logout — red */
+    .sn-dd-logout {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      width: 100%;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #e53e3e;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .14s;
+    }
+    .sn-dd-logout:hover { background: #fff5f5; }
+    .sn-dd-logout i { width: 16px; text-align: center; }
+
+    /* ═══════════════════════════════════════════════════════
+       MOBILE NAV — profile strip (when logged in)
+    ═══════════════════════════════════════════════════════ */
+    .sn-mob-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #09B850, #00c264);
+    }
+    .sn-mob-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .sn-mob-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-mob-name  { font-size: 15px; font-weight: 700; color: #fff; }
+    .sn-mob-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
+
+    /* logout link colour in mobile drawer */
+    .mobile-nav-drawer .sn-logout-link { color: #e53e3e !important; }
+    .mobile-nav-drawer .sn-logout-link:hover { background: #fff5f5 !important; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOADER ===== -->
+<div id="hn-loader">
+  <div class="loader-brand">Hostel<span>Node</span></div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+</div> 
+  <%- include("../includes/navbar-user.ejs") %>
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <div class="dot"></div>
+      Now live across India
+    </div>
+
+    <% if (student) { %>
+      <h1>Welcome back,<br><span class="accent"><%= student.firstName %></span> 👋</h1>
+      <p class="hero-sub">
+        <% if (student.city) { %>
+          Showing hostels near <strong><%= student.city %></strong> ·
+        <% } %>
+        Search 2,400+ verified hostels and PGs. Compare prices and book a visit in seconds.
+      </p>
+    <% } else { %>
+      <h1>Find your perfect<br><span class="accent">hostel or PG</span> near<br>your college</h1>
+      <p class="hero-sub">Search 2,400+ verified hostels and PGs near your college. Compare prices, amenities, and book a visit in seconds.</p>
+    <% } %>
+
+    <!-- Search Card -->
+    <div class="search-card">
+      <div class="search-tabs">
+        <button class="search-tab active" onclick="switchTab(this)">All</button>
+        <button class="search-tab" onclick="switchTab(this)">Hostel</button>
+        <button class="search-tab" onclick="switchTab(this)">PG</button>
+        <button class="search-tab" onclick="switchTab(this)">Flat share</button>
+      </div>
+
+<form action="/findHostels/results" method="GET" id="heroSearchForm">
+  <div class="search-row">
+
+    <!-- College / Area / City input with autocomplete -->
+    <div class="search-field" style="flex:2; min-width:200px; position:relative;">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="college" id="collegeInput"
+        placeholder="College name or area (e.g. IIT Bombay, Pune)…"
+        autocomplete="off"
+        value="<%= student ? (student.collegeName || student.city || '') : '' %>">
+      <!-- Autocomplete suggestions dropdown -->
+      <div id="acSuggestions" style="
+        display:none; position:absolute; top:100%; left:0; right:0;
+        background:#fff; border:1px solid #e0e8e2; border-radius:12px;
+        box-shadow:0 8px 24px rgba(0,0,0,.10); z-index:999; overflow:hidden;
+        margin-top:6px; max-height:280px; overflow-y:auto;
+      "></div>
+    </div>
+
+    <!-- Budget -->
+    <div class="search-field">
+      <i class="fa-solid fa-indian-rupee-sign"></i>
+      <select name="budget">
+        <option value="">Any budget</option>
+        <option value="3000">Under ₹3,000</option>
+        <option value="5000">Under ₹5,000</option>
+        <option value="8000">Under ₹8,000</option>
+        <option value="12000">Under ₹12,000</option>
+      </select>
+    </div>
+
+    <!-- Gender -->
+    <div class="search-field">
+      <i class="fa-solid fa-venus-mars"></i>
+      <select name="gender">
+        <option value="">Any type</option>
+        <option value="boys">Boys</option>
+        <option value="girls">Girls</option>
+        <option value="coed">Co-ed</option>
+      </select>
+    </div>
+
+    <!-- Property type (hidden, set by tabs) -->
+    <input type="hidden" name="type" id="propTypeInput" value="">
+
+    <button type="submit" class="btn-search">
+      <i class="fa-solid fa-magnifying-glass"></i> Search
+    </button>
+  </div>
+</form>
+
+      <div class="search-quick">
+        <span class="search-quick-label">Popular:</span>
+        <button type="button" class="quick-chip" onclick="fillSearch('IIT Bombay')">IIT Bombay</button>
+        <button type="button" class="quick-chip" onclick="fillSearch('Delhi University')">Delhi University</button>
+        <button type="button" class="quick-chip" onclick="fillSearch('Christ University Bangalore')">Christ Univ.</button>
+        <button type="button" class="quick-chip" onclick="fillSearch('Pune University')">Pune Univ.</button>
+        <button type="button" class="quick-chip" onclick="fillSearch('VIT Vellore')">VIT Vellore</button>
+      </div>
+    </div>
+  </div><!-- /hero-inner -->
+
+  <!-- Stats strip -->
+  <div class="stats-strip">
+    <div class="stat-item">
+      <div class="stat-num">2<span>,400+</span></div>
+      <div class="stat-label">Verified listings</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">180<span>+</span></div>
+      <div class="stat-label">Cities covered</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">₹2k<span>–12k</span></div>
+      <div class="stat-label">Price range / month</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">4.8<span>★</span></div>
+      <div class="stat-label">Average rating</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0<span> fee</span></div>
+      <div class="stat-label">Zero broker fees</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ===== LISTINGS ===== -->
+<section class="section listings-section">
+  <div class="listings-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">
+        Filters
+        <span class="sidebar-clear" onclick="clearFilters()">Clear all</span>
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-group-label">Room type</div>
+        <div class="filter-options">
+          <div class="filter-option"><input type="checkbox" id="f-single" checked><label for="f-single">Single room</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-double"><label for="f-double">Double sharing</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-triple"><label for="f-triple">Triple sharing</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-dorm"><label for="f-dorm">Dormitory</label></div>
+        </div>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <div class="filter-group">
+        <div class="filter-group-label">Gender</div>
+        <div class="filter-options">
+          <div class="filter-option"><input type="checkbox" id="f-boys"><label for="f-boys">Boys</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-girls"><label for="f-girls">Girls</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-co"><label for="f-co">Co-ed</label></div>
+        </div>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <div class="filter-group">
+        <div class="filter-group-label">Amenities</div>
+        <div class="filter-options">
+          <div class="filter-option"><input type="checkbox" id="f-wifi"><label for="f-wifi">WiFi included</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-meals"><label for="f-meals">Meals included</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-ac"><label for="f-ac">AC rooms</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-laundry"><label for="f-laundry">Laundry</label></div>
+          <div class="filter-option"><input type="checkbox" id="f-security"><label for="f-security">24/7 Security</label></div>
+        </div>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <div class="filter-group">
+        <div class="filter-group-label">Max budget / month</div>
+        <div class="price-range-wrap">
+          <input type="range" min="1000" max="15000" step="500" value="8000"
+            id="priceRange" oninput="updatePrice(this.value)">
+          <div class="price-range-vals">
+            <span>₹1,000</span>
+            <strong id="priceVal">₹8,000</strong>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-apply-filter" onclick="applyFilters()">
+        <i class="fa-solid fa-sliders"></i> Apply filters
+      </button>
+    </aside>
+
+    <!-- Main listings -->
+    <div class="main-listings">
+      <div class="listings-header">
+        <div>
+          <h2 class="section-title" style="font-size:1.55rem">
+            Featured hostels <span style="color:var(--green)">near top colleges</span>
+          </h2>
+          <p class="results-count">
+            <strong id="resultsCount"><%= listings ? listings.length : 0 %></strong> hostels found
+          </p>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="setSort(this,'distance')">
+            <i class="fa-solid fa-location-dot"></i> Nearest
+          </button>
+          <button class="filter-btn" onclick="setSort(this,'price')">
+            <i class="fa-solid fa-arrow-up-wide-short"></i> Price
+          </button>
+          <button class="filter-btn" onclick="setSort(this,'rating')">
+            <i class="fa-solid fa-star"></i> Top rated
+          </button>
+        </div>
+      </div>
+
+      <!-- CARDS GRID (DYNAMIC) -->
+      <div class="cards-grid" id="hostelGrid">
+
+        <% if (listings && listings.length > 0) { %>
+
+          <% listings.forEach(function(l) { %>
+
+           <div class="hostel-card" data-id="<%= l._id %>" onclick="viewHostel('<%= l.slug %>')">
+
+              <!-- IMAGE -->
+              <div class="card-img-wrap">
+                <div class="card-slider">
+                  <% if (l.images && l.images.length > 0) { %>
+                    <% l.images.forEach(function(img, i) { %>
+                      <img src="/listing-images/<%= img %>"
+                           class="slide <%= i === 0 ? 'active' : '' %>">
+                    <% }) %>
+                  <% } else { %>
+                    <img src="/images/placeholder.jpg" class="slide active">
+                  <% } %>
+                </div>
+
+                <button class="slide-btn prev" onclick="slideImage(event,this,-1)">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button class="slide-btn next" onclick="slideImage(event,this,1)">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+
+                <div class="slide-dots">
+                  <% if (l.images) { %>
+                    <% l.images.forEach(function(_, i) { %>
+                      <span class="dot <%= i === 0 ? 'active' : '' %>"
+                            onclick="goToSlide(event,this,<%= i %>)"></span>
+                    <% }) %>
+                  <% } %>
+                </div>
+
+                <span class="card-badge badge-<%= (l.gender || '').toLowerCase() %>">
+                  <%= l.gender %>
+                </span>
+
+                <% if (l.isVerified) { %>
+                  <span class="card-badge"
+                    style="left:72px; top:12px; background:#fff;margin-left: 4px; color:#09b850;">
+                    <i class="fa-solid fa-shield-halved"></i>  Verified
+                  </span>
+                <% } %>
+
+                <div class="card-wishlist" onclick="toggleWish(event,this)">
+                  <i class="fa-regular fa-heart"></i>
+                </div>
+
+                <div class="card-dist">
+                  <i class="fa-solid fa-location-dot"></i> Near by
+                  <%= l.location?.nearCollege || l.location?.city %>
+                </div>
+              </div>
+
+              <!-- BODY -->
+              <div class="card-body">
+                <div class="card-top">
+                  <div>
+                    <div class="card-name"><%= l.title %></div>
+                    <div class="card-best-value">
+                      <i class="fa-solid fa-bolt"></i> <%= l.propertyType %>
+                    </div>
+                  </div>
+                  <div class="card-rating">
+                    <i class="fa-solid fa-star"></i>
+                    <%= l.rating || 4.2 %>
+                    <span style="font-size:0.7rem;color:var(--muted-light)">
+                      (<%= l.reviewCount || 0 %>)
+                    </span>
+                  </div>
+                </div>
+
+                <div class="card-loc">
+                  <i class="fa-solid fa-location-dot"></i>
+                  <%= l.location?.address %>, <%= l.location?.city %>
+                </div>
+
+                <div class="card-view-count">
+                  <i class="fa-solid fa-eye"></i>
+                  <%= l.views || 0 %> students viewed today
+                </div>
+
+                <div class="card-amenities">
+                  <% if (l.amenities) { %>
+                    <% l.amenities.slice(0,5).forEach(function(a) { %>
+                      <span class="amenity-tag"><%= a %></span>
+                    <% }) %>
+                  <% } %>
+                </div>
+
+                <div class="card-footer-row">
+                  <div class="card-price">
+                    <div class="price-val">₹<%= l.startingPrice %> <span>/mo</span></div>
+                    <div class="price-label"><%= l.rooms?.[0]?.type || 'Room' %></div>
+                  </div>
+                  <button class="btn-view"
+                    onclick="event.stopPropagation();viewHostel('<%= l.slug %>')">
+                    View <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+
+                <div class="card-contact-row">
+                  <button class="btn-wa"
+                    onclick="event.stopPropagation();waHostel('<%= l.contact?.whatsapp %>')">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                  </button>
+                  <button class="btn-call"
+                    onclick="event.stopPropagation();callHostel('<%= l.contact?.phone %>')">
+                    <i class="fa-solid fa-phone"></i> Call
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          <% }) %>
+
+        <% } else { %>
+          <div style="text-align:center; padding:40px;">
+            <h3>No hostels found 😔</h3>
+            <p>Try different search or filters</p>
+          </div>
+        <% } %>
+
+      </div><!-- /cards-grid -->
+
+      <div class="load-more-wrap">
+        <button class="btn-load-more" onclick="loadMore(this)">
+          <i class="fa-solid fa-rotate"></i> Load more hostels
+        </button>
+      </div>
+    </div><!-- /main-listings -->
+  </div>
+</section>
+
+
+<!-- ===== MAP STRIP ===== -->
+<div class="map-strip" id="mapSection">
+  <div class="map-strip-inner">
+    <div class="map-placeholder-icon">📍</div>
+    <h3>View all hostels on map</h3>
+    <p>See exact hostel locations, distances from your college, and nearby landmarks — all in one view.</p>
+    <button class="btn-green" onclick="openMap()" style="margin-top:4px; padding:10px 24px;">
+      <i class="fa-solid fa-map-location-dot"></i> Open map view
+    </button>
+  </div>
+</div>
+
+
+<!-- ===== NEAR YOUR COLLEGE ===== -->
+<section class="section college-section">
+  <div class="section-tag">Near your college</div>
+  <h2 class="section-title">Top colleges with<br>most listings nearby</h2>
+
+  <div class="college-list">
+    <%
+      var colleges = [
+        { icon: '🏛️', name: 'IIT Bombay',        city: 'Mumbai',     count: 142 },
+        { icon: '🎓', name: 'Delhi University',   city: 'Delhi',      count: 218 },
+        { icon: '🏫', name: 'Christ University',  city: 'Bangalore',  count: 97  },
+        { icon: '📚', name: 'Pune University',    city: 'Pune',       count: 183 },
+        { icon: '🔬', name: 'VIT Vellore',        city: 'Tamil Nadu', count: 74  },
+        { icon: '🏗️', name: 'BITS Pilani',        city: 'Rajasthan',  count: 56  },
+        { icon: '⚗️', name: 'NIT Trichy',         city: 'Tamil Nadu', count: 63  },
+        { icon: '🌿', name: 'Manipal University', city: 'Karnataka',  count: 89  },
+      ];
+    %>
+    <% colleges.forEach(function(c) { %>
+      <div class="college-chip" onclick="searchCollege('<%= c.name %>')">
+        <div class="college-chip-left">
+          <div class="college-chip-icon"><%= c.icon %></div>
+          <div>
+            <div class="college-chip-name"><%= c.name %></div>
+            <div class="college-chip-count"><%= c.count %> hostels nearby · <%= c.city %></div>
+          </div>
+        </div>
+        <div class="college-chip-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+      </div>
+    <% }); %>
+  </div>
+</section>
+
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="section how-section">
+  <div style="text-align:center; margin-bottom:8px">
+    <div class="section-tag" style="justify-content:center">How it works</div>
+  </div>
+  <h2 class="section-title center">Find your hostel in 4 simple steps</h2>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+      <h3>Search by College or Location</h3>
+      <p>Enter your college name or preferred area to discover verified hostels and PGs within a 2–5 km radius, sorted by proximity.</p>
+      <div class="step-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-icon"><i class="fa-solid fa-sliders"></i></div>
+      <h3>Filter & Compare Options</h3>
+      <p>Refine by budget, gender, room type and amenities. Compare multiple listings side-by-side and read real student reviews.</p>
+      <div class="step-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-icon"><i class="fa-solid fa-phone"></i></div>
+      <h3>Connect or Schedule a Visit</h3>
+      <p>Call or WhatsApp hostel owners instantly — no intermediaries, no brokerage fees. Book a visit directly in seconds.</p>
+      <div class="step-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-icon"><i class="fa-solid fa-heart"></i></div>
+      <h3>Save & Shortlist</h3>
+      <p>Bookmark your favourites, build a shortlist, and share options with family or friends for better decision-making.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ===== CTA ===== -->
+<div class="cta-section">
+  <div class="cta-left">
+    <h2>Are you a hostel owner?<br>List on HostelNode for free</h2>
+    <p>Reach 50,000+ students actively searching every month. Get discovered in minutes — zero broker fees, zero setup cost.</p>
+  </div>
+  <div class="cta-actions">
+    <a href="/signup" class="btn-green"><i class="fa-solid fa-plus"></i> List your hostel</a>
+    <a href="/#feature-list" class="btn-ghost">Learn more</a>
+  </div>
+</div>
+
+
+<!-- ===== FOOTER ===== -->
+<footer class="hn-footer">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand-name">
+        <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+        HostelNode
+      </div>
+      <p class="footer-desc">Your smart hostel management and discovery platform. Simplify, automate, manage — and help students find the perfect PG or hostel near their college.</p>
+      <div class="footer-socials">
+        <a href="https://www.instagram.com/hostelnode_com/" class="social-btn" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="social-btn"><i class="fab fa-facebook"></i></a>
+        <a href="#" class="social-btn"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="social-btn"><i class="fab fa-linkedin"></i></a>
+        <a href="#" class="social-btn"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Discover</h4>
+      <ul>
+        <li><a href="/findHostels">Find hostel</a></li>
+        <li><a href="/findHostels?type=pg">Find PG</a></li>
+        <li><a href="/findHostels?type=flat">Flat sharing</a></li>
+        <li><a href="/findHostels?sort=popular">Most popular</a></li>
+        <li><a href="/findHostels?budget=5000">Under ₹5,000</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <ul>
+        <li><a href="/#feature-list">Features</a></li>
+        <li><a href="/signup">Sign up free</a></li>
+        <li><a href="/login">Login</a></li>
+        <li><a href="/#aboutus">About us</a></li>
+        <li><a href="/#cotactus">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="#">Help centre</a></li>
+        <li><a href="#">Privacy policy</a></li>
+        <li><a href="#">Terms of use</a></li>
+        <li><a href="#">FAQs</a></li>
+        <li><a href="mailto:hostelnodehelp@gmail.com">Email us</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 HostelNode. Built by <a href="#">Ketan Mahajan</a>. All rights reserved.</p>
+    <p>
+      <i class="fa-solid fa-location-dot" style="color:var(--green)"></i>
+      Navi Mumbai, India &nbsp;·&nbsp;
+      <a href="tel:+917879884375" style="color:rgba(255,255,255,0.35)">+91 8828397001</a>
+    </p>
+  </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+<script>
+/* ===== LOADER ===== */
+document.addEventListener('DOMContentLoaded', function () {
+  setTimeout(function () {
+    const loader = document.getElementById('hn-loader');
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 400);
+  }, 1400);
+});
+
+/* ===== NAVBAR SCROLL ===== */
+window.addEventListener('scroll', function () {
+  document.getElementById('hnNav').classList.toggle('scrolled', window.scrollY > 10);
+}, { passive: true });
+
+/* ===== MOBILE NAV ===== */
+function openMobileNav() {
+  document.getElementById('mobileNav').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileNav(e) {
+  if (e.target === document.getElementById('mobileNav')) {
+    document.getElementById('mobileNav').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROFILE DROPDOWN
+   - click pill  → toggle open class
+   - click outside → close
+   - stopPropagation prevents the document listener from
+     immediately closing it on the same click that opens it
+═══════════════════════════════════════════════════════ */
+function snToggle(e) {
+  e.stopPropagation();
+  const pill = document.getElementById('snPill');
+  if (pill) pill.classList.toggle('open');
+}
+
+document.addEventListener('click', function () {
+  const pill = document.getElementById('snPill');
+  if (pill) pill.classList.remove('open');
+});
+
+/* ===== SEARCH TABS ===== */
+function switchTab(el) {
+  document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ===== QUICK CHIPS ===== */
+function fillSearch(college) {
+  document.getElementById('collegeInput').value = college;
+  document.getElementById('collegeInput').focus();
+}
+
+/* ===== PRICE RANGE ===== */
+function updatePrice(val) {
+  document.getElementById('priceVal').textContent = '₹' + Number(val).toLocaleString('en-IN');
+}
+
+/* ===== WISHLIST TOGGLE ===== */
+async function toggleWish(e, btn) {
+  e.stopPropagation();
+
+  const card = btn.closest('.hostel-card');
+  const listingId = card?.dataset.id;
+
+  if (!listingId) {
+    window.location.href = '/student/login';
+    return;
+  }
+
+  // Optimistic UI update first
+  const isSaved = btn.classList.contains('saved');
+  btn.classList.toggle('saved', !isSaved);
+  btn.querySelector('i').className = !isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+
+  try {
+    const res = await fetch(`/student/wishlist/toggle/${listingId}`, { method: 'POST' });
+
+    if (res.redirected || res.status === 401) {
+      // Not logged in — revert and redirect
+      btn.classList.toggle('saved', isSaved);
+      btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+      window.location.href = '/student/login';
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Confirm the real state from server
+      btn.classList.toggle('saved', data.saved);
+      btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+      showToast(data.saved ? '❤️ Saved to wishlist' : '🤍 Removed from wishlist');
+    } else {
+      // Revert on failure
+      btn.classList.toggle('saved', isSaved);
+      btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+      showToast('Could not update wishlist');
+    }
+
+  } catch (err) {
+    // Revert on network error
+    btn.classList.toggle('saved', isSaved);
+    btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+    console.error('Wishlist error:', err);
+  }
+}
+
+function showToast(msg) {
+  let t = document.getElementById('hn-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'hn-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1a2e;color:white;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:500;z-index:9999;transition:transform .3s,opacity .3s;opacity:0;pointer-events:none;white-space:nowrap;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(80px)';
+  }, 2500);
+}
+
+/* ===== SORT ===== */
+function setSort(el, type) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ===== FILTERS ===== */
+function applyFilters() {
+  const btn = document.querySelector('.btn-apply-filter');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Applying…';
+  setTimeout(() => {
+    btn.innerHTML = '<i class="fa-solid fa-sliders"></i> Apply filters';
+  }, 900);
+}
+function clearFilters() {
+  document.querySelectorAll('.sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
+  document.getElementById('priceRange').value = 8000;
+  updatePrice(8000);
+}
+
+/* ===== VIEW HOSTEL ===== */
+function viewHostel(slug) { window.location.href = '/hostel/' + slug; }
+
+/* ===== CALL / WHATSAPP ===== */
+function callHostel(phone) { window.location.href = 'tel:' + phone; }
+function waHostel(phone) {
+  const num = (phone || '').replace(/[^0-9]/g, '');
+  if (!num) return;
+  window.open('https://wa.me/' + num + '?text=' +
+    encodeURIComponent('Hi! I found your hostel on HostelNode. I am interested in a room. Can you share details?'),
+    '_blank');
+}
+
+/* ===== COLLEGE CHIP ===== */
+function searchCollege(name) {
+  window.location.href = '/findHostels/results?college=' + encodeURIComponent(name);
+}
+
+/* ===== MAP ===== */
+function openMap() {
+  alert('Map view coming soon! Add your Google Maps API key to enable this.');
+}
+
+/* ===== LOAD MORE ===== */
+function loadMore(btn) {
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading…';
+  setTimeout(() => {
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Load more hostels';
+  }, 1200);
+}
+
+/* ===== IMAGE SLIDER ===== */
+function slideImage(e, btn, direction) {
+  e.stopPropagation();
+  const wrap   = btn.closest('.card-img-wrap');
+  const slides = wrap.querySelectorAll('.slide');
+  const dots   = wrap.querySelectorAll('.dot');
+  let idx = [...slides].findIndex(s => s.classList.contains('active'));
+  slides[idx].classList.remove('active');
+  dots[idx]?.classList.remove('active');
+  idx = (idx + direction + slides.length) % slides.length;
+  slides[idx].classList.add('active');
+  dots[idx]?.classList.add('active');
+}
+
+function goToSlide(e, dot, idx) {
+  e.stopPropagation();
+  const wrap   = dot.closest('.card-img-wrap');
+  const slides = wrap.querySelectorAll('.slide');
+  const dots   = wrap.querySelectorAll('.dot');
+  slides.forEach(s => s.classList.remove('active'));
+  dots.forEach(d => d.classList.remove('active'));
+  slides[idx].classList.add('active');
+  dots[idx].classList.add('active');
+}
+</script>
+
+<script>
+/* ── Tab → sets hidden 'type' input ───────────────────── */
+function switchTab(el) {
+  document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const map = { 'All':'', 'Hostel':'hostel', 'PG':'pg', 'Flat share':'flat' };
+  document.getElementById('propTypeInput').value = map[el.textContent.trim()] || '';
+}
+
+/* ── Quick chip ── */
+function fillSearch(college) {
+  document.getElementById('collegeInput').value = college;
+  document.getElementById('collegeInput').focus();
+}
+
+/* ── Autocomplete ─────────────────────────────────────── */
+const POPULAR = [
+  'IIT Bombay','IIT Delhi','IIT Madras','IIT Kharagpur',
+  'Delhi University','Jawaharlal Nehru University','Jamia Millia',
+  'Christ University Bangalore','Pune University','Savitribai Phule Pune University',
+  'VIT Vellore','VIT Chennai','SRM Chennai','Amity Noida',
+  'BITS Pilani','BITS Goa','BITS Hyderabad',
+  'NIT Trichy','NIT Warangal','NIT Surathkal',
+  'Manipal University','Manipal Jaipur',
+  'Osmania University Hyderabad','JNTU Hyderabad',
+  'Anna University Chennai','PSG Coimbatore',
+  'Mumbai University','Navi Mumbai','Thane',
+  'Andheri','Powai','Vashi','Kharghar',
+  'Koregaon Park Pune','Kothrud Pune','Hadapsar',
+  'Koramangala Bangalore','Electronic City','HSR Layout',
+  'Lajpat Nagar Delhi','Dwarka','Noida','Gurgaon',
+];
+
+const input = document.getElementById('collegeInput');
+const box   = document.getElementById('acSuggestions');
+
+input?.addEventListener('input', function () {
+  const q = this.value.trim().toLowerCase();
+  if (!q || q.length < 2) { box.style.display='none'; return; }
+
+  const hits = POPULAR.filter(s => s.toLowerCase().includes(q)).slice(0,7);
+  if (!hits.length) { box.style.display='none'; return; }
+
+  box.innerHTML = hits.map(h => `
+    <div onclick="pickSuggestion('${h}')" style="
+      padding:10px 16px; cursor:pointer; font-size:13.5px;
+      display:flex; align-items:center; gap:10px; color:#0a1628;
+      transition:background .12s;
+    " onmouseover="this.style.background='#f0fdf4'"
+       onmouseout="this.style.background=''"
+    >
+      <i class="fa-solid fa-location-dot" style="color:#09b850; width:14px"></i>
+      ${h.replace(new RegExp(q,'gi'), m => `<mark>${m}</mark>`)}
+    </div>
+  `).join('');
+  box.style.display = 'block';
+});
+
+function pickSuggestion(val) {
+  input.value = val;
+  box.style.display = 'none';
+  document.getElementById('heroSearchForm').submit();
+}
+
+document.addEventListener('click', e => {
+  if (!box.contains(e.target) && e.target !== input) box.style.display = 'none';
+});
+</script>
+ 
+
+</body>
+</html>
