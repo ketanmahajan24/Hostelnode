@@ -1,5 +1,7 @@
 require('dotenv').config() //env variable
 const LoalStrategy=require('passport-local').Strategy
+ 
+const sitemap = require('express-sitemap-xml');
 
 const express= require("express")
 const app = express();
@@ -214,8 +216,13 @@ app.use(cookieParser());
 
 // app.use(passport.initialize());
 // const localAuthMiddleware = passport.authenticate('local', { session: false });
- 
 
+app.use(sitemap((req, res) => {
+  return [
+    'https://hostelnode.com/',
+    'https://hostelnode.com/listings'
+  ];
+}));
 // app.use(new LocalStrategy(async (username,password)))
 //Part-1 Render 1st home Page- """Dashboard"""////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////// from dashboaard.ejs ////////////////////////////////////////////////////////

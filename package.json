@@ -32,6 +32,7 @@
     "ejs-mate": "^4.0.0",
     "express": "^4.22.1",
     "express-session": "^1.19.0",
+    "express-sitemap-xml": "^3.1.0",
     "geoip-lite": "^1.4.10",
     "jsonwebtoken": "^9.0.3",
     "method-override": "^3.0.0",
