@@ -669,7 +669,63 @@ router.get("/logout", (req, res) => {
 
 
 
+/* ============================================================
+   GET /student/nearby
+   ?lat=18.9&lng=72.8&radius=5
+   No auth required — works for guests too
+============================================================ */
+router.get("/nearby", async (req, res) => {
+  try {
+    const lat    = parseFloat(req.query.lat);
+    const lng    = parseFloat(req.query.lng);
+    const radius = parseFloat(req.query.radius) || 5;
 
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ success: false, error: "Invalid coordinates" });
+    }
+
+    /* Pull approved listings that have coordinates saved */
+    const all = await Listing.find({
+      status: "Approved",
+      "location.coordinates.lat": { $exists: true, $ne: null },
+      "location.coordinates.lng": { $exists: true, $ne: null },
+    }).select(
+      "title slug gender propertyType location images startingPrice rooms amenities rating reviewCount views isVerified contact"
+    );
+
+    /* Haversine distance in km */
+    function haversine(lat1, lng1, lat2, lng2) {
+      const R    = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a    =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    const nearby = all
+      .map(l => {
+        const obj = l.toObject();
+        obj.distanceKm = haversine(
+          lat, lng,
+          l.location.coordinates.lat,
+          l.location.coordinates.lng
+        );
+        return obj;
+      })
+      .filter(l => l.distanceKm <= radius)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    res.json({ success: true, count: nearby.length, listings: nearby });
+
+  } catch (err) {
+    console.error("Nearby route error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
 
 
 

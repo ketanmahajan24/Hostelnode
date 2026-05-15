@@ -1,11 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3J9E7QW77B"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-3J9E7QW77B');
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Find Hostel | HostelNode</title>
+  <title>Find Hostel ,Flat & PG Near You | HostelNode</title>
   <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+<!-- ===== PRIMARY SEO ===== -->
+<!-- <title>Find Hostels & PG Near Your College in India | HostelNode</title> -->
+  <!-- ✅ STRUCTURED DATA (ADD HERE) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "HostelNode",
+    "url": "https://www.hostelnode.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.hostelnode.com/findHostels/results?college={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script> 
+<meta name="description" content="Search 2400+ verified hostels, PGs, and flat sharing near your college across India. Compare prices, amenities, and contact owners directly. No brokerage on HostelNode.">
 
+<meta name="keywords" content="hostel near me, pg near me, student hostel india, boys hostel near college, girls pg india, cheap hostel near me, pg near IIT Bombay, hostel near Delhi University, student accommodation india">
+
+<meta name="author" content="HostelNode">
+<meta name="robots" content="index, follow">
+
+<!-- ===== CANONICAL ===== -->
+<link rel="canonical" href="https://www.hostelnode.com/findHostels">
+
+<!-- ===== OPEN GRAPH (WHATSAPP / FACEBOOK) ===== -->
+<meta property="og:title" content="Find Hostels & PG Near Your College | HostelNode">
+<meta property="og:description" content="Discover verified hostels and PGs near your college. Compare prices, amenities and connect instantly with owners.">
+<meta property="og:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
+<meta property="og:url" content="https://www.hostelnode.com/findHostels">
+<meta property="og:type" content="website">
+
+<!-- ===== TWITTER SEO ===== -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Find Hostels & PG Near College | HostelNode">
+<meta name="twitter:description" content="Find the best student hostels, PGs and flat sharing options near your college.">
+<meta name="twitter:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
+
+<!-- ===== GEO SEO (INDIA TARGET) ===== -->
+<meta name="geo.region" content="IN">
+<meta name="geo.placename" content="India">
+<meta name="geo.position" content="19.0760;72.8777">
+<meta name="ICBM" content="19.0760,72.8777">
   <!-- Bootstrap -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <!-- Font Awesome -->
@@ -278,39 +330,77 @@
         <button class="search-tab" onclick="switchTab(this)">Flat share</button>
       </div>
 
-    <form action="/findHostels/results" method="GET">
-        <div class="search-row">
-          <div class="search-field" style="flex:2; min-width:200px">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" name="college" id="collegeInput"
-              placeholder="College name or area (e.g. IIT Bombay)…"
-              autocomplete="off"
-              value="<%= student ? (student.collegeName || student.city || '') : '' %>">
-          </div>
-          <div class="search-field">
-            <i class="fa-solid fa-indian-rupee-sign"></i>
-            <select name="budget">
-              <option value="">Any budget</option>
-              <option value="3000">Under ₹3,000</option>
-              <option value="5000">Under ₹5,000</option>
-              <option value="8000">Under ₹8,000</option>
-              <option value="12000">Under ₹12,000</option>
-            </select>
-          </div>
-          <div class="search-field">
-            <i class="fa-solid fa-venus-mars"></i>
-            <select name="gender">
-              <option value="">Any type</option>
-              <option value="boys">Boys</option>
-              <option value="girls">Girls</option>
-              <option value="coed">Co-ed</option>
-            </select>
-          </div>
-          <button type="submit" class="btn-search">
-            <i class="fa-solid fa-magnifying-glass"></i> Search
-          </button>
-        </div>
-      </form> 
+<form action="/findHostels/results" method="GET" id="heroSearchForm">
+  <div class="search-row">
+
+    <!-- College / Area / City input with autocomplete -->
+    <div class="search-field" style="flex:2; min-width:200px; position:relative;">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="college" id="collegeInput"
+        placeholder="College name or area (e.g. IIT Bombay, Pune)…"
+        autocomplete="off"
+        value="<%= student ? (student.collegeName || student.city || '') : '' %>">
+      <!-- Autocomplete suggestions dropdown -->
+      <div id="acSuggestions" style="
+        display:none; position:absolute; top:100%; left:0; right:0;
+        background:#fff; border:1px solid #e0e8e2; border-radius:12px;
+        box-shadow:0 8px 24px rgba(0,0,0,.10); z-index:999; overflow:hidden;
+        margin-top:6px; max-height:280px; overflow-y:auto;
+      "></div>
+    </div>
+
+    <!-- Budget -->
+    <div class="search-field">
+      <i class="fa-solid fa-indian-rupee-sign"></i>
+      <select name="budget">
+        <option value="">Any budget</option>
+        <option value="3000">Under ₹3,000</option>
+        <option value="5000">Under ₹5,000</option>
+        <option value="8000">Under ₹8,000</option>
+        <option value="12000">Under ₹12,000</option>
+      </select>
+    </div>
+
+    <!-- Gender -->
+    <div class="search-field">
+      <i class="fa-solid fa-venus-mars"></i>
+      <select name="gender">
+        <option value="">Any type</option>
+        <option value="boys">Boys</option>
+        <option value="girls">Girls</option>
+        <option value="coed">Co-ed</option>
+      </select>
+    </div>
+
+    <!-- Property type (hidden, set by tabs) -->
+    <input type="hidden" name="type" id="propTypeInput" value="">
+
+    <button type="submit" class="btn-search">
+      <i class="fa-solid fa-magnifying-glass"></i> Search
+    </button>
+  </div>
+</form>
+<!-- NEARBY BUTTON — paste inside your search-card div, after the form -->
+<div style="text-align:center; margin-top:12px;">
+  <button type="button" id="nearbyBtn" onclick="findNearby()" style="
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: linear-gradient(135deg, #09B850, #00c264);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(9,184,80,0.3);
+    transition: all 0.2s;
+  ">
+    <i class="fa-solid fa-location-crosshairs"></i>
+    Find PG/Hostel Near Me
+  </button>
+</div>
 
       <div class="search-quick">
         <span class="search-quick-label">Popular:</span>
@@ -481,8 +571,8 @@
 
                 <% if (l.isVerified) { %>
                   <span class="card-badge"
-                    style="left:72px; top:12px; background:#fff; color:#09b850;">
-                    <i class="fa-solid fa-shield-halved"></i> Verified
+                    style="left:72px; top:12px; background:#fff;margin-left: 4px; color:#09b850;">
+                    <i class="fa-solid fa-shield-halved"></i>  Verified
                   </span>
                 <% } %>
 
@@ -943,6 +1033,76 @@ function goToSlide(e, dot, idx) {
   dots[idx].classList.add('active');
 }
 </script>
+
+<script>
+/* ── Tab → sets hidden 'type' input ───────────────────── */
+function switchTab(el) {
+  document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const map = { 'All':'', 'Hostel':'hostel', 'PG':'pg', 'Flat share':'flat' };
+  document.getElementById('propTypeInput').value = map[el.textContent.trim()] || '';
+}
+
+/* ── Quick chip ── */
+function fillSearch(college) {
+  document.getElementById('collegeInput').value = college;
+  document.getElementById('collegeInput').focus();
+}
+
+/* ── Autocomplete ─────────────────────────────────────── */
+const POPULAR = [
+  'IIT Bombay','IIT Delhi','IIT Madras','IIT Kharagpur',
+  'Delhi University','Jawaharlal Nehru University','Jamia Millia',
+  'Christ University Bangalore','Pune University','Savitribai Phule Pune University',
+  'VIT Vellore','VIT Chennai','SRM Chennai','Amity Noida',
+  'BITS Pilani','BITS Goa','BITS Hyderabad',
+  'NIT Trichy','NIT Warangal','NIT Surathkal',
+  'Manipal University','Manipal Jaipur',
+  'Osmania University Hyderabad','JNTU Hyderabad',
+  'Anna University Chennai','PSG Coimbatore',
+  'Mumbai University','Navi Mumbai','Thane',
+  'Andheri','Powai','Vashi','Kharghar',
+  'Koregaon Park Pune','Kothrud Pune','Hadapsar',
+  'Koramangala Bangalore','Electronic City','HSR Layout',
+  'Lajpat Nagar Delhi','Dwarka','Noida','Gurgaon',
+];
+
+const input = document.getElementById('collegeInput');
+const box   = document.getElementById('acSuggestions');
+
+input?.addEventListener('input', function () {
+  const q = this.value.trim().toLowerCase();
+  if (!q || q.length < 2) { box.style.display='none'; return; }
+
+  const hits = POPULAR.filter(s => s.toLowerCase().includes(q)).slice(0,7);
+  if (!hits.length) { box.style.display='none'; return; }
+
+  box.innerHTML = hits.map(h => `
+    <div onclick="pickSuggestion('${h}')" style="
+      padding:10px 16px; cursor:pointer; font-size:13.5px;
+      display:flex; align-items:center; gap:10px; color:#0a1628;
+      transition:background .12s;
+    " onmouseover="this.style.background='#f0fdf4'"
+       onmouseout="this.style.background=''"
+    >
+      <i class="fa-solid fa-location-dot" style="color:#09b850; width:14px"></i>
+      ${h.replace(new RegExp(q,'gi'), m => `<mark>${m}</mark>`)}
+    </div>
+  `).join('');
+  box.style.display = 'block';
+});
+
+function pickSuggestion(val) {
+  input.value = val;
+  box.style.display = 'none';
+  document.getElementById('heroSearchForm').submit();
+}
+
+document.addEventListener('click', e => {
+  if (!box.contains(e.target) && e.target !== input) box.style.display = 'none';
+});
+</script>
+ 
 
 </body>
 </html>

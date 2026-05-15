@@ -7,16 +7,13 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-3J9E7QW77B');
 </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find Hostel ,Flat & PG Near You | HostelNode</title>
   <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
-<!-- ===== PRIMARY SEO ===== -->
-<!-- <title>Find Hostels & PG Near Your College in India | HostelNode</title> -->
-  <!-- ✅ STRUCTURED DATA (ADD HERE) -->
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -29,263 +26,204 @@
       "query-input": "required name=search_term_string"
     }
   }
-  </script> 
+  </script>
+
 <meta name="description" content="Search 2400+ verified hostels, PGs, and flat sharing near your college across India. Compare prices, amenities, and contact owners directly. No brokerage on HostelNode.">
-
 <meta name="keywords" content="hostel near me, pg near me, student hostel india, boys hostel near college, girls pg india, cheap hostel near me, pg near IIT Bombay, hostel near Delhi University, student accommodation india">
-
 <meta name="author" content="HostelNode">
 <meta name="robots" content="index, follow">
-
-<!-- ===== CANONICAL ===== -->
 <link rel="canonical" href="https://www.hostelnode.com/findHostels">
-
-<!-- ===== OPEN GRAPH (WHATSAPP / FACEBOOK) ===== -->
 <meta property="og:title" content="Find Hostels & PG Near Your College | HostelNode">
 <meta property="og:description" content="Discover verified hostels and PGs near your college. Compare prices, amenities and connect instantly with owners.">
 <meta property="og:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
 <meta property="og:url" content="https://www.hostelnode.com/findHostels">
 <meta property="og:type" content="website">
-
-<!-- ===== TWITTER SEO ===== -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Find Hostels & PG Near College | HostelNode">
 <meta name="twitter:description" content="Find the best student hostels, PGs and flat sharing options near your college.">
 <meta name="twitter:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
-
-<!-- ===== GEO SEO (INDIA TARGET) ===== -->
 <meta name="geo.region" content="IN">
 <meta name="geo.placename" content="India">
 <meta name="geo.position" content="19.0760;72.8777">
 <meta name="ICBM" content="19.0760,72.8777">
-  <!-- Bootstrap -->
+
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="/css/findhostel.css">
 
   <style>
-    /* ═══════════════════════════════════════════════════════
-       STUDENT PROFILE PILL + DROPDOWN
-       Scoped with .sn- prefix to avoid collisions
-    ═══════════════════════════════════════════════════════ */
-
-    /* The clickable pill in the navbar */
     .sn-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 12px 5px 5px;
-      border-radius: 50px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 12px 5px 5px; border-radius: 50px;
       border: 1.5px solid rgba(9, 184, 80, 0.30);
       background: rgba(9, 184, 80, 0.07);
-      cursor: pointer;
-      user-select: none;
-      position: relative;           /* anchor for dropdown */
+      cursor: pointer; user-select: none; position: relative;
       transition: border-color .2s, background .2s;
     }
-    .sn-pill:hover {
-      border-color: rgba(9, 184, 80, 0.55);
-      background: rgba(9, 184, 80, 0.12);
-    }
-
-    /* Avatar circle */
+    .sn-pill:hover { border-color: rgba(9, 184, 80, 0.55); background: rgba(9, 184, 80, 0.12); }
     .sn-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      border: 2px solid #09b850;
-      background: #e8faf0;
-      overflow: hidden;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid #09b850; background: #e8faf0;
+      overflow: hidden; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
     }
-    .sn-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    /* Name text */
-    .sn-name {
-      font-size: 13.5px;
-      font-weight: 600;
-      color: #0a1628;
-      max-width: 110px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Chevron */
-    .sn-chevron {
-      font-size: 10px;
-      color: #09b850;
-      transition: transform .2s;
-    }
-    .sn-pill.open .sn-chevron {
-      transform: rotate(180deg);
-    }
-
-    /* ── Dropdown panel ── */
+    .sn-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-name { font-size: 13.5px; font-weight: 600; color: #0a1628; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sn-chevron { font-size: 10px; color: #09b850; transition: transform .2s; }
+    .sn-pill.open .sn-chevron { transform: rotate(180deg); }
     .sn-dropdown {
-      position: absolute;
-      top: calc(100% + 10px);
-      right: 0;
-      width: 240px;
-      background: #fff;
-      border-radius: 16px;
-      border: 1px solid #e8f0ea;
+      position: absolute; top: calc(100% + 10px); right: 0; width: 240px;
+      background: #fff; border-radius: 16px; border: 1px solid #e8f0ea;
       box-shadow: 0 8px 40px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.06);
-      overflow: hidden;
-      z-index: 9999;
-
-      /* hidden by default */
-      opacity: 0;
-      transform: translateY(-6px);
-      pointer-events: none;
-      transition: opacity .18s ease, transform .18s ease;
+      overflow: hidden; z-index: 9999;
+      opacity: 0; transform: translateY(-6px);
+      pointer-events: none; transition: opacity .18s ease, transform .18s ease;
     }
-    .sn-pill.open .sn-dropdown {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: all;
-    }
-
-    /* Green header inside dropdown */
-    .sn-dd-header {
-      padding: 16px;
-      background: linear-gradient(135deg, #09B850 0%, #00c264 100%);
-    }
+    .sn-pill.open .sn-dropdown { opacity: 1; transform: translateY(0); pointer-events: all; }
+    .sn-dd-header { padding: 16px; background: linear-gradient(135deg, #09B850 0%, #00c264 100%); }
     .sn-dd-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,.4);
-      background: rgba(255,255,255,.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      overflow: hidden;
-      margin-bottom: 10px;
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4); background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; overflow: hidden; margin-bottom: 10px;
     }
-    .sn-dd-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .sn-dd-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: #fff;
-    }
-    .sn-dd-phone {
-      font-size: 12px;
-      color: rgba(255,255,255,.72);
-      margin-top: 2px;
-    }
-
-    /* Incomplete-profile nudge strip */
+    .sn-dd-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-dd-name { font-size: 14px; font-weight: 700; color: #fff; }
+    .sn-dd-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
     .sn-nudge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 8px 12px;
-      padding: 8px 12px;
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      border-radius: 10px;
-      font-size: 12px;
-      color: #92400e;
-      text-decoration: none;
-      transition: background .15s;
+      display: flex; align-items: center; gap: 8px;
+      margin: 8px 12px; padding: 8px 12px;
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 10px; font-size: 12px; color: #92400e;
+      text-decoration: none; transition: background .15s;
     }
     .sn-nudge:hover { background: #fef3c7; color: #92400e; }
     .sn-nudge i { color: #f59e0b; }
-
-    /* Menu links */
     .sn-dd-items { padding: 6px 0; }
-
     .sn-dd-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 16px;
-      font-size: 13.5px;
-      font-weight: 500;
-      color: #0a1628;
-      text-decoration: none;
-      transition: background .14s;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 13.5px; font-weight: 500;
+      color: #0a1628; text-decoration: none; transition: background .14s;
     }
     .sn-dd-link:hover { background: #f5fbf7; color: #09b850; }
-    .sn-dd-link i {
-      width: 16px;
-      text-align: center;
-      color: #09b850;
-      font-size: 13px;
-    }
-
+    .sn-dd-link i { width: 16px; text-align: center; color: #09b850; font-size: 13px; }
     .sn-dd-divider { height: 1px; background: #eef3ee; margin: 4px 0; }
-
-    /* Logout — red */
     .sn-dd-logout {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 16px;
-      width: 100%;
-      font-size: 13.5px;
-      font-weight: 500;
-      color: #e53e3e;
-      background: none;
-      border: none;
-      text-align: left;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background .14s;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; width: 100%; font-size: 13.5px; font-weight: 500;
+      color: #e53e3e; background: none; border: none;
+      text-align: left; cursor: pointer; text-decoration: none; transition: background .14s;
     }
     .sn-dd-logout:hover { background: #fff5f5; }
     .sn-dd-logout i { width: 16px; text-align: center; }
-
-    /* ═══════════════════════════════════════════════════════
-       MOBILE NAV — profile strip (when logged in)
-    ═══════════════════════════════════════════════════════ */
     .sn-mob-strip {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px; padding: 16px 20px;
       background: linear-gradient(135deg, #09B850, #00c264);
     }
     .sn-mob-avatar {
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,.4);
-      background: rgba(255,255,255,.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      overflow: hidden;
-      flex-shrink: 0;
+      width: 46px; height: 46px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4); background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; overflow: hidden; flex-shrink: 0;
     }
     .sn-mob-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .sn-mob-name  { font-size: 15px; font-weight: 700; color: #fff; }
     .sn-mob-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
-
-    /* logout link colour in mobile drawer */
     .mobile-nav-drawer .sn-logout-link { color: #e53e3e !important; }
     .mobile-nav-drawer .sn-logout-link:hover { background: #fff5f5 !important; }
+
+    /* ── NEARBY FEATURE STYLES ── */
+    .nearby-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 24px;
+      background: linear-gradient(135deg, #09B850, #00c264);
+      color: white; border: none; border-radius: 50px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(9,184,80,0.30);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .nearby-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(9,184,80,0.40); }
+    .nearby-btn:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+
+    .nearby-panel {
+      display: none;
+      margin-top: 28px;
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid #e8f3ea;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+
+    .nearby-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px;
+      background: linear-gradient(135deg, #09B850, #00c264);
+    }
+    .nearby-panel-title {
+      font-size: 16px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .nearby-count-badge {
+      background: rgba(255,255,255,.25); color: #fff;
+      font-size: 12px; font-weight: 700;
+      padding: 2px 10px; border-radius: 20px;
+    }
+    .nearby-close-btn {
+      background: rgba(255,255,255,.2); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 6px 14px; font-size: 13px;
+      cursor: pointer; transition: background .15s;
+    }
+    .nearby-close-btn:hover { background: rgba(255,255,255,.35); }
+
+    .nearby-radius-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 14px 22px; border-bottom: 1px solid #f0f4f0;
+      background: #fafffe;
+    }
+    .nearby-radius-label { font-size: 13px; color: #666; font-weight: 500; }
+
+    .radius-btn {
+      padding: 5px 16px; border-radius: 20px;
+      border: 1.5px solid #dde8dd; background: #fff;
+      font-size: 13px; font-weight: 500; cursor: pointer; color: #555;
+      transition: all .15s;
+    }
+    .radius-btn.active {
+      border-color: #09b850; background: rgba(9,184,80,.08); color: #09b850;
+    }
+
+    .nearby-body { padding: 20px 22px; }
+
+    .nearby-loading {
+      text-align: center; padding: 40px;
+      color: #888; font-size: 14px;
+    }
+    .nearby-loading i { font-size: 1.8rem; color: #09b850; display: block; margin-bottom: 12px; }
+
+    .nearby-empty {
+      display: none; text-align: center; padding: 40px; color: #999;
+    }
+    .nearby-empty i { font-size: 2rem; color: #ddd; display: block; margin-bottom: 12px; }
+    .nearby-empty strong { display: block; font-size: 15px; color: #666; margin-bottom: 6px; }
+
+    .nearby-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    /* distance badge on card */
+    .dist-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(9,184,80,.12); color: #09b850;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 9px; border-radius: 20px; margin-left: 6px;
+    }
   </style>
 </head>
 <body>
@@ -298,8 +236,10 @@
     <div class="loader-dot"></div>
     <div class="loader-dot"></div>
   </div>
-</div> 
-  <%- include("../includes/navbar-user.ejs") %>
+</div>
+
+<%- include("../includes/navbar-user.ejs") %>
+
 <!-- ===== HERO ===== -->
 <section class="hero">
   <div class="hero-inner">
@@ -330,56 +270,54 @@
         <button class="search-tab" onclick="switchTab(this)">Flat share</button>
       </div>
 
-<form action="/findHostels/results" method="GET" id="heroSearchForm">
-  <div class="search-row">
+      <form action="/findHostels/results" method="GET" id="heroSearchForm">
+        <div class="search-row">
+          <div class="search-field" style="flex:2; min-width:200px; position:relative;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" name="college" id="collegeInput"
+              placeholder="College name or area (e.g. IIT Bombay, Pune)…"
+              autocomplete="off"
+              value="<%= student ? (student.collegeName || student.city || '') : '' %>">
+            <div id="acSuggestions" style="
+              display:none; position:absolute; top:100%; left:0; right:0;
+              background:#fff; border:1px solid #e0e8e2; border-radius:12px;
+              box-shadow:0 8px 24px rgba(0,0,0,.10); z-index:999; overflow:hidden;
+              margin-top:6px; max-height:280px; overflow-y:auto;
+            "></div>
+          </div>
+          <div class="search-field">
+            <i class="fa-solid fa-indian-rupee-sign"></i>
+            <select name="budget">
+              <option value="">Any budget</option>
+              <option value="3000">Under ₹3,000</option>
+              <option value="5000">Under ₹5,000</option>
+              <option value="8000">Under ₹8,000</option>
+              <option value="12000">Under ₹12,000</option>
+            </select>
+          </div>
+          <div class="search-field">
+            <i class="fa-solid fa-venus-mars"></i>
+            <select name="gender">
+              <option value="">Any type</option>
+              <option value="boys">Boys</option>
+              <option value="girls">Girls</option>
+              <option value="coed">Co-ed</option>
+            </select>
+          </div>
+          <input type="hidden" name="type" id="propTypeInput" value="">
+          <button type="submit" class="btn-search">
+            <i class="fa-solid fa-magnifying-glass"></i> Search
+          </button>
+        </div>
+      </form>
 
-    <!-- College / Area / City input with autocomplete -->
-    <div class="search-field" style="flex:2; min-width:200px; position:relative;">
-      <i class="fa-solid fa-magnifying-glass"></i>
-      <input type="text" name="college" id="collegeInput"
-        placeholder="College name or area (e.g. IIT Bombay, Pune)…"
-        autocomplete="off"
-        value="<%= student ? (student.collegeName || student.city || '') : '' %>">
-      <!-- Autocomplete suggestions dropdown -->
-      <div id="acSuggestions" style="
-        display:none; position:absolute; top:100%; left:0; right:0;
-        background:#fff; border:1px solid #e0e8e2; border-radius:12px;
-        box-shadow:0 8px 24px rgba(0,0,0,.10); z-index:999; overflow:hidden;
-        margin-top:6px; max-height:280px; overflow-y:auto;
-      "></div>
-    </div>
-
-    <!-- Budget -->
-    <div class="search-field">
-      <i class="fa-solid fa-indian-rupee-sign"></i>
-      <select name="budget">
-        <option value="">Any budget</option>
-        <option value="3000">Under ₹3,000</option>
-        <option value="5000">Under ₹5,000</option>
-        <option value="8000">Under ₹8,000</option>
-        <option value="12000">Under ₹12,000</option>
-      </select>
-    </div>
-
-    <!-- Gender -->
-    <div class="search-field">
-      <i class="fa-solid fa-venus-mars"></i>
-      <select name="gender">
-        <option value="">Any type</option>
-        <option value="boys">Boys</option>
-        <option value="girls">Girls</option>
-        <option value="coed">Co-ed</option>
-      </select>
-    </div>
-
-    <!-- Property type (hidden, set by tabs) -->
-    <input type="hidden" name="type" id="propTypeInput" value="">
-
-    <button type="submit" class="btn-search">
-      <i class="fa-solid fa-magnifying-glass"></i> Search
-    </button>
-  </div>
-</form>
+      <!-- ── NEARBY BUTTON (location asked ONLY on click) ── -->
+      <div style="text-align:center; margin-top:14px;">
+        <button type="button" id="nearbyBtn" class="nearby-btn" onclick="findNearby()">
+          <i class="fa-solid fa-location-crosshairs"></i>
+          Find PG / Hostel Near Me
+        </button>
+      </div>
 
       <div class="search-quick">
         <span class="search-quick-label">Popular:</span>
@@ -390,6 +328,43 @@
         <button type="button" class="quick-chip" onclick="fillSearch('VIT Vellore')">VIT Vellore</button>
       </div>
     </div>
+
+    <!-- ── NEARBY RESULTS PANEL — appears below search card on click ── -->
+    <div class="nearby-panel" id="nearbyPanel">
+
+      <div class="nearby-panel-header">
+        <div class="nearby-panel-title">
+          <i class="fa-solid fa-location-crosshairs"></i>
+          Hostels near you
+          <span class="nearby-count-badge" id="nearbyCount">0</span>
+        </div>
+        <button class="nearby-close-btn" onclick="closeNearby()">
+          <i class="fa-solid fa-xmark"></i> Close
+        </button>
+      </div>
+
+      <div class="nearby-radius-bar">
+        <span class="nearby-radius-label">Search radius:</span>
+        <button class="radius-btn active" data-r="2"  onclick="changeRadius(2)">2 km</button>
+        <button class="radius-btn"        data-r="5"  onclick="changeRadius(5)">5 km</button>
+        <button class="radius-btn"        data-r="10" onclick="changeRadius(10)">10 km</button>
+        <button class="radius-btn"        data-r="15" onclick="changeRadius(15)">15 km</button>
+      </div>
+
+      <div class="nearby-body">
+        <div class="nearby-loading" id="nearbyLoading" style="display:none;">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          Finding hostels near you…
+        </div>
+        <div class="nearby-empty" id="nearbyEmpty">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <strong>No hostels found nearby</strong>
+          Try increasing the radius or search by college name above.
+        </div>
+        <div class="nearby-grid" id="nearbyGrid"></div>
+      </div>
+    </div>
+
   </div><!-- /hero-inner -->
 
   <!-- Stats strip -->
@@ -422,13 +397,11 @@
 <section class="section listings-section">
   <div class="listings-layout">
 
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-title">
         Filters
         <span class="sidebar-clear" onclick="clearFilters()">Clear all</span>
       </div>
-
       <div class="filter-group">
         <div class="filter-group-label">Room type</div>
         <div class="filter-options">
@@ -438,9 +411,7 @@
           <div class="filter-option"><input type="checkbox" id="f-dorm"><label for="f-dorm">Dormitory</label></div>
         </div>
       </div>
-
       <div class="filter-divider"></div>
-
       <div class="filter-group">
         <div class="filter-group-label">Gender</div>
         <div class="filter-options">
@@ -449,9 +420,7 @@
           <div class="filter-option"><input type="checkbox" id="f-co"><label for="f-co">Co-ed</label></div>
         </div>
       </div>
-
       <div class="filter-divider"></div>
-
       <div class="filter-group">
         <div class="filter-group-label">Amenities</div>
         <div class="filter-options">
@@ -462,9 +431,7 @@
           <div class="filter-option"><input type="checkbox" id="f-security"><label for="f-security">24/7 Security</label></div>
         </div>
       </div>
-
       <div class="filter-divider"></div>
-
       <div class="filter-group">
         <div class="filter-group-label">Max budget / month</div>
         <div class="price-range-wrap">
@@ -476,13 +443,11 @@
           </div>
         </div>
       </div>
-
       <button class="btn-apply-filter" onclick="applyFilters()">
         <i class="fa-solid fa-sliders"></i> Apply filters
       </button>
     </aside>
 
-    <!-- Main listings -->
     <div class="main-listings">
       <div class="listings-header">
         <div>
@@ -506,35 +471,26 @@
         </div>
       </div>
 
-      <!-- CARDS GRID (DYNAMIC) -->
       <div class="cards-grid" id="hostelGrid">
-
         <% if (listings && listings.length > 0) { %>
-
           <% listings.forEach(function(l) { %>
-
-           <div class="hostel-card" data-id="<%= l._id %>" onclick="viewHostel('<%= l.slug %>')">
-
-              <!-- IMAGE -->
+            <div class="hostel-card" data-id="<%= l._id %>" onclick="viewHostel('<%= l.slug %>')">
               <div class="card-img-wrap">
                 <div class="card-slider">
                   <% if (l.images && l.images.length > 0) { %>
                     <% l.images.forEach(function(img, i) { %>
-                      <img src="/listing-images/<%= img %>"
-                           class="slide <%= i === 0 ? 'active' : '' %>">
+                      <img src="/listing-images/<%= img %>" class="slide <%= i === 0 ? 'active' : '' %>">
                     <% }) %>
                   <% } else { %>
                     <img src="/images/placeholder.jpg" class="slide active">
                   <% } %>
                 </div>
-
                 <button class="slide-btn prev" onclick="slideImage(event,this,-1)">
                   <i class="fa-solid fa-chevron-left"></i>
                 </button>
                 <button class="slide-btn next" onclick="slideImage(event,this,1)">
                   <i class="fa-solid fa-chevron-right"></i>
                 </button>
-
                 <div class="slide-dots">
                   <% if (l.images) { %>
                     <% l.images.forEach(function(_, i) { %>
@@ -543,29 +499,22 @@
                     <% }) %>
                   <% } %>
                 </div>
-
                 <span class="card-badge badge-<%= (l.gender || '').toLowerCase() %>">
                   <%= l.gender %>
                 </span>
-
                 <% if (l.isVerified) { %>
-                  <span class="card-badge"
-                    style="left:72px; top:12px; background:#fff;margin-left: 4px; color:#09b850;">
-                    <i class="fa-solid fa-shield-halved"></i>  Verified
+                  <span class="card-badge" style="left:72px; top:12px; background:#fff; margin-left:4px; color:#09b850;">
+                    <i class="fa-solid fa-shield-halved"></i> Verified
                   </span>
                 <% } %>
-
                 <div class="card-wishlist" onclick="toggleWish(event,this)">
                   <i class="fa-regular fa-heart"></i>
                 </div>
-
                 <div class="card-dist">
                   <i class="fa-solid fa-location-dot"></i> Near by
                   <%= l.location?.nearCollege || l.location?.city %>
                 </div>
               </div>
-
-              <!-- BODY -->
               <div class="card-body">
                 <div class="card-top">
                   <div>
@@ -577,22 +526,17 @@
                   <div class="card-rating">
                     <i class="fa-solid fa-star"></i>
                     <%= l.rating || 4.2 %>
-                    <span style="font-size:0.7rem;color:var(--muted-light)">
-                      (<%= l.reviewCount || 0 %>)
-                    </span>
+                    <span style="font-size:0.7rem;color:var(--muted-light)">(<%= l.reviewCount || 0 %>)</span>
                   </div>
                 </div>
-
                 <div class="card-loc">
                   <i class="fa-solid fa-location-dot"></i>
                   <%= l.location?.address %>, <%= l.location?.city %>
                 </div>
-
                 <div class="card-view-count">
                   <i class="fa-solid fa-eye"></i>
                   <%= l.views || 0 %> students viewed today
                 </div>
-
                 <div class="card-amenities">
                   <% if (l.amenities) { %>
                     <% l.amenities.slice(0,5).forEach(function(a) { %>
@@ -600,40 +544,32 @@
                     <% }) %>
                   <% } %>
                 </div>
-
                 <div class="card-footer-row">
                   <div class="card-price">
                     <div class="price-val">₹<%= l.startingPrice %> <span>/mo</span></div>
                     <div class="price-label"><%= l.rooms?.[0]?.type || 'Room' %></div>
                   </div>
-                  <button class="btn-view"
-                    onclick="event.stopPropagation();viewHostel('<%= l.slug %>')">
+                  <button class="btn-view" onclick="event.stopPropagation();viewHostel('<%= l.slug %>')">
                     View <i class="fa-solid fa-arrow-right"></i>
                   </button>
                 </div>
-
                 <div class="card-contact-row">
-                  <button class="btn-wa"
-                    onclick="event.stopPropagation();waHostel('<%= l.contact?.whatsapp %>')">
+                  <button class="btn-wa" onclick="event.stopPropagation();waHostel('<%= l.contact?.whatsapp %>')">
                     <i class="fa-brands fa-whatsapp"></i> WhatsApp
                   </button>
-                  <button class="btn-call"
-                    onclick="event.stopPropagation();callHostel('<%= l.contact?.phone %>')">
+                  <button class="btn-call" onclick="event.stopPropagation();callHostel('<%= l.contact?.phone %>')">
                     <i class="fa-solid fa-phone"></i> Call
                   </button>
                 </div>
               </div>
             </div>
-
           <% }) %>
-
         <% } else { %>
           <div style="text-align:center; padding:40px;">
             <h3>No hostels found 😔</h3>
             <p>Try different search or filters</p>
           </div>
         <% } %>
-
       </div><!-- /cards-grid -->
 
       <div class="load-more-wrap">
@@ -663,7 +599,6 @@
 <section class="section college-section">
   <div class="section-tag">Near your college</div>
   <h2 class="section-title">Top colleges with<br>most listings nearby</h2>
-
   <div class="college-list">
     <%
       var colleges = [
@@ -699,7 +634,6 @@
     <div class="section-tag" style="justify-content:center">How it works</div>
   </div>
   <h2 class="section-title center">Find your hostel in 4 simple steps</h2>
-
   <div class="steps-grid">
     <div class="step-card">
       <div class="step-num">01</div>
@@ -803,7 +737,6 @@
   </div>
 </footer>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
 <script>
@@ -833,19 +766,12 @@ function closeMobileNav(e) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   PROFILE DROPDOWN
-   - click pill  → toggle open class
-   - click outside → close
-   - stopPropagation prevents the document listener from
-     immediately closing it on the same click that opens it
-═══════════════════════════════════════════════════════ */
+/* ===== PROFILE DROPDOWN ===== */
 function snToggle(e) {
   e.stopPropagation();
   const pill = document.getElementById('snPill');
   if (pill) pill.classList.toggle('open');
 }
-
 document.addEventListener('click', function () {
   const pill = document.getElementById('snPill');
   if (pill) pill.classList.remove('open');
@@ -855,6 +781,8 @@ document.addEventListener('click', function () {
 function switchTab(el) {
   document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+  const map = { 'All':'', 'Hostel':'hostel', 'PG':'pg', 'Flat share':'flat' };
+  document.getElementById('propTypeInput').value = map[el.textContent.trim()] || '';
 }
 
 /* ===== QUICK CHIPS ===== */
@@ -871,47 +799,30 @@ function updatePrice(val) {
 /* ===== WISHLIST TOGGLE ===== */
 async function toggleWish(e, btn) {
   e.stopPropagation();
-
   const card = btn.closest('.hostel-card');
   const listingId = card?.dataset.id;
-
-  if (!listingId) {
-    window.location.href = '/student/login';
-    return;
-  }
-
-  // Optimistic UI update first
+  if (!listingId) { window.location.href = '/student/login'; return; }
   const isSaved = btn.classList.contains('saved');
   btn.classList.toggle('saved', !isSaved);
   btn.querySelector('i').className = !isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
-
   try {
     const res = await fetch(`/student/wishlist/toggle/${listingId}`, { method: 'POST' });
-
     if (res.redirected || res.status === 401) {
-      // Not logged in — revert and redirect
       btn.classList.toggle('saved', isSaved);
       btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
-      window.location.href = '/student/login';
-      return;
+      window.location.href = '/student/login'; return;
     }
-
     const data = await res.json();
-
     if (data.success) {
-      // Confirm the real state from server
       btn.classList.toggle('saved', data.saved);
       btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
       showToast(data.saved ? '❤️ Saved to wishlist' : '🤍 Removed from wishlist');
     } else {
-      // Revert on failure
       btn.classList.toggle('saved', isSaved);
       btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
       showToast('Could not update wishlist');
     }
-
   } catch (err) {
-    // Revert on network error
     btn.classList.toggle('saved', isSaved);
     btn.querySelector('i').className = isSaved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
     console.error('Wishlist error:', err);
@@ -946,9 +857,7 @@ function setSort(el, type) {
 function applyFilters() {
   const btn = document.querySelector('.btn-apply-filter');
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Applying…';
-  setTimeout(() => {
-    btn.innerHTML = '<i class="fa-solid fa-sliders"></i> Apply filters';
-  }, 900);
+  setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-sliders"></i> Apply filters'; }, 900);
 }
 function clearFilters() {
   document.querySelectorAll('.sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -956,17 +865,14 @@ function clearFilters() {
   updatePrice(8000);
 }
 
-/* ===== VIEW HOSTEL ===== */
+/* ===== VIEW / CALL / WA ===== */
 function viewHostel(slug) { window.location.href = '/hostel/' + slug; }
-
-/* ===== CALL / WHATSAPP ===== */
 function callHostel(phone) { window.location.href = 'tel:' + phone; }
 function waHostel(phone) {
   const num = (phone || '').replace(/[^0-9]/g, '');
   if (!num) return;
   window.open('https://wa.me/' + num + '?text=' +
-    encodeURIComponent('Hi! I found your hostel on HostelNode. I am interested in a room. Can you share details?'),
-    '_blank');
+    encodeURIComponent('Hi! I found your hostel on HostelNode. I am interested in a room. Can you share details?'), '_blank');
 }
 
 /* ===== COLLEGE CHIP ===== */
@@ -982,15 +888,13 @@ function openMap() {
 /* ===== LOAD MORE ===== */
 function loadMore(btn) {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading…';
-  setTimeout(() => {
-    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Load more hostels';
-  }, 1200);
+  setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Load more hostels'; }, 1200);
 }
 
 /* ===== IMAGE SLIDER ===== */
 function slideImage(e, btn, direction) {
   e.stopPropagation();
-  const wrap   = btn.closest('.card-img-wrap');
+  const wrap = btn.closest('.card-img-wrap');
   const slides = wrap.querySelectorAll('.slide');
   const dots   = wrap.querySelectorAll('.dot');
   let idx = [...slides].findIndex(s => s.classList.contains('active'));
@@ -1000,10 +904,9 @@ function slideImage(e, btn, direction) {
   slides[idx].classList.add('active');
   dots[idx]?.classList.add('active');
 }
-
 function goToSlide(e, dot, idx) {
   e.stopPropagation();
-  const wrap   = dot.closest('.card-img-wrap');
+  const wrap = dot.closest('.card-img-wrap');
   const slides = wrap.querySelectorAll('.slide');
   const dots   = wrap.querySelectorAll('.dot');
   slides.forEach(s => s.classList.remove('active'));
@@ -1011,24 +914,8 @@ function goToSlide(e, dot, idx) {
   slides[idx].classList.add('active');
   dots[idx].classList.add('active');
 }
-</script>
 
-<script>
-/* ── Tab → sets hidden 'type' input ───────────────────── */
-function switchTab(el) {
-  document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  const map = { 'All':'', 'Hostel':'hostel', 'PG':'pg', 'Flat share':'flat' };
-  document.getElementById('propTypeInput').value = map[el.textContent.trim()] || '';
-}
-
-/* ── Quick chip ── */
-function fillSearch(college) {
-  document.getElementById('collegeInput').value = college;
-  document.getElementById('collegeInput').focus();
-}
-
-/* ── Autocomplete ─────────────────────────────────────── */
+/* ===== AUTOCOMPLETE ===== */
 const POPULAR = [
   'IIT Bombay','IIT Delhi','IIT Madras','IIT Kharagpur',
   'Delhi University','Jawaharlal Nehru University','Jamia Millia',
@@ -1045,43 +932,208 @@ const POPULAR = [
   'Koramangala Bangalore','Electronic City','HSR Layout',
   'Lajpat Nagar Delhi','Dwarka','Noida','Gurgaon',
 ];
-
 const input = document.getElementById('collegeInput');
 const box   = document.getElementById('acSuggestions');
-
 input?.addEventListener('input', function () {
   const q = this.value.trim().toLowerCase();
-  if (!q || q.length < 2) { box.style.display='none'; return; }
-
-  const hits = POPULAR.filter(s => s.toLowerCase().includes(q)).slice(0,7);
-  if (!hits.length) { box.style.display='none'; return; }
-
+  if (!q || q.length < 2) { box.style.display = 'none'; return; }
+  const hits = POPULAR.filter(s => s.toLowerCase().includes(q)).slice(0, 7);
+  if (!hits.length) { box.style.display = 'none'; return; }
   box.innerHTML = hits.map(h => `
-    <div onclick="pickSuggestion('${h}')" style="
-      padding:10px 16px; cursor:pointer; font-size:13.5px;
-      display:flex; align-items:center; gap:10px; color:#0a1628;
-      transition:background .12s;
-    " onmouseover="this.style.background='#f0fdf4'"
-       onmouseout="this.style.background=''"
-    >
-      <i class="fa-solid fa-location-dot" style="color:#09b850; width:14px"></i>
-      ${h.replace(new RegExp(q,'gi'), m => `<mark>${m}</mark>`)}
-    </div>
-  `).join('');
+    <div onclick="pickSuggestion('${h}')" style="padding:10px 16px;cursor:pointer;font-size:13.5px;display:flex;align-items:center;gap:10px;color:#0a1628;transition:background .12s;"
+      onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">
+      <i class="fa-solid fa-location-dot" style="color:#09b850;width:14px"></i>
+      ${h.replace(new RegExp(q, 'gi'), m => `<mark>${m}</mark>`)}
+    </div>`).join('');
   box.style.display = 'block';
 });
-
 function pickSuggestion(val) {
   input.value = val;
   box.style.display = 'none';
   document.getElementById('heroSearchForm').submit();
 }
-
 document.addEventListener('click', e => {
   if (!box.contains(e.target) && e.target !== input) box.style.display = 'none';
 });
+
+
+/* ═══════════════════════════════════════════════════════
+   NEARBY FEATURE
+   Location is asked ONLY when user clicks the button.
+   No auto-request on page load.
+═══════════════════════════════════════════════════════ */
+
+let _userLat      = null;
+let _userLng      = null;
+let _curRadius    = 5;   // default 5 km
+
+/* Called when user clicks "Find PG / Hostel Near Me" */
+async function findNearby() {
+  const btn = document.getElementById('nearbyBtn');
+
+  if (!navigator.geolocation) {
+    showToast('❌ Your browser does not support location. Try Chrome or Firefox.');
+    return;
+  }
+
+  /* Show spinner on button */
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Getting your location…';
+  btn.disabled  = true;
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      _userLat = pos.coords.latitude;
+      _userLng = pos.coords.longitude;
+      resetNearbyBtn();
+      await fetchNearby(_curRadius);
+    },
+    (err) => {
+      resetNearbyBtn();
+      const msgs = {
+        1: '❌ Location access denied. Please allow location in your browser settings.',
+        2: '❌ Location unavailable. Check your device GPS.',
+        3: '❌ Location request timed out. Please try again.',
+      };
+      showToast(msgs[err.code] || '❌ Could not get your location.');
+    },
+    { timeout: 12000, maximumAge: 60000, enableHighAccuracy: true }
+  );
+}
+
+function resetNearbyBtn() {
+  const btn = document.getElementById('nearbyBtn');
+  btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Find PG / Hostel Near Me';
+  btn.disabled  = false;
+}
+
+/* Fetch from backend and render panel */
+async function fetchNearby(radius) {
+  if (!_userLat || !_userLng) return;
+
+  const panel   = document.getElementById('nearbyPanel');
+  const loading = document.getElementById('nearbyLoading');
+  const empty   = document.getElementById('nearbyEmpty');
+  const grid    = document.getElementById('nearbyGrid');
+  const countEl = document.getElementById('nearbyCount');
+
+  /* Show panel with loading state */
+  panel.style.display = 'block';
+  loading.style.display = 'block';
+  empty.style.display   = 'none';
+  grid.innerHTML        = '';
+  countEl.textContent   = '…';
+
+  /* Scroll panel into view smoothly */
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+
+  try {
+    const res  = await fetch(`/student/nearby?lat=${_userLat}&lng=${_userLng}&radius=${radius}`);
+    const data = await res.json();
+
+    loading.style.display = 'none';
+    countEl.textContent   = data.count || 0;
+
+    if (!data.success || !data.listings || data.listings.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+
+    grid.innerHTML = data.listings.map(l => buildNearbyCard(l)).join('');
+
+  } catch (err) {
+    loading.style.display = 'none';
+    grid.innerHTML = `<div style="text-align:center;padding:30px;color:#e53e3e;">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>
+      Failed to load nearby hostels. Please try again.
+    </div>`;
+    console.error('Nearby fetch error:', err);
+  }
+}
+
+/* Change radius pill */
+async function changeRadius(r) {
+  _curRadius = r;
+  document.querySelectorAll('.radius-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.r) === r);
+  });
+  if (_userLat && _userLng) await fetchNearby(r);
+}
+
+/* Close panel */
+function closeNearby() {
+  document.getElementById('nearbyPanel').style.display = 'none';
+}
+
+/* Build one hostel card for the nearby grid */
+function buildNearbyCard(l) {
+  const img        = l.images && l.images.length > 0
+                     ? `/listing-images/${l.images[0]}`
+                     : '/images/placeholder.jpg';
+  const distText   = l.distanceKm != null
+                     ? `<span class="dist-badge"><i class="fa-solid fa-location-dot"></i> ${l.distanceKm.toFixed(1)} km</span>`
+                     : '';
+  const verified   = l.isVerified
+                     ? `<span class="card-badge" style="left:72px;top:12px;background:#fff;margin-left:4px;color:#09b850;"><i class="fa-solid fa-shield-halved"></i> Verified</span>`
+                     : '';
+  const amenities  = (l.amenities || []).slice(0, 4)
+                     .map(a => `<span class="amenity-tag">${a}</span>`).join('');
+  const waNum      = (l.contact?.whatsapp || '').replace(/[^0-9]/g, '');
+  const waClick    = waNum ? `waHostel('${l.contact.whatsapp}')` : '';
+
+  return `
+  <div class="hostel-card" onclick="viewHostel('${l.slug}')">
+    <div class="card-img-wrap">
+      <div class="card-slider">
+        <img src="${img}" class="slide active" style="width:100%;height:100%;object-fit:cover;">
+      </div>
+      <span class="card-badge badge-${(l.gender || '').toLowerCase()}">${l.gender || ''}</span>
+      ${verified}
+      <div class="card-wishlist" onclick="event.stopPropagation();">
+        <i class="fa-regular fa-heart"></i>
+      </div>
+      <div class="card-dist">
+        <i class="fa-solid fa-location-dot"></i>
+        ${l.location?.nearCollege || l.location?.city || ''}
+        ${distText}
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-top">
+        <div>
+          <div class="card-name">${l.title}</div>
+          <div class="card-best-value"><i class="fa-solid fa-bolt"></i> ${l.propertyType}</div>
+        </div>
+        <div class="card-rating">
+          <i class="fa-solid fa-star"></i> ${l.rating || 4.2}
+          <span style="font-size:.7rem;color:var(--muted-light)">(${l.reviewCount || 0})</span>
+        </div>
+      </div>
+      <div class="card-loc">
+        <i class="fa-solid fa-location-dot"></i>
+        ${l.location?.address || ''}, ${l.location?.city || ''}
+      </div>
+      <div class="card-amenities">${amenities}</div>
+      <div class="card-footer-row">
+        <div class="card-price">
+          <div class="price-val">₹${l.startingPrice} <span>/mo</span></div>
+          <div class="price-label">${l.rooms?.[0]?.type || 'Room'}</div>
+        </div>
+        <button class="btn-view" onclick="event.stopPropagation();viewHostel('${l.slug}')">
+          View <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+      <div class="card-contact-row">
+        <button class="btn-wa" onclick="event.stopPropagation();${waClick}">
+          <i class="fa-brands fa-whatsapp"></i> WhatsApp
+        </button>
+        <button class="btn-call" onclick="event.stopPropagation();callHostel('${l.contact?.phone || ''}')">
+          <i class="fa-solid fa-phone"></i> Call
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
 </script>
- 
 
 </body>
 </html>
