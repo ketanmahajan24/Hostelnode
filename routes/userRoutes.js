@@ -298,7 +298,7 @@ router.post("/signup", upload.single("profileImage"), async (req, res) => {
         <hr style="margin:20px 0;">
         <h3>📺 Watch Demo</h3>
         <p>Learn how to use HostelNode in 2 minutes:</p>
-        <a href="https://your-demo-video-link.com"
+        <a href="https://www.instagram.com/reel/DYXZ1R0MGQe/?igsh=dTdqcGw0b3Nrb2tx"
           style="display:inline-block;padding:12px 18px;background:#09B850;color:white;
                  text-decoration:none;border-radius:8px;font-weight:bold;">
           ▶ Watch Demo
@@ -319,6 +319,71 @@ router.post("/signup", upload.single("profileImage"), async (req, res) => {
       `
     ).catch(err => console.error("📧 Welcome email failed (non-fatal):", err.message));
 
+    sendMail(
+  "ketanmahajan2424@gmail.com",
+  "🚀 New Owner Signup - HostelNode",
+  `
+  <div style="font-family:Arial;padding:20px">
+    
+    <h2 style="color:#09B850;">
+      🎉 New Owner Registered
+    </h2>
+
+    <p>A new hostel owner has signed up on HostelNode.</p>
+
+    <table cellpadding="10" cellspacing="0" 
+      style="border-collapse:collapse;width:100%;margin-top:20px;">
+      
+      <tr style="background:#f5f5f5;">
+        <td><strong>Name</strong></td>
+        <td>${newOwner.name}</td>
+      </tr>
+
+      <tr>
+        <td><strong>Email</strong></td>
+        <td>${newOwner.email}</td>
+      </tr>
+
+      <tr style="background:#f5f5f5;">
+        <td><strong>Phone</strong></td>
+        <td>${newOwner.phone}</td>
+      </tr>
+
+      <tr>
+        <td><strong>Status</strong></td>
+        <td>${newOwner.status}</td>
+      </tr>
+
+      <tr style="background:#f5f5f5;">
+        <td><strong>Signup Time</strong></td>
+        <td>${new Date().toLocaleString("en-IN")}</td>
+      </tr>
+
+    </table>
+
+    <div style="margin-top:25px;">
+      <a href="https://www.hostelnode.com/admin"
+        style="
+          background:#09B850;
+          color:white;
+          padding:12px 18px;
+          text-decoration:none;
+          border-radius:8px;
+          font-weight:bold;
+        ">
+        Open Admin Panel
+      </a>
+    </div>
+
+    <p style="margin-top:30px;color:#666;">
+      — HostelNode System Notification
+    </p>
+
+  </div>
+  `
+).catch(err =>
+  console.error("Admin signup notification failed:", err.message)
+);
     // ===============================
     // 🎉 SUCCESS
     // ===============================
