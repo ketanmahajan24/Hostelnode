@@ -78,52 +78,12 @@ tr:hover {
   background-color: #ddd;
 }
 
-  @media screen and (orientation: landscape) {
-    /* Keep the left (Dashboard) menu always open */
-    
-    /* ALL BEDS SHOW */
-
-    .table-container { width: 80%; margin-left: 20%;  }
-    #offcanvasDarkNavbar {
-      visibility: visible !important;
-      transform: none !important;
-      /* position: relative !important; */
-      width: 20% !important; /* Adjust width if needed */
-      height: 100vh !important;
-    }
-    /* .navbar{
-       width: 90% ; 
-       margin-left: 10%;
-    } */
-    .product-logo{
-      position: absolute;
-      left: 22%;
-    }
-    .main-body-page{
-      width: 80% ;
-      margin-left: 20%;
-    }
-    .cross-btn{
-      display: none;
-    }
-  
-  .payment-bg{
-    margin-left: 19vw;
-  }
-  .payment-in{
-    columns: 4;
-  }
-    /* Keep the right (Profile) menu always open */
-    /* #offcanvasNavbar {
-      
-    } */
-  
-    /* Hide backdrop overlay to avoid blocking */
-    .offcanvas-backdrop {
-      display: none !important;
-    }
-    .container-table {max-width:80%; margin-left: 20%; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-  }
+ @media screen and (orientation: landscape) {
+  /* OLD: margin-left:20% → NEW: handled by .hn-page-body */
+  .table-container  { width: 100%; margin-left: 0; }
+  .container-table  { max-width: 100%; margin-left: 0; }
+  .payment-bg       { margin-left: 0; }
+}
 
 /*2*//* HOME PAGE STYLE */
   /* CARD  */
@@ -269,11 +229,11 @@ tr:hover {
 
 
 
-
+/* 
 .navbar-nav{
     margin:16px auto;
     
-}
+} */
 /* /////////PRODUCT LOGO  */
 .montserrat-subrayada-regular {
     font-family:"Inter", sans-serif;

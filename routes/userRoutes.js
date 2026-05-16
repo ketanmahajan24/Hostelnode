@@ -189,254 +189,163 @@ router.post("/verify-otp", (req, res) => {
 // ✅ POST /signup
 router.post("/signup", upload.single("profileImage"), async (req, res) => {
   try {
-    // console.log("\n================= 🚀 SIGNUP START =================");
-
-    // 📥 Step 1: Incoming Data
-    // console.log("📥 BODY:", req.body);
-    // console.log("📸 FILE:", req.file);
-
-    const {
-      name,
-      email,
-      phone,
-      password,
-      gender,
-      dob,
-      businessName,
-      businessType,
-      whatsapp,
-      city,
-      state,
-      country,
-      pincode
-    } = req.body;
+    const { name, email, phone, password } = req.body;
 
     // ===============================
-    // 🧪 STEP 2: VALIDATION
+    // 🧪 VALIDATION
     // ===============================
-    // console.log("🔍 Validating inputs...");
 
-    // Required fields
-    if (
-      !name || !email || !phone || !password ||
-      !gender || !dob || !businessName ||
-      !businessType || !city || !state ||
-      !country || !pincode
-    ) {
-      // console.log("❌ Missing required fields");
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Name validation
-    if (name.length < 3) {
-      // console.log("❌ Invalid name");
+    if (name.trim().length < 3) {
       return res.status(400).json({ error: "Name must be at least 3 characters" });
     }
 
-    // Email validation
     if (!validator.isEmail(email)) {
-      // console.log("❌ Invalid email");
       return res.status(400).json({ error: "Invalid email format" });
     }
 
-    // Phone validation (India)
     if (!/^[6-9]\d{9}$/.test(phone)) {
-      // console.log("❌ Invalid phone");
       return res.status(400).json({ error: "Invalid phone number" });
     }
 
-    // Password validation (strong)
-    if (!validator.isStrongPassword(password, {
-      minLength: 6,
-      minNumbers: 1
-    })) {
-      // console.log("❌ Weak password");
-      return res.status(400).json({
-        error: "Password must be 6+ chars with at least 1 number"
-      });
+    if (!validator.isStrongPassword(password, { minLength: 6, minNumbers: 1 })) {
+      return res.status(400).json({ error: "Password must be 6+ chars with at least 1 number" });
     }
 
-    // Pincode validation
-    if (!/^\d{6}$/.test(pincode)) {
-      // console.log("❌ Invalid pincode");
-      return res.status(400).json({ error: "Invalid pincode" });
+    // ===============================
+    // 🔐 OTP CHECK
+    // ===============================
+    const otpData = otpStore.get(phone);
+
+    if (!otpData) {
+      return res.status(400).json({ error: "OTP not sent or expired. Please request a new OTP." });
     }
 
-    // console.log("✅ Validation passed");
- // 🔐 OTP CHECK
-const otpData = otpStore.get(phone);
+    if (Date.now() > otpData.expiresAt) {
+      otpStore.delete(phone);
+      return res.status(400).json({ error: "OTP expired. Please request a new one." });
+    }
 
-if (!otpData || !otpData.verified) {
-  // console.log("❌ Phone not verified");
-  return res.status(400).json({ error: "Phone not verified" });
-}
+    if (!otpData.verified) {
+      return res.status(400).json({ error: "Phone not verified. Please enter the OTP first." });
+    }
 
-// cleanup
-otpStore.delete(phone);
-// console.log("✅ Phone verified");
+    otpStore.delete(phone); // ✅ cleanup
 
     // ===============================
-    // 🔁 STEP 3: DUPLICATE CHECK
+    // 🔁 DUPLICATE CHECK
     // ===============================
-    // console.log("🔍 Checking existing user...");
-
-    const existingEmail = await Owner.findOne({ email });
+    const existingEmail = await Owner.findOne({ email: email.toLowerCase().trim() });
     if (existingEmail) {
-      // console.log("❌ Email already exists");
       return res.status(400).json({ error: "Email already registered" });
     }
 
     const existingPhone = await Owner.findOne({ phone });
     if (existingPhone) {
-      // console.log("❌ Phone already exists");
       return res.status(400).json({ error: "Phone already registered" });
     }
 
-    // console.log("✅ No duplicate user");
-
     // ===============================
-    // 🔐 STEP 4: HASH PASSWORD
+    // 🔐 HASH PASSWORD
     // ===============================
-    // console.log("🔐 Hashing password...");
     const hashedPassword = await bcrypt.hash(password, 10);
-    // console.log("✅ Password hashed");
 
     // ===============================
-    // 🖼️ STEP 5: IMAGE HANDLING
+    // 🖼️ IMAGE HANDLING
     // ===============================
     const profileImage = req.file ? req.file.filename : null;
 
-    if (profileImage) {
-      // console.log("✅ Image uploaded:", profileImage);
-    } else {
-      // console.log("⚠️ No image uploaded");
-    }
-
     // ===============================
-    // 📦 STEP 6: CREATE USER
+    // 📦 CREATE OWNER
     // ===============================
-    // console.log("📦 Creating user object...");
-// 🔥 STEP: Generate Hostel ID
-const prefix = city.substring(0,3).toUpperCase();
-
-// Count existing IDs
-const count = await Owner.countDocuments({
-  hostelIds: { $regex: `^${prefix}` }
-});
-
-// Create new ID
-const newHostelId = prefix + String(count + 1).padStart(4, "0");
-
-// console.log("🏨 Generated Hostel ID:", newHostelId);
     const newOwner = new Owner({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name:            name.trim(),
+      email:           email.toLowerCase().trim(),
       phone,
-      password: hashedPassword,
-      gender,
-      dob,
-      businessName,
-      businessType,
-      whatsapp,
-      city,
-      state,
-      country,
-      pincode,
-      location: `${city}, ${state}, ${country}`,
+      password:        hashedPassword,
       profileImage,
-      status: "Active" , // 🔥 SaaS feature (admin approval)
-     hostelIds: [newHostelId], // ✅ dynamic ID
-      createdAt: new Date()
+      hostels:         [],      // ✅ correct schema field (ObjectId refs, starts empty)
+      listings:        [],      // ✅ correct schema field (ObjectId refs, starts empty)
+      status:          "Active",
+      isPhoneVerified: true,    // ✅ they just verified via OTP
+      role:            "Owner"  // ✅ explicit, matches schema default
+      // ✅ no createdAt — { timestamps: true } handles createdAt + updatedAt automatically
+      // ✅ gender, dob, businessName, businessType, whatsapp, city, state,
+      //    country, pincode, location — all optional, filled later from profile
     });
 
     // ===============================
-    // 💾 STEP 7: SAVE TO DB
+    // 💾 SAVE TO DB
     // ===============================
-    // console.log("💾 Saving to DB...");
     await newOwner.save();
-    // console.log("✅ Owner saved successfully");
 
     // ===============================
-    // 🎉 STEP 8: RESPONSE
+    // 📧 WELCOME EMAIL
+    // Non-blocking — a mail failure won't crash signup
     // ===============================
-            await sendMail(
-          newOwner.email,
-          "🎉 Welcome to HostelNode!",
-          `
-          <div style="font-family:Arial;padding:20px">
+    sendMail(
+      newOwner.email,
+      "🎉 Welcome to HostelNode!",
+      `
+      <div style="font-family:Arial;padding:20px">
+        <h2 style="color:#09B850;">Welcome to HostelNode 🚀</h2>
+        <p>Hi ${newOwner.name},</p>
+        <p>🎉 Your account has been successfully created!</p>
+        <p>HostelNode helps you manage your hostel easily — rooms, members, payments, everything in one place.</p>
+        <hr style="margin:20px 0;">
+        <h3>📺 Watch Demo</h3>
+        <p>Learn how to use HostelNode in 2 minutes:</p>
+        <a href="https://your-demo-video-link.com"
+          style="display:inline-block;padding:12px 18px;background:#09B850;color:white;
+                 text-decoration:none;border-radius:8px;font-weight:bold;">
+          ▶ Watch Demo
+        </a>
+        <hr style="margin:20px 0;">
+        <h3>📘 User Manual</h3>
+        <p>Step-by-step guide to use HostelNode:</p>
+        <a href="https://your-manual-link.com"
+          style="display:inline-block;padding:12px 18px;background:#0f172a;color:white;
+                 text-decoration:none;border-radius:8px;font-weight:bold;">
+          📖 Open Manual
+        </a>
+        <hr style="margin:20px 0;">
+        <p style="color:#555;">If you need help, feel free to contact us anytime.</p>
+        <p style="font-weight:bold;">Happy Managing! 🏨</p>
+        <p style="color:#09B850;font-weight:bold;">— Team HostelNode</p>
+      </div>
+      `
+    ).catch(err => console.error("📧 Welcome email failed (non-fatal):", err.message));
 
-            <h2 style="color:#09B850;">Welcome to HostelNode 🚀</h2>
-
-            <p>Hi ${newOwner.name},</p>
-
-            <p>🎉 Your account has been successfully created!</p>
-
-            <p>
-              HostelNode helps you manage your hostel easily — rooms, members, payments, everything in one place.
-            </p>
-
-            <hr style="margin:20px 0;">
-
-            <h3>📺 Watch Demo</h3>
-            <p>Learn how to use HostelNode in 2 minutes:</p>
-
-            <a href="https://your-demo-video-link.com"
-              style="display:inline-block;padding:12px 18px;
-              background:#09B850;color:white;text-decoration:none;
-              border-radius:8px;font-weight:bold;">
-              ▶ Watch Demo
-            </a>
-
-            <hr style="margin:20px 0;">
-
-            <h3>📘 User Manual</h3>
-            <p>Step-by-step guide to use HostelNode:</p>
-
-            <a href="https://your-manual-link.com"
-              style="display:inline-block;padding:12px 18px;
-              background:#0f172a;color:white;text-decoration:none;
-              border-radius:8px;font-weight:bold;">
-              📖 Open Manual
-            </a>
-
-            <hr style="margin:20px 0;">
-
-            <p style="color:#555;">
-              If you need help, feel free to contact us anytime.
-            </p>
-
-            <p style="font-weight:bold;">Happy Managing! 🏨</p>
-
-            <p style="color:#09B850;font-weight:bold;">
-              — Team HostelNode
-            </p>
-
-          </div>
-          `
-        );
-
-        // console.log("📧 Welcome email sent");
-    // console.log("🎉 Signup Completed Successfully");
-    // console.log("================= ✅ END =================\n");
-
+    // ===============================
+    // 🎉 SUCCESS
+    // ===============================
     res.status(201).render("authPrivate/signupSuccess.ejs", {
       message: "Signup successful",
       user: {
-        name: newOwner.name,
-        email: newOwner.email,
+        name:   newOwner.name,
+        email:  newOwner.email,
         status: newOwner.status
       }
-    }); // Render success page with user info
+    });
 
   } catch (err) {
-    // console.error("\n❌ SIGNUP ERROR:", err);
-    // console.log("================= ❌ FAILED =================\n");
+    console.error("SIGNUP ERROR:", err);
 
-    res.status(500).json({
-      error: "Server error. Please try again later"
-    });
+    // Handle MongoDB duplicate key error (race condition — two signups same time)
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0]; // "email" or "phone"
+      return res.status(400).json({
+        error: `${field === "email" ? "Email" : "Phone"} already registered`
+      });
+    }
+
+    res.status(500).json({ error: "Server error. Please try again later" });
   }
 });
+
 router.post('/login', async (req, res) => {
   
   try {
