@@ -67,7 +67,7 @@
      HERO
   ============================================================ */
   .lp-hero {
-    width: 80%; margin-left: 20%; margin-right: 0;
+    width: 80%;  margin-right: 0;
     background: var(--white); border-bottom: 1px solid var(--border);
     padding: 40px clamp(16px,5vw,60px) 0; position: relative; overflow: hidden;
   }
@@ -105,7 +105,7 @@
      LAYOUT
   ============================================================ */
   .lp-body { width: 80%;
-  margin-left: 20%;
+  
   margin-right: 0; padding: 32px clamp(16px,5vw,60px) 80px; display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
 
   /* ============================================================
