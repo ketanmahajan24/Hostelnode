@@ -344,7 +344,7 @@ const newHostelId = prefix + String(count + 1).padStart(4, "0");
       pincode,
       location: `${city}, ${state}, ${country}`,
       profileImage,
-      status: "Pending" , // 🔥 SaaS feature (admin approval)
+      status: "Active" , // 🔥 SaaS feature (admin approval)
      hostelIds: [newHostelId], // ✅ dynamic ID
       createdAt: new Date()
     });
@@ -2309,7 +2309,7 @@ router.post(
         amenities: Array.isArray(amenities) ? amenities : (amenities ? [amenities] : []),
         rules:     Array.isArray(rules)     ? rules     : (rules     ? [rules]     : []),
         contact,
-        status: "Pending"   // always starts as Pending for admin review
+        status: "Approved"   // always starts as Approved for admin review
       });
 
       await newListing.save();
@@ -2710,7 +2710,7 @@ router.post(
       // =========================
       // 7. RESET STATUS
       // =========================
-      listing.status = "Pending";
+      listing.status = "Approved"; // reset to Approved for re-review
 
       await listing.save();
 

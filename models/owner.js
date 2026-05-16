@@ -45,7 +45,7 @@ const ownerSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["Active", "Inactive", "Pending"], // Possible owner statuses
-    default: "Pending"
+    default: "Active"
   },
   password: {
     type: String,
