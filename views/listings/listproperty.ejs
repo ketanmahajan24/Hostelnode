@@ -2,12 +2,33 @@
 
 <link rel="stylesheet" href="/css/listingProperty.css">
 
-
-
- 
- 
-
 <br><br>
+
+<!-- ══════════════════════════════════════════════════════
+     ERROR / SUCCESS TOAST (replaces alert())
+══════════════════════════════════════════════════════ -->
+<div id="toastMsg" class="toast-msg">
+  <i id="toastIcon" class="fa-solid fa-circle-check"></i>
+  <span id="toastText">Done!</span>
+</div>
+
+<!-- Global error banner (shown when server returns error JSON) -->
+<div id="globalErrBanner" style="
+  display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);
+  z-index:9999;max-width:520px;width:92%;
+  background:#fff1f1;border:1.5px solid #fca5a5;border-radius:12px;
+  padding:14px 18px;display:none;align-items:flex-start;gap:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.12);font-size:0.85rem;color:#7f1d1d;line-height:1.5">
+  <i class="fa-solid fa-circle-exclamation" style="color:#ef4444;margin-top:2px;flex-shrink:0;font-size:1rem"></i>
+  <div style="flex:1">
+    <div style="font-weight:700;margin-bottom:3px">Submission Error</div>
+    <div id="globalErrText"></div>
+  </div>
+  <button onclick="closeGlobalErr()" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:1rem;padding:0;flex-shrink:0">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+</div>
+
 <!-- HERO -->
 <div class="lp-hero">
   <div class="lp-hero-inner">
@@ -41,7 +62,7 @@
     <div class="form-section" id="sec-basic">
       <div class="section-header">
         <div class="section-icon"><i class="fa-solid fa-house"></i></div>
-        <div class="section-title-text"><h3>Basic Information</h3><p> Tell students what makes your property special</p></div>
+        <div class="section-title-text"><h3>Basic Information</h3><p>Tell students what makes your property special</p></div>
         <span class="section-num">01 / 06</span>
       </div>
       <div class="form-group" style="margin-bottom:18px">
@@ -59,29 +80,67 @@
           <div><input type="radio" name="gender" id="gGirls" class="gender-option girls" value="Girls"><label for="gGirls" class="gender-label"><i class="fa-solid fa-venus"></i> Girls only</label></div>
           <div><input type="radio" name="gender" id="gCoed" class="gender-option" value="Co-ed"><label for="gCoed" class="gender-label"><i class="fa-solid fa-venus-mars"></i> Co-ed</label></div>
         </div>
+        <div class="field-err" id="err-gender"></div>
       </div>
       <div class="form-grid">
         <div class="form-group full">
-          <label class="form-label" for="title">Property Name / Title <span class="label-required">*</span><span class="label-hint">e.g. "Sai Niwas Boys Hostel"</span></label>
-          <input type="text" id="title" name="title" class="form-input" placeholder="Give your property a catchy, memorable name" maxlength="80" oninput="updateCharCount('title','titleCount',80);updatePreview()" required>
+          <label class="form-label" for="title">
+            Property Name / Title <span class="label-required">*</span>
+            <span class="label-hint">e.g. "Sai Niwas Boys Hostel"</span>
+          </label>
+          <input type="text" id="title" name="title" class="form-input"
+            placeholder="Give your property a catchy, memorable name"
+            maxlength="80"
+            oninput="updateCharCount('title','titleCount',80);updatePreview();validateField('title')"
+            onblur="validateField('title')"
+            required>
           <div class="char-counter" id="titleCount">0 / 80</div>
+          <div class="field-err" id="err-title"></div>
         </div>
         <div class="form-group">
           <label class="form-label" for="startingPrice">Starting Price / month <span class="label-required">*</span></label>
-          <div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" id="startingPrice" name="startingPrice" class="form-input" placeholder="e.g. 4500" min="500" required oninput="updatePreview()"></div>
+          <div class="input-icon-wrap has-prefix">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="startingPrice" name="startingPrice" class="form-input"
+              placeholder="e.g. 4500" min="100" max="500000" required
+              oninput="updatePreview();validateField('startingPrice')"
+              onblur="validateField('startingPrice')">
+          </div>
+          <div class="field-err" id="err-startingPrice"></div>
         </div>
         <div class="form-group">
           <label class="form-label" for="deposit">Security Deposit<span class="label-hint">Optional</span></label>
-          <div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" id="deposit" name="deposit" class="form-input" placeholder="e.g. 10000" min="0"></div>
+          <div class="input-icon-wrap has-prefix">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="deposit" name="deposit" class="form-input"
+              placeholder="e.g. 10000" min="0" max="2000000"
+              onblur="validateField('deposit')">
+          </div>
+          <div class="field-err" id="err-deposit"></div>
         </div>
         <div class="form-group">
           <label class="form-label" for="capacity">Total Capacity</label>
-          <div class="input-icon-wrap"><i class="input-icon fa-solid fa-users"></i><input type="number" id="capacity" name="capacity" class="form-input" placeholder="Max residents" min="1"></div>
+          <div class="input-icon-wrap">
+            <i class="input-icon fa-solid fa-users"></i>
+            <input type="number" id="capacity" name="capacity" class="form-input"
+              placeholder="Max residents" min="1" max="1000"
+              onblur="validateField('capacity')">
+          </div>
+          <div class="field-err" id="err-capacity"></div>
         </div>
         <div class="form-group full">
-          <label class="form-label" for="description">Description <span class="label-required">*</span><span class="label-hint">What makes your place great?</span></label>
-          <textarea id="description" name="description" class="form-textarea" placeholder="Location highlights, safety, meals, ambience, nearby landmarks..." maxlength="1000" rows="4" oninput="updateCharCount('description','descCount',1000)" required></textarea>
+          <label class="form-label" for="description">
+            Description <span class="label-required">*</span>
+            <span class="label-hint">What makes your place great?</span>
+          </label>
+          <textarea id="description" name="description" class="form-textarea"
+            placeholder="Location highlights, safety, meals, ambience, nearby landmarks..."
+            maxlength="1000" rows="4"
+            oninput="updateCharCount('description','descCount',1000);validateField('description')"
+            onblur="validateField('description')"
+            required></textarea>
           <div class="char-counter" id="descCount">0 / 1000</div>
+          <div class="field-err" id="err-description"></div>
         </div>
       </div>
     </div>
@@ -94,19 +153,38 @@
         <span class="section-num">02 / 06</span>
       </div>
 
-      <!-- Text fields -->
       <div class="form-grid" style="margin-bottom:20px">
         <div class="form-group full">
           <label class="form-label" for="address">Full Address <span class="label-required">*</span></label>
-          <div class="input-icon-wrap"><i class="input-icon fa-solid fa-location-dot"></i><input type="text" id="address" name="location[address]" class="form-input" placeholder="Street / building / landmark..." required oninput="updatePreview()"></div>
+          <div class="input-icon-wrap">
+            <i class="input-icon fa-solid fa-location-dot"></i>
+            <input type="text" id="address" name="location[address]" class="form-input"
+              placeholder="Street / building / landmark..." required
+              oninput="updatePreview();validateField('address')"
+              onblur="validateField('address')">
+          </div>
+          <div class="field-err" id="err-address"></div>
         </div>
         <div class="form-group full">
-          <label class="form-label" for="nearCollege">Nearest College / Place <span class="label-required">*</span><span class="label-hint">Students search by College / University / Institute / Place name</span></label>
-          <div class="input-icon-wrap"><i class="input-icon fa-solid fa-graduation-cap"></i><input type="text" id="nearCollege" name="location[nearCollege]" class="form-input" placeholder="e.g. IIT Bombay, Delhi University, Railway Station ,temple ...." required oninput="updatePreview()"></div>
+          <label class="form-label" for="nearCollege">
+            Nearest College / Place <span class="label-required">*</span>
+            <span class="label-hint">Students search by this</span>
+          </label>
+          <div class="input-icon-wrap">
+            <i class="input-icon fa-solid fa-graduation-cap"></i>
+            <input type="text" id="nearCollege" name="location[nearCollege]" class="form-input"
+              placeholder="e.g. IIT Bombay, Delhi University..." required
+              oninput="updatePreview();validateField('nearCollege')"
+              onblur="validateField('nearCollege')">
+          </div>
+          <div class="field-err" id="err-nearCollege"></div>
         </div>
         <div class="form-group">
           <label class="form-label" for="city">City <span class="label-required">*</span></label>
-          <input type="text" id="city" name="location[city]" class="form-input" placeholder="e.g. Mumbai" required>
+          <input type="text" id="city" name="location[city]" class="form-input"
+            placeholder="e.g. Mumbai" required
+            onblur="validateField('city')">
+          <div class="field-err" id="err-city"></div>
         </div>
         <div class="form-group">
           <label class="form-label" for="state">State</label>
@@ -122,34 +200,37 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="pincode">Pincode</label>
-          <input type="text" id="pincode" name="location[pincode]" class="form-input" placeholder="e.g. 400076" maxlength="6" pattern="[0-9]{6}">
+          <input type="text" id="pincode" name="location[pincode]" class="form-input"
+            placeholder="e.g. 400076" maxlength="6" pattern="[0-9]{6}"
+            oninput="this.value=this.value.replace(/\D/g,'')"
+            onblur="validateField('pincode')">
+          <div class="field-err" id="err-pincode"></div>
         </div>
         <div class="form-group">
           <label class="form-label">Country</label>
-          <input type="text" name="location[country]" class="form-input" value="India" readonly style="background:var(--bg2);color:var(--muted)">
+          <input type="text" name="location[country]" class="form-input"
+            value="India" readonly style="background:var(--bg2);color:var(--muted)">
         </div>
       </div>
 
-      <!-- HIDDEN coord inputs (auto-filled by map) -->
       <input type="hidden" id="coordLat" name="location[coordinates][lat]">
       <input type="hidden" id="coordLng" name="location[coordinates][lng]">
 
-      <!-- ══ MAP PICKER ══ -->
-      <label class="form-label" style="margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+      <label class="form-label" style="margin-bottom:10px;display:flex;align-items:center;gap:6px;">
         <i class="fa-solid fa-map-pin" style="color:var(--green)"></i>
         Pin your exact location on the map <span class="label-required">*</span>
         <span id="confirmedBadge" class="mp-confirmed-badge" style="margin-left:auto">
           <i class="fa-solid fa-circle-check" style="font-size:0.8rem"></i> Location pinned
         </span>
       </label>
+      <div class="field-err" id="err-map" style="margin-bottom:8px"></div>
 
       <div class="map-picker-wrap" id="mapPickerWrap">
-
-        <!-- Search bar -->
         <div class="mp-searchbar">
           <div class="mp-searchbar-inner">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="mpSearchInput" placeholder="Search college, area, landmark..." oninput="onMpInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();doMpSearch()}">
+            <input type="text" id="mpSearchInput" placeholder="Search college, area, landmark..."
+              oninput="onMpInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();doMpSearch()}">
           </div>
           <button type="button" class="mp-searchbar-btn green" onclick="doMpSearch()">
             <i class="fa-solid fa-magnifying-glass"></i> Search
@@ -159,12 +240,10 @@
           </button>
         </div>
 
-        <!-- Suggestions -->
         <div class="mp-sugg-outer" id="mpSuggOuter">
           <div class="mp-sugg-drop" id="mpSuggDrop"></div>
         </div>
 
-        <!-- Toolbar -->
         <div class="mp-toolbar">
           <button type="button" class="mp-mode-btn active" id="modeClick" onclick="setMode('click')">
             <i class="fa-solid fa-hand-pointer"></i> Click to pin
@@ -182,22 +261,17 @@
           </div>
         </div>
 
-        <!-- Map + overlay -->
         <div class="mp-map-container" id="mpMapContainer">
-          <!-- Loading overlay -->
           <div class="mp-map-loader" id="mpLoader">
             <div class="mp-spinner"></div>
             <p>Loading map…</p>
           </div>
-          <!-- Google Map iframe -->
           <iframe id="mpIframe"
             src="https://maps.google.com/maps?q=India&z=5&output=embed"
             onload="onIframeLoad()"
             title="Location map">
           </iframe>
-          <!-- Click intercept overlay (active in click mode) -->
           <div class="mp-click-overlay" id="mpOverlay" onclick="handleMapClick(event)"></div>
-          <!-- Pin marker -->
           <div class="mp-pin" id="mpPin">
             <svg width="36" height="44" viewBox="0 0 36 44" fill="none">
               <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 26 18 26s18-12.5 18-26C36 8.06 27.94 0 18 0z" fill="#09b850"/>
@@ -206,11 +280,9 @@
             </svg>
             <div class="mp-pin-pulse"></div>
           </div>
-          <!-- Ripple -->
           <div class="mp-ripple" id="mpRipple"></div>
         </div>
 
-        <!-- Coords bar -->
         <div class="mp-coords-bar" id="mpCoordsBar">
           <div class="mp-coord-box">
             <div class="mp-coord-label">Latitude</div>
@@ -229,14 +301,12 @@
           </button>
         </div>
 
-        <!-- Tip -->
         <div class="mp-tip">
           <i class="fa-solid fa-lightbulb"></i>
-          <span><strong>How to pin:</strong> Search your college / area above, then <strong>click exactly on your hostel's location</strong> on the map. The green pin will drop there. Hit "Confirm Pin" to save coordinates.</span>
+          <span><strong>How to pin:</strong> Search your college / area above, then <strong>click exactly on your hostel's location</strong>. Hit "Confirm Pin" to save.</span>
         </div>
-
-      </div><!-- /map-picker-wrap -->
-    </div><!-- /sec-location -->
+      </div>
+    </div>
 
     <!-- ── SECTION 3: ROOMS ── -->
     <div class="form-section" id="sec-rooms">
@@ -252,9 +322,31 @@
             <button type="button" class="btn-remove-room" onclick="removeRoom('room-0')"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div class="room-grid">
-            <div class="form-group"><label class="form-label">Room Type <span class="label-required">*</span></label><select name="rooms[0][type]" class="form-select" required><option value="">Select type</option><option>Single</option><option>Double</option><option>Triple</option><option>Dormitory</option><option>AC Single</option><option>AC Double</option></select></div>
-            <div class="form-group"><label class="form-label">Price / month <span class="label-required">*</span></label><div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" name="rooms[0][price]" class="form-input" placeholder="5500" min="0" required></div></div>
-            <div class="form-group"><label class="form-label">Deposit</label><div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" name="rooms[0][deposit]" class="form-input" placeholder="10000" min="0"></div></div>
+            <div class="form-group">
+              <label class="form-label">Room Type <span class="label-required">*</span></label>
+              <select name="rooms[0][type]" class="form-select room-type-select" required
+                onchange="validateRooms()">
+                <option value="">Select type</option>
+                <option>Single</option><option>Double</option><option>Triple</option>
+                <option>Dormitory</option><option>AC Single</option><option>AC Double</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Price / month <span class="label-required">*</span></label>
+              <div class="input-icon-wrap has-prefix">
+                <span class="input-prefix">₹</span>
+                <input type="number" name="rooms[0][price]" class="form-input room-price-input"
+                  placeholder="5500" min="0" max="500000" required onblur="validateRooms()">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deposit</label>
+              <div class="input-icon-wrap has-prefix">
+                <span class="input-prefix">₹</span>
+                <input type="number" name="rooms[0][deposit]" class="form-input"
+                  placeholder="10000" min="0" max="2000000">
+              </div>
+            </div>
           </div>
           <div class="room-features-row">
             <div class="room-features-label">Room features</div>
@@ -274,7 +366,10 @@
           </div>
         </div>
       </div>
-      <button type="button" class="btn-add-room" onclick="addRoom()"><i class="fa-solid fa-plus"></i> Add another room type</button>
+      <div class="field-err" id="err-rooms"></div>
+      <button type="button" class="btn-add-room" onclick="addRoom()">
+        <i class="fa-solid fa-plus"></i> Add another room type
+      </button>
     </div>
 
     <!-- ── SECTION 4: AMENITIES & RULES ── -->
@@ -285,20 +380,40 @@
         <span class="section-num">04 / 06</span>
       </div>
       <div class="form-group" style="margin-bottom:22px">
-        <label class="form-label" style="margin-bottom:10px"><i class="fa-solid fa-check-circle" style="color:var(--green)"></i> What amenities do you provide?</label>
+        <label class="form-label" style="margin-bottom:10px">
+          <i class="fa-solid fa-check-circle" style="color:var(--green)"></i> What amenities do you provide?
+        </label>
         <div class="amenities-grid">
           <% [['WiFi','wifi'],['AC','snowflake'],['Meals','utensils'],['Laundry','shirt'],['Security','shield-halved'],['Parking','car'],['Gym','dumbbell'],['CCTV','camera'],['Hot Water','droplet'],['Power Backup','bolt'],['Study Room','book'],['Attached Bathroom','bath'],['Common Bathroom','bath'],['Water Purifier','droplet'],['Geyser','fire-flame-simple'],['Housekeeping','broom'],['Cafeteria','mug-saucer'],['Library','book-open'],['TV','tv'],['Refrigerator','box']].forEach((a,i) => { %>
-          <div><input type="checkbox" id="am-<%=i%>" name="amenities[]" value="<%=a[0]%>" class="amenity-cb"><label for="am-<%=i%>" class="amenity-lbl"><i class="fa-solid fa-<%=a[1]%>"></i> <%=a[0]%></label></div>
+          <div>
+            <input type="checkbox" id="am-<%=i%>" name="amenities[]" value="<%=a[0]%>" class="amenity-cb">
+            <label for="am-<%=i%>" class="amenity-lbl"><i class="fa-solid fa-<%=a[1]%>"></i> <%=a[0]%></label>
+          </div>
           <% }) %>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label" style="margin-bottom:9px"><i class="fa-solid fa-circle-info" style="color:var(--green)"></i> House Rules & Policies<span class="label-hint">Recommended</span></label>
+        <label class="form-label" style="margin-bottom:9px">
+          <i class="fa-solid fa-circle-info" style="color:var(--green)"></i> House Rules & Policies
+          <span class="label-hint">Recommended</span>
+        </label>
         <div class="rules-list" id="rulesList">
-          <div class="rule-entry" id="rule-0"><input type="text" name="rules[]" class="form-input" placeholder="e.g. No smoking on premises"><button type="button" class="btn-del-rule" onclick="removeRule('rule-0')"><i class="fa-solid fa-xmark"></i></button></div>
-          <div class="rule-entry" id="rule-1"><input type="text" name="rules[]" class="form-input" placeholder="e.g. Visitors allowed till 8 PM"><button type="button" class="btn-del-rule" onclick="removeRule('rule-1')"><i class="fa-solid fa-xmark"></i></button></div>
+          <div class="rule-entry" id="rule-0">
+            <input type="text" name="rules[]" class="form-input" maxlength="200"
+              placeholder="e.g. No smoking on premises"
+              oninput="validateRuleLength(this)">
+            <button type="button" class="btn-del-rule" onclick="removeRule('rule-0')"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="rule-entry" id="rule-1">
+            <input type="text" name="rules[]" class="form-input" maxlength="200"
+              placeholder="e.g. Visitors allowed till 8 PM"
+              oninput="validateRuleLength(this)">
+            <button type="button" class="btn-del-rule" onclick="removeRule('rule-1')"><i class="fa-solid fa-xmark"></i></button>
+          </div>
         </div>
-        <button type="button" class="btn-add-rule" onclick="addRule()"><i class="fa-solid fa-plus"></i> Add rule</button>
+        <button type="button" class="btn-add-rule" onclick="addRule()">
+          <i class="fa-solid fa-plus"></i> Add rule
+        </button>
       </div>
     </div>
 
@@ -309,13 +424,26 @@
         <div class="section-title-text"><h3>Photos & Media</h3><p>Listings with 5+ photos get 3× more inquiries</p></div>
         <span class="section-num">05 / 06</span>
       </div>
-      <div class="upload-zone" id="uploadZone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-        <input type="file" id="imagesInput" name="images" multiple accept="image/*" onchange="handleFileSelect(event)">
+      <!-- Upload status badge -->
+      <div id="uploadStatus" style="
+        display:none;margin-bottom:10px;padding:8px 13px;
+        border-radius:8px;font-size:0.8rem;font-weight:600;
+        background:var(--green-light);color:#1e5c30;border:1.5px solid var(--green-border)">
+        <i class="fa-solid fa-images"></i> <span id="uploadStatusText"></span>
+      </div>
+      <div class="upload-zone" id="uploadZone"
+        ondrop="handleDrop(event)"
+        ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)"
+        onclick="document.getElementById('imagesInput').click()">
+        <input type="file" id="imagesInput" name="images" multiple accept="image/jpeg,image/png,image/webp"
+          onchange="handleFileSelect(event)" style="display:none">
         <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
         <div class="upload-title">Drag & drop photos here</div>
         <div class="upload-sub">or click to browse from your device</div>
         <div class="upload-hint">JPEG, PNG, WebP · Max 5 MB per photo · Up to 15 photos</div>
       </div>
+      <div class="field-err" id="err-images" style="margin-top:6px"></div>
       <div class="upload-preview" id="uploadPreview"></div>
       <div style="margin-top:12px;padding:10px 13px;background:var(--green-light);border:1.5px solid var(--green-border);border-radius:var(--radius-sm);display:flex;gap:7px;align-items:flex-start;font-size:0.75rem;color:#1e5c30;line-height:1.6">
         <i class="fa-solid fa-lightbulb" style="color:var(--green);margin-top:2px;flex-shrink:0"></i>
@@ -333,11 +461,25 @@
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="phone">Phone Number <span class="label-required">*</span></label>
-          <div class="input-icon-wrap has-prefix"><span class="input-prefix">+91</span><input type="tel" id="phone" name="contact[phone]" class="form-input" placeholder="XXXXX XXXXX" maxlength="10" pattern="[0-9]{10}" required></div>
+          <div class="input-icon-wrap has-prefix">
+            <span class="input-prefix">+91</span>
+            <input type="tel" id="phone" name="contact[phone]" class="form-input"
+              placeholder="XXXXX XXXXX" maxlength="10" pattern="[0-9]{10}" required
+              oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"
+              onblur="validateField('phone')">
+          </div>
+          <div class="field-err" id="err-phone"></div>
         </div>
         <div class="form-group">
           <label class="form-label" for="whatsapp">WhatsApp Number<span class="label-hint">Leave blank if same</span></label>
-          <div class="input-icon-wrap has-prefix"><span class="input-prefix">+91</span><input type="tel" id="whatsapp" name="contact[whatsapp]" class="form-input" placeholder="XXXXX XXXXX" maxlength="10"></div>
+          <div class="input-icon-wrap has-prefix">
+            <span class="input-prefix">+91</span>
+            <input type="tel" id="whatsapp" name="contact[whatsapp]" class="form-input"
+              placeholder="XXXXX XXXXX" maxlength="10"
+              oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"
+              onblur="validateField('whatsapp')">
+          </div>
+          <div class="field-err" id="err-whatsapp"></div>
         </div>
         <div class="form-group full">
           <label style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:var(--bg);transition:all 0.18s">
@@ -351,7 +493,6 @@
     <!-- TRUST STRIP -->
     <div class="trust-strip">
       <div class="trust-item"><i class="fa-solid fa-shield-halved"></i> Reviewed before going live</div>
-      <!-- <div class="trust-item"><i class="fa-solid fa-eye-slash"></i> Phone hidden until inquiry</div> -->
       <div class="trust-item"><i class="fa-solid fa-ban"></i> Zero broker fee</div>
       <div class="trust-item"><i class="fa-solid fa-users"></i> 5,000+ students/month</div>
     </div>
@@ -364,14 +505,18 @@
           <div class="submit-note-sub">Our team reviews and approves within 24 hours. You'll get notified by email.</div>
         </div>
         <div class="submit-actions">
-          <button type="button" class="btn-draft" onclick="saveDraft()"><i class="fa-solid fa-floppy-disk"></i> Save Draft</button>
-          <button type="submit" class="btn-submit-main" onclick="handleSubmit(event)"><i class="fa-solid fa-paper-plane"></i> Submit Listing</button>
+          <button type="button" class="btn-draft" onclick="saveDraft()">
+            <i class="fa-solid fa-floppy-disk"></i> Save Draft
+          </button>
+          <button type="submit" id="submitBtn" class="btn-submit-main" onclick="handleSubmit(event)">
+            <i class="fa-solid fa-paper-plane"></i> Submit Listing
+          </button>
         </div>
       </div>
     </div>
 
   </form>
-  </div><!-- /lp-form-col -->
+  </div>
 
   <!-- SIDEBAR -->
   <div class="lp-sidebar">
@@ -390,7 +535,10 @@
     <div class="preview-card">
       <div class="preview-card-title">Live preview</div>
       <div class="mini-card">
-        <div class="mini-card-img" id="previewImgWrap"><i class="fa-solid fa-image"></i><img id="previewImg" src="" alt=""></div>
+        <div class="mini-card-img" id="previewImgWrap">
+          <i class="fa-solid fa-image"></i>
+          <img id="previewImg" src="" alt="">
+        </div>
         <div class="mini-card-body">
           <div class="mini-card-name" id="previewName">Your property name</div>
           <div class="mini-card-loc" id="previewLoc"><i class="fa-solid fa-location-dot"></i> Location · Near College</div>
@@ -410,15 +558,31 @@
 </div>
 
 <!-- TOAST -->
-<div class="toast-msg" id="toastMsg"><i class="fa-solid fa-check-circle"></i><span id="toastText">Done!</span></div>
+<div class="toast-msg" id="toastMsg">
+  <i id="toastIcon" class="fa-solid fa-circle-check"></i>
+  <span id="toastText">Done!</span>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
 <script>
+/* ============================================================
+   CONSTANTS
+============================================================ */
+const MAX_IMAGES    = 15;
+const MAX_IMG_MB    = 5;
+const MAX_TITLE     = 80;
+const MAX_DESC      = 1000;
+const MAX_RULE_LEN  = 200;
+const PHONE_RE      = /^[6-9]\d{9}$/;
+const PINCODE_RE    = /^\d{6}$/;
+const ALLOWED_TYPES = ["image/jpeg","image/png","image/webp"];
+
 /* ============================================================
    MAP PICKER STATE
 ============================================================ */
 let mpLat = null, mpLng = null, mpConfirmed = false;
-let currentMode = 'click'; // 'click' | 'drag'
+let currentMode = 'click';
 let mpSearchTimeout = null;
 let iframeReady = false;
 
@@ -441,35 +605,332 @@ const POPULAR_PLACES = [
 ];
 
 /* ============================================================
-   SEARCH SUGGESTIONS
+   INLINE FIELD ERROR HELPERS
+============================================================ */
+function setFieldErr(id, msg) {
+  try {
+    const el = document.getElementById('err-' + id);
+    if (!el) return;
+    el.textContent = msg || '';
+    el.style.display = msg ? 'block' : 'none';
+    const input = document.getElementById(id);
+    if (input) input.classList.toggle('input-error', !!msg);
+  } catch(e) { /* never crash */ }
+}
+function clearFieldErr(id) { setFieldErr(id, ''); }
+
+/* ============================================================
+   FIELD-LEVEL VALIDATION (called on blur/input)
+============================================================ */
+function validateField(id) {
+  try {
+    const el = document.getElementById(id);
+    if (!el) return true;
+    const v = el.value.trim();
+
+    switch (id) {
+      case 'title':
+        if (!v)             { setFieldErr(id, 'Property title is required.'); return false; }
+        if (v.length > MAX_TITLE) { setFieldErr(id, `Title must be ${MAX_TITLE} characters or less.`); return false; }
+        break;
+
+      case 'description':
+        if (v.length > MAX_DESC) { setFieldErr(id, `Description must be ${MAX_DESC} characters or less.`); return false; }
+        break;
+
+      case 'startingPrice': {
+        const n = Number(v);
+        if (!v || isNaN(n))  { setFieldErr(id, 'Please enter a valid price.'); return false; }
+        if (n < 100)         { setFieldErr(id, 'Price must be at least ₹100/month.'); return false; }
+        if (n > 500000)      { setFieldErr(id, 'Price seems too high. Max ₹5,00,000.'); return false; }
+        break;
+      }
+      case 'deposit': {
+        if (!v) break; // optional
+        const n = Number(v);
+        if (isNaN(n) || n < 0)  { setFieldErr(id, 'Please enter a valid deposit amount.'); return false; }
+        if (n > 2000000)         { setFieldErr(id, 'Deposit seems too high. Max ₹20,00,000.'); return false; }
+        break;
+      }
+      case 'capacity': {
+        if (!v) break; // optional
+        const n = Number(v);
+        if (isNaN(n) || n < 1)  { setFieldErr(id, 'Capacity must be at least 1.'); return false; }
+        if (n > 1000)            { setFieldErr(id, 'Capacity max is 1000.'); return false; }
+        break;
+      }
+      case 'address':
+        if (!v) { setFieldErr(id, 'Full address is required.'); return false; }
+        break;
+
+      case 'nearCollege':
+        if (!v) { setFieldErr(id, 'Nearest college / place is required.'); return false; }
+        break;
+
+      case 'city':
+        if (!v) { setFieldErr(id, 'City is required.'); return false; }
+        break;
+
+      case 'pincode':
+        if (v && !PINCODE_RE.test(v)) { setFieldErr(id, 'Pincode must be exactly 6 digits.'); return false; }
+        break;
+
+      case 'phone':
+        if (!v)              { setFieldErr(id, 'Phone number is required.'); return false; }
+        if (!PHONE_RE.test(v)) { setFieldErr(id, 'Enter a valid 10-digit Indian mobile number.'); return false; }
+        break;
+
+      case 'whatsapp':
+        if (v && !PHONE_RE.test(v)) { setFieldErr(id, 'Enter a valid 10-digit WhatsApp number.'); return false; }
+        break;
+    }
+    clearFieldErr(id);
+    return true;
+  } catch(e) { return true; /* never crash on validation */ }
+}
+
+function validateGender() {
+  if (!document.querySelector('input[name="gender"]:checked')) {
+    setFieldErr('gender', 'Please select who this property is for.');
+    return false;
+  }
+  clearFieldErr('gender');
+  return true;
+}
+
+function validateMap() {
+  if (!mpConfirmed) {
+    setFieldErr('map', 'Please pin your location on the map and click "Confirm Pin".');
+    return false;
+  }
+  clearFieldErr('map');
+  return true;
+}
+
+function validateRooms() {
+  try {
+    const selects = document.querySelectorAll('.room-type-select');
+    for (const s of selects) {
+      if (!s.value) { setFieldErr('rooms', 'Please select a room type for each room you added.'); return false; }
+    }
+    const priceInputs = document.querySelectorAll('.room-price-input');
+    for (const p of priceInputs) {
+      const n = Number(p.value);
+      if (p.value && (isNaN(n) || n < 0)) { setFieldErr('rooms', 'Room price must be a valid positive number.'); return false; }
+      if (n > 500000) { setFieldErr('rooms', 'Room price seems too high (max ₹5,00,000).'); return false; }
+    }
+    clearFieldErr('rooms');
+    return true;
+  } catch(e) { return true; }
+}
+
+function validateImages() {
+  const active = uploadedFiles.filter(Boolean);
+  if (active.length === 0) {
+    setFieldErr('images', 'Please upload at least one photo of your property.');
+    return false;
+  }
+  clearFieldErr('images');
+  return true;
+}
+
+function validateRuleLength(input) {
+  if (input.value.length >= MAX_RULE_LEN) {
+    showToast(`Rule text is limited to ${MAX_RULE_LEN} characters.`, true);
+    input.value = input.value.slice(0, MAX_RULE_LEN);
+  }
+}
+
+/* ============================================================
+   GLOBAL ERROR BANNER (for server-side errors)
+============================================================ */
+function showGlobalErr(msg) {
+  const banner = document.getElementById('globalErrBanner');
+  document.getElementById('globalErrText').textContent = msg;
+  banner.style.display = 'flex';
+  banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Auto-hide after 10 seconds
+  setTimeout(() => closeGlobalErr(), 10000);
+}
+function closeGlobalErr() {
+  const banner = document.getElementById('globalErrBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+/* ============================================================
+   TOAST
+============================================================ */
+let toastTimer = null;
+function showToast(msg, isError = false) {
+  try {
+    const t = document.getElementById('toastMsg');
+    const icon = document.getElementById('toastIcon');
+    document.getElementById('toastText').textContent = msg;
+    icon.className = isError
+      ? 'fa-solid fa-circle-exclamation'
+      : 'fa-solid fa-circle-check';
+    icon.style.color = isError ? '#ef4444' : 'var(--green)';
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  } catch(e) { /* never crash */ }
+}
+
+/* ============================================================
+   SUBMIT WITH FETCH (no page crash on server errors)
+============================================================ */
+async function handleSubmit(e) {
+  e.preventDefault();
+  closeGlobalErr();
+
+  // ── Client-side validation ──
+  const fieldChecks = [
+    validateField('title'),
+    validateField('startingPrice'),
+    validateField('deposit'),
+    validateField('capacity'),
+    validateField('description'),
+    validateGender(),
+    validateField('address'),
+    validateField('nearCollege'),
+    validateField('city'),
+    validateField('pincode'),
+    validateMap(),
+    validateRooms(),
+    validateImages(),
+    validateField('phone'),
+    validateField('whatsapp'),
+  ];
+
+  const firstFail = fieldChecks.indexOf(false);
+  if (firstFail !== -1) {
+    // Scroll to first error
+    const errEls = document.querySelectorAll('.field-err[style*="block"], .field-err:not([style])');
+    let scrolled = false;
+    errEls.forEach(el => {
+      if (!scrolled && el.textContent.trim()) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrolled = true;
+      }
+    });
+    showToast('Please fix the highlighted errors before submitting.', true);
+    return;
+  }
+
+  // ── Build FormData from the real form ──
+  const form = document.getElementById('listingForm');
+  
+  // Sync file input with our tracked uploadedFiles array
+  // (We use a DataTransfer trick to re-assign files)
+  try {
+    const dt = new DataTransfer();
+    uploadedFiles.filter(Boolean).forEach(f => dt.items.add(f));
+    document.getElementById('imagesInput').files = dt.files;
+  } catch (dtErr) {
+    // DataTransfer not supported in all browsers — fall through, form.files may still be set
+  }
+
+  const formData = new FormData(form);
+
+  // ── Disable submit button to prevent double-submit ──
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('/user/new-list-property', {
+      method: 'POST',
+      body: formData,
+      // No Content-Type header — browser sets multipart boundary automatically
+    });
+
+    // Server returned HTML (success page) → navigate there
+    const contentType = resp.headers.get('content-type') || '';
+
+    if (resp.ok) {
+      if (contentType.includes('text/html')) {
+        // Success — replace page with server's success HTML
+        const html = await resp.text();
+        document.open();
+        document.write(html);
+        document.close();
+        return;
+      }
+      // JSON ok (future API mode)
+      window.location.href = '/user/my-listings';
+      return;
+    }
+
+    // ── Server returned an error ──
+    let errMsg = 'Something went wrong. Please try again.';
+
+    if (contentType.includes('application/json')) {
+      try {
+        const data = await resp.json();
+        errMsg = data.message || errMsg;
+      } catch(_) {}
+    } else {
+      // Plain text error from old-style res.status().send()
+      try { errMsg = await resp.text(); } catch(_) {}
+      if (!errMsg || errMsg.length > 300) errMsg = `Server error (${resp.status}). Please try again.`;
+    }
+
+    // Map common HTTP codes to friendlier messages
+    if (resp.status === 401) errMsg = 'Session expired. Please log in again.';
+    if (resp.status === 413) errMsg = 'Uploaded files are too large. Please reduce photo sizes and try again.';
+    if (resp.status === 503) errMsg = 'Server is temporarily unavailable. Please try again in a moment.';
+
+    showGlobalErr(errMsg);
+    showToast(errMsg, true);
+
+  } catch (networkErr) {
+    // True network failure (offline, DNS, timeout)
+    const msg = navigator.onLine
+      ? 'Could not reach the server. Please try again.'
+      : 'You appear to be offline. Please check your internet connection and try again.';
+    showGlobalErr(msg);
+    showToast(msg, true);
+  } finally {
+    // Always re-enable the button so user can retry
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Listing';
+    btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   MAP PICKER
 ============================================================ */
 function onMpInput() {
   clearTimeout(mpSearchTimeout);
-  const q = document.getElementById('mpSearchInput').value.trim();
+  const q = (document.getElementById('mpSearchInput').value || '').trim();
   if (q.length < 2) { closeSugg(); return; }
   mpSearchTimeout = setTimeout(() => renderSugg(q), 180);
 }
 
 function renderSugg(q) {
-  const ql = q.toLowerCase();
-  const matches = POPULAR_PLACES.filter(p =>
-    p.name.toLowerCase().includes(ql) || p.detail.toLowerCase().includes(ql)
-  ).slice(0, 6);
-  const drop = document.getElementById('mpSuggDrop');
-  if (!matches.length) { closeSugg(); return; }
-  drop.innerHTML = matches.map(m => `
-    <div class="mp-sugg-item" onclick="pickSugg(${m.lat},${m.lng},'${escJs(m.name)}','${escJs(m.detail)}')">
-      <i class="fa-solid fa-location-dot mp-sugg-icon"></i>
-      <div><div class="mp-sugg-name">${m.name}</div><div class="mp-sugg-detail">${m.detail}</div></div>
-    </div>`).join('');
-  drop.classList.add('open');
+  try {
+    const ql = q.toLowerCase();
+    const matches = POPULAR_PLACES.filter(p =>
+      p.name.toLowerCase().includes(ql) || p.detail.toLowerCase().includes(ql)
+    ).slice(0, 6);
+    const drop = document.getElementById('mpSuggDrop');
+    if (!matches.length) { closeSugg(); return; }
+    drop.innerHTML = matches.map(m => `
+      <div class="mp-sugg-item" onclick="pickSugg(${m.lat},${m.lng},'${escJs(m.name)}','${escJs(m.detail)}')">
+        <i class="fa-solid fa-location-dot mp-sugg-icon"></i>
+        <div><div class="mp-sugg-name">${escHtml(m.name)}</div><div class="mp-sugg-detail">${escHtml(m.detail)}</div></div>
+      </div>`).join('');
+    drop.classList.add('open');
+  } catch(e) {}
 }
 
-function escJs(s) { return s.replace(/'/g, "\\'"); }
+function escJs(s)   { return String(s).replace(/\\/g,'\\\\').replace(/'/g, "\\'"); }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function closeSugg() {
+  try { document.getElementById('mpSuggDrop').classList.remove('open'); } catch(e) {}
+}
 
-function closeSugg() { document.getElementById('mpSuggDrop').classList.remove('open'); }
-
-function pickSugg(lat, lng, name, detail) {
+function pickSugg(lat, lng, name) {
   document.getElementById('mpSearchInput').value = name;
   closeSugg();
   loadMapAt(lat, lng, name);
@@ -477,368 +938,500 @@ function pickSugg(lat, lng, name, detail) {
 
 function doMpSearch() {
   closeSugg();
-  const q = document.getElementById('mpSearchInput').value.trim();
-  if (!q) return;
+  const q = (document.getElementById('mpSearchInput').value || '').trim();
+  if (!q) { showToast('Please type a college or area name first.', true); return; }
   const ql = q.toLowerCase();
   const match = POPULAR_PLACES.find(p =>
     p.name.toLowerCase().includes(ql) || p.detail.toLowerCase().includes(ql)
   );
   if (match) { loadMapAt(match.lat, match.lng, match.name); return; }
-  // Fallback: use address text fields if filled
   const addr = document.getElementById('address').value || q;
   setMpStatus('Searching…', 'loading');
-  // Simulate geocode delay then load map with query
   setTimeout(() => {
-    const iframe = document.getElementById('mpIframe');
-    iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(addr)}&z=16&output=embed`;
-    setMpStatus('Map updated — click to drop pin', '');
+    try {
+      const iframe = document.getElementById('mpIframe');
+      iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(addr)}&z=16&output=embed`;
+      setMpStatus('Map updated — click to drop pin', '');
+    } catch(e) { setMpStatus('Search failed. Try again.', ''); }
   }, 700);
 }
 
-/* ============================================================
-   LOAD MAP AT COORDS
-============================================================ */
 function loadMapAt(lat, lng, label) {
-  setMpStatus('Loading…', 'loading');
-  document.getElementById('mpLoader').classList.remove('hidden');
-  const iframe = document.getElementById('mpIframe');
-  iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
-  // Store as pending center (user still needs to click exact spot)
-  mpLat = parseFloat(lat.toFixed(6));
-  mpLng = parseFloat(lng.toFixed(6));
-  showPinAt(50, 50); // center of map visually
-  updateCoordsBar(lat, lng, label || '');
+  try {
+    setMpStatus('Loading…', 'loading');
+    document.getElementById('mpLoader').classList.remove('hidden');
+    const iframe = document.getElementById('mpIframe');
+    iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+    mpLat = parseFloat(parseFloat(lat).toFixed(6));
+    mpLng = parseFloat(parseFloat(lng).toFixed(6));
+    showPinAt(50, 50);
+    updateCoordsBar(lat, lng, label || '');
+  } catch(e) { setMpStatus('Could not load map. Check your connection.', ''); }
 }
 
 function onIframeLoad() {
-  iframeReady = true;
-  document.getElementById('mpLoader').classList.add('hidden');
-  if (mpLat !== null) {
-    setMpStatus('Map loaded — click exact hostel location to pin', '');
-  } else {
-    setMpStatus('Click on map to drop pin', '');
-  }
+  try {
+    iframeReady = true;
+    document.getElementById('mpLoader').classList.add('hidden');
+    setMpStatus(mpLat !== null ? 'Map loaded — click exact hostel location to pin' : 'Click on map to drop pin', '');
+  } catch(e) {}
 }
 
-/* ============================================================
-   CLICK-TO-PIN
-============================================================ */
 function setMode(mode) {
-  currentMode = mode;
-  const overlay = document.getElementById('mpOverlay');
-  document.getElementById('modeClick').classList.toggle('active', mode === 'click');
-  document.getElementById('modeDrag').classList.toggle('active', mode === 'drag');
-  overlay.classList.toggle('disabled', mode === 'drag');
-  if (mode === 'drag') {
-    // Enable iframe interaction
-    document.getElementById('mpIframe').style.pointerEvents = 'auto';
-    setMpStatus('Pan mode — scroll & explore. Switch back to click to pin', '');
-  } else {
-    document.getElementById('mpIframe').style.pointerEvents = 'none';
-    setMpStatus('Click on the map to drop your pin', '');
-  }
+  try {
+    currentMode = mode;
+    const overlay = document.getElementById('mpOverlay');
+    document.getElementById('modeClick').classList.toggle('active', mode === 'click');
+    document.getElementById('modeDrag').classList.toggle('active', mode === 'drag');
+    overlay.classList.toggle('disabled', mode === 'drag');
+    document.getElementById('mpIframe').style.pointerEvents = mode === 'drag' ? 'auto' : 'none';
+    setMpStatus(mode === 'drag'
+      ? 'Pan mode — switch back to click to pin'
+      : 'Click on the map to drop your pin', '');
+  } catch(e) {}
 }
 
 function handleMapClick(e) {
   if (currentMode !== 'click') return;
-  const container = document.getElementById('mpMapContainer');
-  const rect = container.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  const pctX = x / rect.width;
-  const pctY = y / rect.height;
+  try {
+    const container = document.getElementById('mpMapContainer');
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const pctX = x / rect.width;
+    const pctY = y / rect.height;
 
-  // Show ripple
-  showRipple(x, y);
-  // Show pin
-  showPinAt(pctX * 100, pctY * 100);
+    showRipple(x, y);
+    showPinAt(pctX * 100, pctY * 100);
 
-  // Estimate coordinates from iframe src (approximate from current map center)
-  // We parse lat/lng from current iframe src + estimate offset
-  const iframe = document.getElementById('mpIframe');
-  const srcMatch = iframe.src.match(/q=([\-\d.]+),([\-\d.]+)/);
-  let centerLat = 20.5937, centerLng = 78.9629; // India default
-  if (srcMatch) { centerLat = parseFloat(srcMatch[1]); centerLng = parseFloat(srcMatch[2]); }
+    const iframe = document.getElementById('mpIframe');
+    const srcMatch = iframe.src.match(/q=([\-\d.]+),([\-\d.]+)/);
+    let centerLat = 20.5937, centerLng = 78.9629;
+    if (srcMatch) { centerLat = parseFloat(srcMatch[1]); centerLng = parseFloat(srcMatch[2]); }
 
-  // Approximate lat/lng from pixel offset (zoom 17 ≈ 0.001 deg per pixel at this scale)
-  const zoomMatch = iframe.src.match(/z=(\d+)/);
-  const zoom = zoomMatch ? parseInt(zoomMatch[1]) : 16;
-  const degPerPixel = 360 / (256 * Math.pow(2, zoom));
-  const offsetLat = -(pctY - 0.5) * rect.height * degPerPixel;
-  const offsetLng =  (pctX - 0.5) * rect.width  * degPerPixel;
+    const zoomMatch = iframe.src.match(/z=(\d+)/);
+    const zoom = zoomMatch ? parseInt(zoomMatch[1]) : 16;
+    const degPerPixel = 360 / (256 * Math.pow(2, zoom));
+    const offsetLat = -(pctY - 0.5) * rect.height * degPerPixel;
+    const offsetLng =  (pctX - 0.5) * rect.width  * degPerPixel;
 
-  mpLat = parseFloat((centerLat + offsetLat).toFixed(6));
-  mpLng = parseFloat((centerLng + offsetLng).toFixed(6));
+    mpLat = parseFloat((centerLat + offsetLat).toFixed(6));
+    mpLng = parseFloat((centerLng + offsetLng).toFixed(6));
 
-  updateCoordsBar(mpLat, mpLng, '');
-  setMpStatus(`Pin dropped at ${mpLat.toFixed(4)}, ${mpLng.toFixed(4)} — confirm below ↓`, 'green');
-  document.getElementById('mpConfirmBtn').disabled = false;
-  mpConfirmed = false;
-  document.getElementById('confirmedBadge').classList.remove('show');
-  document.getElementById('mapPickerWrap').classList.remove('pinned');
+    updateCoordsBar(mpLat, mpLng, '');
+    setMpStatus(`Pin at ${mpLat.toFixed(4)}, ${mpLng.toFixed(4)} — confirm below ↓`, 'green');
+    document.getElementById('mpConfirmBtn').disabled = false;
+    mpConfirmed = false;
+    document.getElementById('confirmedBadge').classList.remove('show');
+    document.getElementById('mapPickerWrap').classList.remove('pinned');
+    clearFieldErr('map');
+  } catch(e) { showToast('Could not set pin. Please try again.', true); }
 }
 
 function showPinAt(pctX, pctY) {
-  const pin = document.getElementById('mpPin');
-  pin.style.left = pctX + '%';
-  pin.style.top = pctY + '%';
-  pin.style.display = 'block';
-  // Re-trigger animation
-  pin.style.animation = 'none';
-  pin.offsetHeight; // reflow
-  pin.style.animation = '';
+  try {
+    const pin = document.getElementById('mpPin');
+    pin.style.left = pctX + '%';
+    pin.style.top  = pctY + '%';
+    pin.style.display = 'block';
+    pin.style.animation = 'none';
+    pin.offsetHeight;
+    pin.style.animation = '';
+  } catch(e) {}
 }
 
 function showRipple(x, y) {
-  const r = document.getElementById('mpRipple');
-  r.style.left = x + 'px';
-  r.style.top  = y + 'px';
-  r.style.display = 'block';
-  r.style.animation = 'none';
-  r.offsetHeight;
-  r.style.animation = 'rippleOut 0.5s ease forwards';
-  setTimeout(() => r.style.display = 'none', 500);
+  try {
+    const r = document.getElementById('mpRipple');
+    r.style.left = x + 'px';
+    r.style.top  = y + 'px';
+    r.style.display = 'block';
+    r.style.animation = 'none';
+    r.offsetHeight;
+    r.style.animation = 'rippleOut 0.5s ease forwards';
+    setTimeout(() => { try { r.style.display = 'none'; } catch(e){} }, 500);
+  } catch(e) {}
 }
 
 function updateCoordsBar(lat, lng, addr) {
-  const latEl = document.getElementById('dispLat');
-  const lngEl = document.getElementById('dispLng');
-  const addrEl = document.getElementById('dispAddr');
-  latEl.textContent = parseFloat(lat).toFixed(6);
-  latEl.className = 'mp-coord-value filled';
-  lngEl.textContent = parseFloat(lng).toFixed(6);
-  lngEl.className = 'mp-coord-value filled';
-  if (addr) { addrEl.textContent = addr; addrEl.className = 'mp-coord-value filled'; }
-  else { addrEl.textContent = 'Click to detect'; addrEl.className = 'mp-coord-value empty'; }
+  try {
+    const latEl  = document.getElementById('dispLat');
+    const lngEl  = document.getElementById('dispLng');
+    const addrEl = document.getElementById('dispAddr');
+    latEl.textContent  = parseFloat(lat).toFixed(6);
+    latEl.className    = 'mp-coord-value filled';
+    lngEl.textContent  = parseFloat(lng).toFixed(6);
+    lngEl.className    = 'mp-coord-value filled';
+    if (addr) { addrEl.textContent = addr; addrEl.className = 'mp-coord-value filled'; }
+    else       { addrEl.textContent = 'Click to detect'; addrEl.className = 'mp-coord-value empty'; }
+  } catch(e) {}
 }
 
 function setMpStatus(text, state) {
-  document.getElementById('mpStatusText').textContent = text;
-  const dot = document.getElementById('mpDot');
-  dot.className = 'mp-status-dot' + (state === 'green' ? ' green' : state === 'loading' ? ' loading' : '');
+  try {
+    document.getElementById('mpStatusText').textContent = text;
+    const dot = document.getElementById('mpDot');
+    dot.className = 'mp-status-dot' + (state === 'green' ? ' green' : state === 'loading' ? ' loading' : '');
+  } catch(e) {}
 }
 
-/* ============================================================
-   CONFIRM PIN
-============================================================ */
 function confirmPin() {
-  if (mpLat === null) return;
-  document.getElementById('coordLat').value = mpLat;
-  document.getElementById('coordLng').value = mpLng;
-  mpConfirmed = true;
-  document.getElementById('mapPickerWrap').classList.add('pinned');
-  document.getElementById('confirmedBadge').classList.add('show');
-  document.getElementById('mpConfirmBtn').innerHTML = '<i class="fa-solid fa-circle-check"></i> Pinned ✓';
-  document.getElementById('mpConfirmBtn').style.background = 'var(--green-dark)';
-  setMpStatus('Location confirmed and saved!', 'green');
-  showToast('📍 Location pinned successfully!');
-  updateProgress();
+  if (mpLat === null) { showToast('Please click on the map first to drop a pin.', true); return; }
+  try {
+    document.getElementById('coordLat').value = mpLat;
+    document.getElementById('coordLng').value = mpLng;
+    mpConfirmed = true;
+    document.getElementById('mapPickerWrap').classList.add('pinned');
+    document.getElementById('confirmedBadge').classList.add('show');
+    document.getElementById('mpConfirmBtn').innerHTML = '<i class="fa-solid fa-circle-check"></i> Pinned ✓';
+    document.getElementById('mpConfirmBtn').style.background = 'var(--green-dark)';
+    setMpStatus('Location confirmed and saved!', 'green');
+    clearFieldErr('map');
+    showToast('📍 Location pinned successfully!');
+    updateProgress();
+  } catch(e) { showToast('Could not confirm pin. Please try again.', true); }
 }
 
-/* ============================================================
-   GPS
-============================================================ */
 function useGps() {
-  if (!navigator.geolocation) { showToast('Geolocation not supported', true); return; }
+  if (!navigator.geolocation) { showToast('GPS not supported in this browser.', true); return; }
   setMpStatus('Getting GPS location…', 'loading');
   navigator.geolocation.getCurrentPosition(
     pos => {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      document.getElementById('mpSearchInput').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      loadMapAt(lat, lng, 'Your GPS location');
-      showToast('GPS location detected!');
+      try {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        document.getElementById('mpSearchInput').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        loadMapAt(lat, lng, 'Your GPS location');
+        showToast('GPS location detected!');
+      } catch(e) { showToast('GPS error. Please try manually.', true); }
     },
     err => {
-      const m = { 1:'Location permission denied', 2:'Location unavailable', 3:'Request timed out' };
-      setMpStatus(m[err.code] || 'GPS error', '');
-      showToast(m[err.code] || 'GPS error', true);
+      const msgs = {
+        1: 'Location permission denied. Please allow location access in your browser.',
+        2: 'Location unavailable. Please search manually.',
+        3: 'GPS timed out. Please try again or search manually.',
+      };
+      const msg = msgs[err.code] || 'GPS error. Please search manually.';
+      setMpStatus(msg, '');
+      showToast(msg, true);
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );
 }
 
-/* ============================================================
-   RESET MAP
-============================================================ */
 function resetMap() {
-  mpLat = null; mpLng = null; mpConfirmed = false;
-  document.getElementById('mpIframe').src = 'https://maps.google.com/maps?q=India&z=5&output=embed';
-  document.getElementById('mpPin').style.display = 'none';
-  document.getElementById('coordLat').value = '';
-  document.getElementById('coordLng').value = '';
-  document.getElementById('dispLat').textContent = 'Not set yet';
-  document.getElementById('dispLat').className = 'mp-coord-value empty';
-  document.getElementById('dispLng').textContent = 'Not set yet';
-  document.getElementById('dispLng').className = 'mp-coord-value empty';
-  document.getElementById('dispAddr').textContent = 'Drop pin to detect';
-  document.getElementById('dispAddr').className = 'mp-coord-value empty';
-  document.getElementById('mpConfirmBtn').disabled = true;
-  document.getElementById('mpConfirmBtn').innerHTML = '<i class="fa-solid fa-circle-check"></i> Confirm Pin';
-  document.getElementById('mpConfirmBtn').style.background = '';
-  document.getElementById('confirmedBadge').classList.remove('show');
-  document.getElementById('mapPickerWrap').classList.remove('pinned');
-  document.getElementById('mpSearchInput').value = '';
-  setMpStatus('Click on map to drop pin', '');
+  try {
+    mpLat = null; mpLng = null; mpConfirmed = false;
+    document.getElementById('mpIframe').src = 'https://maps.google.com/maps?q=India&z=5&output=embed';
+    document.getElementById('mpPin').style.display = 'none';
+    document.getElementById('coordLat').value = '';
+    document.getElementById('coordLng').value = '';
+    ['dispLat','dispLng'].forEach(id => {
+      document.getElementById(id).textContent = 'Not set yet';
+      document.getElementById(id).className = 'mp-coord-value empty';
+    });
+    document.getElementById('dispAddr').textContent = 'Drop pin to detect';
+    document.getElementById('dispAddr').className = 'mp-coord-value empty';
+    const btn = document.getElementById('mpConfirmBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Confirm Pin';
+    btn.style.background = '';
+    document.getElementById('confirmedBadge').classList.remove('show');
+    document.getElementById('mapPickerWrap').classList.remove('pinned');
+    document.getElementById('mpSearchInput').value = '';
+    setMpStatus('Click on map to drop pin', '');
+    clearFieldErr('map');
+  } catch(e) {}
 }
 
-/* close suggestions when clicking outside */
 document.addEventListener('click', e => {
-  if (!document.getElementById('mpSearchInput').contains(e.target) &&
-      !document.getElementById('mpSuggDrop').contains(e.target)) closeSugg();
+  try {
+    if (!document.getElementById('mpSearchInput').contains(e.target) &&
+        !document.getElementById('mpSuggDrop').contains(e.target)) closeSugg();
+  } catch(e) {}
 });
 
 /* ============================================================
    ROOMS
 ============================================================ */
 let roomCount = 1, ruleCount = 2;
+
 function addRoom() {
-  const i = roomCount;
-  const html = `<div class="room-entry" id="room-${i}">
-    <div class="room-entry-header">
-      <div class="room-entry-title"><span class="room-num">${i+1}</span> Room Type ${i+1}</div>
-      <button type="button" class="btn-remove-room" onclick="removeRoom('room-${i}')"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="room-grid">
-      <div class="form-group"><label class="form-label">Room Type <span class="label-required">*</span></label><select name="rooms[${i}][type]" class="form-select" required><option value="">Select type</option><option>Single</option><option>Double</option><option>Triple</option><option>Dormitory</option><option>AC Single</option><option>AC Double</option></select></div>
-      <div class="form-group"><label class="form-label">Price / month <span class="label-required">*</span></label><div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" name="rooms[${i}][price]" class="form-input" placeholder="5500" min="0" required></div></div>
-      <div class="form-group"><label class="form-label">Deposit</label><div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" name="rooms[${i}][deposit]" class="form-input" placeholder="10000" min="0"></div></div>
-    </div>
-    <div class="room-features-row">
-      <div class="room-features-label">Room features</div>
-      <div class="room-features-wrap">
-        <input type="checkbox" id="rf${i}-ac" name="rooms[${i}][features][]" value="AC" class="rf-cb"><label for="rf${i}-ac" class="rf-lbl">AC</label>
-        <input type="checkbox" id="rf${i}-ab" name="rooms[${i}][features][]" value="Attached Bathroom" class="rf-cb"><label for="rf${i}-ab" class="rf-lbl">Attached Bath</label>
-        <input type="checkbox" id="rf${i}-tv" name="rooms[${i}][features][]" value="TV" class="rf-cb"><label for="rf${i}-tv" class="rf-lbl">TV</label>
-        <input type="checkbox" id="rf${i}-balcony" name="rooms[${i}][features][]" value="Balcony" class="rf-cb"><label for="rf${i}-balcony" class="rf-lbl">Balcony</label>
-        <input type="checkbox" id="rf${i}-wardrobe" name="rooms[${i}][features][]" value="Wardrobe" class="rf-cb"><label for="rf${i}-wardrobe" class="rf-lbl">Wardrobe</label>
-        <input type="checkbox" id="rf${i}-desk" name="rooms[${i}][features][]" value="Study Desk" class="rf-cb"><label for="rf${i}-desk" class="rf-lbl">Study Desk</label>
+  try {
+    if (roomCount >= 20) { showToast('You can add up to 20 room types.', true); return; }
+    const i = roomCount;
+    const html = `<div class="room-entry" id="room-${i}">
+      <div class="room-entry-header">
+        <div class="room-entry-title"><span class="room-num">${i+1}</span> Room Type ${i+1}</div>
+        <button type="button" class="btn-remove-room" onclick="removeRoom('room-${i}')"><i class="fa-solid fa-xmark"></i></button>
       </div>
-    </div>
-    <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
-      <span style="font-size:0.76rem;font-weight:600;color:var(--muted)">Availability:</span>
-      <input type="checkbox" id="avail-${i}" name="rooms[${i}][available]" value="true" class="avail-cb" checked>
-      <label for="avail-${i}" class="avail-lbl">Available now</label>
-    </div>
-  </div>`;
-  document.getElementById('roomsList').insertAdjacentHTML('beforeend', html);
-  roomCount++;
+      <div class="room-grid">
+        <div class="form-group"><label class="form-label">Room Type <span class="label-required">*</span></label><select name="rooms[${i}][type]" class="form-select room-type-select" required onchange="validateRooms()"><option value="">Select type</option><option>Single</option><option>Double</option><option>Triple</option><option>Dormitory</option><option>AC Single</option><option>AC Double</option></select></div>
+        <div class="form-group"><label class="form-label">Price / month <span class="label-required">*</span></label><div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" name="rooms[${i}][price]" class="form-input room-price-input" placeholder="5500" min="0" max="500000" required onblur="validateRooms()"></div></div>
+        <div class="form-group"><label class="form-label">Deposit</label><div class="input-icon-wrap has-prefix"><span class="input-prefix">₹</span><input type="number" name="rooms[${i}][deposit]" class="form-input" placeholder="10000" min="0" max="2000000"></div></div>
+      </div>
+      <div class="room-features-row">
+        <div class="room-features-label">Room features</div>
+        <div class="room-features-wrap">
+          <input type="checkbox" id="rf${i}-ac" name="rooms[${i}][features][]" value="AC" class="rf-cb"><label for="rf${i}-ac" class="rf-lbl">AC</label>
+          <input type="checkbox" id="rf${i}-ab" name="rooms[${i}][features][]" value="Attached Bathroom" class="rf-cb"><label for="rf${i}-ab" class="rf-lbl">Attached Bath</label>
+          <input type="checkbox" id="rf${i}-tv" name="rooms[${i}][features][]" value="TV" class="rf-cb"><label for="rf${i}-tv" class="rf-lbl">TV</label>
+          <input type="checkbox" id="rf${i}-balcony" name="rooms[${i}][features][]" value="Balcony" class="rf-cb"><label for="rf${i}-balcony" class="rf-lbl">Balcony</label>
+          <input type="checkbox" id="rf${i}-wardrobe" name="rooms[${i}][features][]" value="Wardrobe" class="rf-cb"><label for="rf${i}-wardrobe" class="rf-lbl">Wardrobe</label>
+          <input type="checkbox" id="rf${i}-desk" name="rooms[${i}][features][]" value="Study Desk" class="rf-cb"><label for="rf${i}-desk" class="rf-lbl">Study Desk</label>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:0.76rem;font-weight:600;color:var(--muted)">Availability:</span>
+        <input type="checkbox" id="avail-${i}" name="rooms[${i}][available]" value="true" class="avail-cb" checked>
+        <label for="avail-${i}" class="avail-lbl">Available now</label>
+      </div>
+    </div>`;
+    document.getElementById('roomsList').insertAdjacentHTML('beforeend', html);
+    roomCount++;
+  } catch(e) { showToast('Could not add room. Please try again.', true); }
 }
+
 function removeRoom(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.style.transition = 'all 0.22s'; el.style.opacity = '0'; el.style.transform = 'translateY(-6px)';
-  setTimeout(() => el.remove(), 230);
+  try {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const total = document.querySelectorAll('.room-entry').length;
+    if (total <= 1) { showToast('You need at least one room type.', true); return; }
+    el.style.transition = 'all 0.22s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-6px)';
+    setTimeout(() => { try { el.remove(); } catch(e){} }, 230);
+  } catch(e) {}
 }
 
 /* ============================================================
    RULES
 ============================================================ */
 function addRule() {
-  const id = `rule-${ruleCount}`;
-  document.getElementById('rulesList').insertAdjacentHTML('beforeend', `<div class="rule-entry" id="${id}"><input type="text" name="rules[]" class="form-input" placeholder="Add a house rule…"><button type="button" class="btn-del-rule" onclick="removeRule('${id}')"><i class="fa-solid fa-xmark"></i></button></div>`);
-  ruleCount++;
+  try {
+    if (ruleCount >= 30) { showToast('You can add up to 30 house rules.', true); return; }
+    const id = `rule-${ruleCount}`;
+    document.getElementById('rulesList').insertAdjacentHTML('beforeend',
+      `<div class="rule-entry" id="${id}">
+        <input type="text" name="rules[]" class="form-input" maxlength="${MAX_RULE_LEN}"
+          placeholder="Add a house rule…" oninput="validateRuleLength(this)">
+        <button type="button" class="btn-del-rule" onclick="removeRule('${id}')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>`);
+    ruleCount++;
+  } catch(e) { showToast('Could not add rule. Please try again.', true); }
 }
+
 function removeRule(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.style.transition = 'all 0.2s'; el.style.opacity = '0';
-  setTimeout(() => el.remove(), 210);
+  try {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'all 0.2s';
+    el.style.opacity = '0';
+    setTimeout(() => { try { el.remove(); } catch(e){} }, 210);
+  } catch(e) {}
 }
 
 /* ============================================================
-   IMAGE UPLOAD
+   IMAGE UPLOAD  (with per-file validation)
 ============================================================ */
 let uploadedFiles = [];
-function handleFileSelect(e) { addFiles(Array.from(e.target.files)); }
-function handleDrop(e) { e.preventDefault(); document.getElementById('uploadZone').classList.remove('drag-over'); addFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))); }
-function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-over'); }
-function handleDragLeave() { document.getElementById('uploadZone').classList.remove('drag-over'); }
-function addFiles(files) {
-  const preview = document.getElementById('uploadPreview');
-  files.slice(0, Math.max(0, 15 - uploadedFiles.length)).forEach(file => {
-    if (file.size > 5 * 1024 * 1024) { showToast(`${file.name} exceeds 5MB`, true); return; }
-    const reader = new FileReader(), gi = uploadedFiles.length;
-    uploadedFiles.push(file);
-    reader.onload = ev => {
-      const wrap = document.createElement('div');
-      wrap.className = 'preview-img-wrap'; wrap.id = `prev-${gi}`;
-      wrap.innerHTML = `<img src="${ev.target.result}" alt="">${gi===0?'<div class="preview-main-tag">Cover</div>':''}<button type="button" class="preview-remove" onclick="removePreview(${gi})"><i class="fa-solid fa-xmark"></i></button>`;
-      preview.appendChild(wrap);
-      if (gi === 0) { document.getElementById('previewImg').src = ev.target.result; document.getElementById('previewImg').style.display = 'block'; document.getElementById('previewImgWrap').querySelector('i').style.display = 'none'; }
-    };
-    reader.readAsDataURL(file);
-  });
-  updateProgress();
+
+function handleFileSelect(e) {
+  try { addFiles(Array.from(e.target.files)); } catch(e) { showToast('Could not read selected files.', true); }
 }
+
+function handleDrop(e) {
+  e.preventDefault();
+  try {
+    document.getElementById('uploadZone').classList.remove('drag-over');
+    addFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
+  } catch(err) { showToast('Drop failed. Please use the browse button.', true); }
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  try { document.getElementById('uploadZone').classList.add('drag-over'); } catch(e) {}
+}
+
+function handleDragLeave() {
+  try { document.getElementById('uploadZone').classList.remove('drag-over'); } catch(e) {}
+}
+
+function addFiles(files) {
+  try {
+    const active = uploadedFiles.filter(Boolean).length;
+    const slots  = Math.max(0, MAX_IMAGES - active);
+
+    if (slots === 0) {
+      showToast(`Maximum ${MAX_IMAGES} photos allowed. Remove some to add more.`, true);
+      return;
+    }
+
+    let added = 0, skipped = [];
+
+    files.slice(0, slots).forEach(file => {
+      // Type check
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        skipped.push(`"${file.name}" — unsupported type (use JPEG/PNG/WebP)`);
+        return;
+      }
+      // Size check
+      if (file.size > MAX_IMG_MB * 1024 * 1024) {
+        skipped.push(`"${file.name}" — exceeds ${MAX_IMG_MB} MB`);
+        return;
+      }
+
+      const gi = uploadedFiles.length;
+      uploadedFiles.push(file);
+      added++;
+
+      const reader = new FileReader();
+      reader.onerror = () => {
+        showToast(`Could not read "${file.name}". File may be corrupt.`, true);
+        uploadedFiles[gi] = null;
+      };
+      reader.onload = ev => {
+        try {
+          const wrap = document.createElement('div');
+          wrap.className = 'preview-img-wrap';
+          wrap.id = `prev-${gi}`;
+          wrap.innerHTML = `
+            <img src="${ev.target.result}" alt="Preview ${gi+1}">
+            ${gi === 0 ? '<div class="preview-main-tag">Cover</div>' : ''}
+            <button type="button" class="preview-remove" onclick="removePreview(${gi})" title="Remove photo">
+              <i class="fa-solid fa-xmark"></i>
+            </button>`;
+          document.getElementById('uploadPreview').appendChild(wrap);
+          if (gi === 0) {
+            document.getElementById('previewImg').src = ev.target.result;
+            document.getElementById('previewImg').style.display = 'block';
+            const icon = document.querySelector('#previewImgWrap i');
+            if (icon) icon.style.display = 'none';
+          }
+          updateUploadStatus();
+          updateProgress();
+          clearFieldErr('images');
+        } catch(e) {}
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (skipped.length) {
+      showToast(`${skipped.length} photo(s) skipped: ${skipped[0]}${skipped.length > 1 ? ` (+${skipped.length-1} more)` : ''}`, true);
+    }
+    if (files.length > slots) {
+      showToast(`Only ${slots} slot(s) remaining. ${files.length - slots} photo(s) not added.`, true);
+    }
+    updateUploadStatus();
+  } catch(err) {
+    showToast('Photo upload error. Please try again.', true);
+  }
+}
+
 function removePreview(idx) {
-  const el = document.getElementById(`prev-${idx}`);
-  if (el) { el.style.transition = 'all 0.2s'; el.style.opacity = '0'; el.style.transform = 'scale(0.85)'; setTimeout(() => el.remove(), 210); }
-  uploadedFiles[idx] = null; updateProgress();
+  try {
+    const el = document.getElementById(`prev-${idx}`);
+    if (el) {
+      el.style.transition = 'all 0.2s';
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0.85)';
+      setTimeout(() => { try { el.remove(); } catch(e){} }, 210);
+    }
+    uploadedFiles[idx] = null;
+    updateUploadStatus();
+    updateProgress();
+  } catch(e) {}
+}
+
+function updateUploadStatus() {
+  try {
+    const count = uploadedFiles.filter(Boolean).length;
+    const el = document.getElementById('uploadStatus');
+    const txt = document.getElementById('uploadStatusText');
+    if (count > 0) {
+      el.style.display = 'block';
+      txt.textContent = `${count} / ${MAX_IMAGES} photo${count !== 1 ? 's' : ''} added`;
+    } else {
+      el.style.display = 'none';
+    }
+  } catch(e) {}
 }
 
 /* ============================================================
    CHAR COUNTER
 ============================================================ */
 function updateCharCount(id, cid, max) {
-  const v = document.getElementById(id).value.length;
-  const el = document.getElementById(cid);
-  el.textContent = `${v} / ${max}`;
-  el.className = 'char-counter' + (v > max * 0.9 ? ' warn' : '') + (v >= max ? ' over' : '');
+  try {
+    const v = (document.getElementById(id).value || '').length;
+    const el = document.getElementById(cid);
+    el.textContent = `${v} / ${max}`;
+    el.className = 'char-counter' + (v > max * 0.9 ? ' warn' : '') + (v >= max ? ' over' : '');
+  } catch(e) {}
 }
 
 /* ============================================================
    LIVE PREVIEW
 ============================================================ */
 function updatePreview() {
-  const name = document.getElementById('title').value || 'Your property name';
-  const price = document.getElementById('startingPrice').value;
-  const addr = document.getElementById('address').value;
-  const coll = document.getElementById('nearCollege').value;
-  document.getElementById('previewName').textContent = name;
-  document.getElementById('previewPrice').textContent = price ? `₹${Number(price).toLocaleString('en-IN')}/mo` : '₹—/mo';
-  let loc = addr || '';
-  if (coll) loc += (loc ? ' · ' : '') + 'Near ' + coll;
-  document.getElementById('previewLoc').innerHTML = `<i class="fa-solid fa-location-dot"></i> ${loc || 'Location · Near College'}`;
+  try {
+    const name  = document.getElementById('title').value || 'Your property name';
+    const price = document.getElementById('startingPrice').value;
+    const addr  = document.getElementById('address').value;
+    const coll  = document.getElementById('nearCollege').value;
+    document.getElementById('previewName').textContent = name;
+    document.getElementById('previewPrice').textContent = price
+      ? `₹${Number(price).toLocaleString('en-IN')}/mo` : '₹—/mo';
+    let loc = addr || '';
+    if (coll) loc += (loc ? ' · ' : '') + 'Near ' + coll;
+    document.getElementById('previewLoc').innerHTML =
+      `<i class="fa-solid fa-location-dot"></i> ${loc || 'Location · Near College'}`;
+  } catch(e) {}
 }
 
 /* ============================================================
    PROGRESS
 ============================================================ */
 function updateProgress() {
-  const checks = [
-    !!document.getElementById('title').value.trim(),
-    !!document.getElementById('startingPrice').value,
-    !!document.querySelector('input[name="gender"]:checked'),
-    !!document.getElementById('address').value.trim(),
-    !!document.getElementById('nearCollege').value.trim(),
-    mpConfirmed,
-    !!(document.querySelector('#roomsList .form-select') && document.querySelector('#roomsList .form-select').value),
-    document.querySelectorAll('.amenity-cb:checked').length > 0,
-    uploadedFiles.filter(Boolean).length > 0,
-    !!document.getElementById('phone').value.trim(),
-  ];
-  const done = checks.filter(Boolean).length;
-  const pct = Math.round(done / checks.length * 100);
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('pctText').textContent = pct + '%';
-  const stepDone = [
-    checks[0] && checks[1] && checks[2],
-    checks[3] && checks[4] && checks[5],
-    checks[6],
-    checks[7],
-    checks[8],
-    checks[9],
-  ];
-  document.querySelectorAll('.ps-item').forEach((el, i) => {
-    el.classList.toggle('done', !!stepDone[i]);
-  });
+  try {
+    const checks = [
+      !!(document.getElementById('title').value || '').trim(),
+      !!document.getElementById('startingPrice').value,
+      !!document.querySelector('input[name="gender"]:checked'),
+      !!(document.getElementById('address').value || '').trim(),
+      !!(document.getElementById('nearCollege').value || '').trim(),
+      mpConfirmed,
+      !!(document.querySelector('.room-type-select') && document.querySelector('.room-type-select').value),
+      document.querySelectorAll('.amenity-cb:checked').length > 0,
+      uploadedFiles.filter(Boolean).length > 0,
+      !!(document.getElementById('phone').value || '').trim(),
+    ];
+    const done = checks.filter(Boolean).length;
+    const pct  = Math.round(done / checks.length * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('pctText').textContent = pct + '%';
+    const stepDone = [
+      checks[0] && checks[1] && checks[2],
+      checks[3] && checks[4] && checks[5],
+      checks[6],
+      checks[7],
+      checks[8],
+      checks[9],
+    ];
+    document.querySelectorAll('.ps-item').forEach((el, i) => {
+      el.classList.toggle('done', !!stepDone[i]);
+    });
+  } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.form-input,.form-select,.form-textarea,input[type="radio"],input[type="checkbox"]').forEach(el => {
-    el.addEventListener('input', updateProgress);
-    el.addEventListener('change', updateProgress);
-  });
+  try {
+    document.querySelectorAll('.form-input,.form-select,.form-textarea,input[type="radio"],input[type="checkbox"]').forEach(el => {
+      el.addEventListener('input',  updateProgress);
+      el.addEventListener('change', updateProgress);
+    });
+  } catch(e) {}
 });
 
 /* ============================================================
@@ -846,94 +1439,125 @@ document.addEventListener('DOMContentLoaded', () => {
 ============================================================ */
 const SECS = ['sec-basic','sec-location','sec-rooms','sec-amenities','sec-media','sec-contact'];
 window.addEventListener('scroll', () => {
-  let cur = 0;
-  SECS.forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el && window.scrollY + 100 >= el.offsetTop) cur = i;
-  });
-  document.querySelectorAll('.lp-step').forEach((el, i) => el.classList.toggle('active', i === cur));
+  try {
+    let cur = 0;
+    SECS.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (el && window.scrollY + 100 >= el.offsetTop) cur = i;
+    });
+    document.querySelectorAll('.lp-step').forEach((el, i) => el.classList.toggle('active', i === cur));
+  } catch(e) {}
 }, { passive: true });
 
 /* ============================================================
    JUMP
 ============================================================ */
 function jumpTo(id) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {}
 }
 
 /* ============================================================
    SAME NUMBER
 ============================================================ */
 function toggleSameNum() {
-  const cb = document.getElementById('sameNumber');
-  const wa = document.getElementById('whatsapp');
-  if (cb.checked) { wa.value = document.getElementById('phone').value; wa.readOnly = true; wa.style.background = 'var(--bg2)'; }
-  else { wa.readOnly = false; wa.style.background = ''; }
-}
-
-/* ============================================================
-   TOAST
-============================================================ */
-function showToast(msg, isError = false) {
-  const t = document.getElementById('toastMsg');
-  document.getElementById('toastText').textContent = msg;
-  t.querySelector('i').style.color = isError ? '#ef4444' : 'var(--green)';
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+  try {
+    const cb = document.getElementById('sameNumber');
+    const wa = document.getElementById('whatsapp');
+    if (cb.checked) {
+      wa.value = document.getElementById('phone').value;
+      wa.readOnly = true;
+      wa.style.background = 'var(--bg2)';
+      clearFieldErr('whatsapp');
+    } else {
+      wa.readOnly = false;
+      wa.style.background = '';
+    }
+  } catch(e) {}
 }
 
 /* ============================================================
    DRAFT
 ============================================================ */
 function saveDraft() {
-  const btn = document.querySelector('.btn-draft');
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
-  setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Draft'; showToast('Draft saved!'); }, 900);
+  try {
+    const btn = document.querySelector('.btn-draft');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+    btn.disabled = true;
+    // Collect basic fields into localStorage as a simple draft
+    const draft = {
+      title:        document.getElementById('title').value,
+      description:  document.getElementById('description').value,
+      startingPrice: document.getElementById('startingPrice').value,
+      address:      document.getElementById('address').value,
+      nearCollege:  document.getElementById('nearCollege').value,
+      city:         document.getElementById('city').value,
+      phone:        document.getElementById('phone').value,
+      savedAt:      new Date().toISOString(),
+    };
+    try { localStorage.setItem('hn_listing_draft', JSON.stringify(draft)); } catch(_) {}
+    setTimeout(() => {
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Draft';
+      btn.disabled = false;
+      showToast('Draft saved locally!');
+    }, 700);
+  } catch(e) {
+    showToast('Could not save draft. Please try again.', true);
+  }
 }
+
+// Restore draft on page load
+(function restoreDraft() {
+  try {
+    const raw = localStorage.getItem('hn_listing_draft');
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (!draft || !draft.title) return;
+    // Only restore if saved within last 24h
+    const age = Date.now() - new Date(draft.savedAt).getTime();
+    if (age > 86400000) { localStorage.removeItem('hn_listing_draft'); return; }
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set('title', draft.title);
+    set('description', draft.description);
+    set('startingPrice', draft.startingPrice);
+    set('address', draft.address);
+    set('nearCollege', draft.nearCollege);
+    set('city', draft.city);
+    set('phone', draft.phone);
+    updatePreview();
+    updateCharCount('title','titleCount', 80);
+    updateCharCount('description','descCount', 1000);
+    updateProgress();
+    showToast('Draft restored from last session!');
+  } catch(e) { /* silently fail */ }
+})();
 
 /* ============================================================
-   SUBMIT VALIDATION
+   ADD INLINE ERROR STYLE  (if not in your CSS already)
 ============================================================ */
-function handleSubmit(e) {
-  e.preventDefault(); // always stop default first
-
-  console.log("🔥 Submit clicked");
-
-  const required = [
-    { id:'title', msg:'Please enter a property title.' },
-    { id:'startingPrice', msg:'Please enter the starting price.' },
-    { id:'address', msg:'Please enter the full address.' },
-    { id:'nearCollege', msg:'Please specify the nearest college.' },
-    { id:'city', msg:'Please enter the city.' },
-    { id:'phone', msg:'Please enter a contact phone number.' },
-  ];
-
-  for (const f of required) {
-    if (!document.getElementById(f.id).value.trim()) {
-      showToast(f.msg, true);
-      document.getElementById(f.id).focus();
-      return;
+(function injectErrStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .field-err {
+      display: none;
+      color: #ef4444;
+      font-size: 0.76rem;
+      font-weight: 600;
+      margin-top: 4px;
+      padding: 4px 8px;
+      background: #fff1f1;
+      border-radius: 6px;
+      border-left: 3px solid #ef4444;
     }
-  }
-
-  if (!document.querySelector('input[name="gender"]:checked')) {
-    showToast('Please select who the property is for.', true);
-    return;
-  }
-
-  if (!mpConfirmed) {
-    showToast('Please pin your location on the map.', true);
-    return;
-  }
-
-  const btn = document.querySelector('.btn-submit-main');
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
-  btn.disabled = true;
-
-  console.log("✅ All validation passed");
-
-  // 🚀 THIS WAS MISSING
-  document.getElementById("listingForm").submit();
-}
+    .input-error {
+      border-color: #ef4444 !important;
+      background: #fff8f8 !important;
+    }
+    #globalErrBanner { display: none; }
+    #globalErrBanner.show { display: flex !important; }
+  `;
+  document.head.appendChild(style);
+})();
 </script>

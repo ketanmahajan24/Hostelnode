@@ -35,6 +35,19 @@ const moment = require("moment-timezone");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 
+
+
+const handleMulterError = (fn) => (req, res, next) => {
+  fn(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === "LIMIT_FILE_SIZE")
+      return res.status(413).send("❌ File too large! Max 100MB per image.");
+    if (err.code === "LIMIT_FILE_COUNT")
+      return res.status(413).send("❌ Too many files! Max 15 images.");
+    return res.status(500).send("❌ Upload failed. Try again.");
+  });
+};
+
 // 🔐 Secure folder path
 const uploadDir = '/secure_uploads/profiles';
 // const uploadDir = '/app/secure_uploads/profiles'; // ✅ absolute path for Docker
@@ -99,272 +112,314 @@ const attachHostel = async (req, res, next) => { // Middleware to attach hostels
 
     next();
   } catch (err) {
-    console.error("Attach Hostel Error:", err);
+    // console.error("Attach Hostel Error:", err);
     next();
   }
 }; 
 
 
+
+
+/* ============================================================
+   POST /user/send-otp
+============================================================ */
+router.post("/send-otp", async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.json({ success: false, error: "Invalid phone number" });
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+    otpStore.set(phone, {
+      otp,
+      verified: false,
+      expiresAt: Date.now() + 5 * 60 * 1000
+    });
+
+    await sendWhatsAppOTP(phone, otp);
+    // console.log(`📱 Owner OTP sent to ${phone}: ${otp}`);
+
+    res.json({ success: true });
+  } catch (err) {
+    // console.error("OTP send error:", err);
+    res.json({ success: false, error: "Failed to send OTP" });
+  }
+});
+
+/* ============================================================
+   POST /user/verify-otp
+============================================================ */
+router.post("/verify-otp", (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+    const stored = otpStore.get(phone);
+
+    if (!stored) return res.json({ success: false, error: "OTP not sent or expired" });
+    if (Date.now() > stored.expiresAt) {
+      otpStore.delete(phone);
+      return res.json({ success: false, error: "OTP expired. Request a new one" });
+    }
+    if (stored.otp !== otp) return res.json({ success: false, error: "Incorrect OTP" });
+
+    otpStore.set(phone, { ...stored, verified: true });
+    res.json({ success: true });
+  } catch (err) {
+    // console.error("OTP verify error:", err);
+    res.json({ success: false, error: "Server error" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ✅ POST /signup
 router.post("/signup", upload.single("profileImage"), async (req, res) => {
   try {
-    console.log("\n================= 🚀 SIGNUP START =================");
-
-    // 📥 Step 1: Incoming Data
-    console.log("📥 BODY:", req.body);
-    console.log("📸 FILE:", req.file);
-
-    const {
-      name,
-      email,
-      phone,
-      password,
-      gender,
-      dob,
-      businessName,
-      businessType,
-      whatsapp,
-      city,
-      state,
-      country,
-      pincode
-    } = req.body;
+    const { name, email, phone, password } = req.body;
 
     // ===============================
-    // 🧪 STEP 2: VALIDATION
+    // 🧪 VALIDATION
     // ===============================
-    console.log("🔍 Validating inputs...");
 
-    // Required fields
-    if (
-      !name || !email || !phone || !password ||
-      !gender || !dob || !businessName ||
-      !businessType || !city || !state ||
-      !country || !pincode
-    ) {
-      console.log("❌ Missing required fields");
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Name validation
-    if (name.length < 3) {
-      console.log("❌ Invalid name");
+    if (name.trim().length < 3) {
       return res.status(400).json({ error: "Name must be at least 3 characters" });
     }
 
-    // Email validation
     if (!validator.isEmail(email)) {
-      console.log("❌ Invalid email");
       return res.status(400).json({ error: "Invalid email format" });
     }
 
-    // Phone validation (India)
     if (!/^[6-9]\d{9}$/.test(phone)) {
-      console.log("❌ Invalid phone");
       return res.status(400).json({ error: "Invalid phone number" });
     }
 
-    // Password validation (strong)
-    if (!validator.isStrongPassword(password, {
-      minLength: 6,
-      minNumbers: 1
-    })) {
-      console.log("❌ Weak password");
-      return res.status(400).json({
-        error: "Password must be 6+ chars with at least 1 number"
-      });
+    if (!validator.isStrongPassword(password, { minLength: 6, minNumbers: 1 })) {
+      return res.status(400).json({ error: "Password must be 6+ chars with at least 1 number" });
     }
 
-    // Pincode validation
-    if (!/^\d{6}$/.test(pincode)) {
-      console.log("❌ Invalid pincode");
-      return res.status(400).json({ error: "Invalid pincode" });
+    // ===============================
+    // 🔐 OTP CHECK
+    // ===============================
+    const otpData = otpStore.get(phone);
+
+    if (!otpData) {
+      return res.status(400).json({ error: "OTP not sent or expired. Please request a new OTP." });
     }
 
-    console.log("✅ Validation passed");
- // 🔐 OTP CHECK
-const otpData = otpStore.get(phone);
+    if (Date.now() > otpData.expiresAt) {
+      otpStore.delete(phone);
+      return res.status(400).json({ error: "OTP expired. Please request a new one." });
+    }
 
-if (!otpData || !otpData.verified) {
-  console.log("❌ Phone not verified");
-  return res.status(400).json({ error: "Phone not verified" });
-}
+    if (!otpData.verified) {
+      return res.status(400).json({ error: "Phone not verified. Please enter the OTP first." });
+    }
 
-// cleanup
-otpStore.delete(phone);
-console.log("✅ Phone verified");
+    otpStore.delete(phone); // ✅ cleanup
 
     // ===============================
-    // 🔁 STEP 3: DUPLICATE CHECK
+    // 🔁 DUPLICATE CHECK
     // ===============================
-    console.log("🔍 Checking existing user...");
-
-    const existingEmail = await Owner.findOne({ email });
+    const existingEmail = await Owner.findOne({ email: email.toLowerCase().trim() });
     if (existingEmail) {
-      console.log("❌ Email already exists");
       return res.status(400).json({ error: "Email already registered" });
     }
 
     const existingPhone = await Owner.findOne({ phone });
     if (existingPhone) {
-      console.log("❌ Phone already exists");
       return res.status(400).json({ error: "Phone already registered" });
     }
 
-    console.log("✅ No duplicate user");
-
     // ===============================
-    // 🔐 STEP 4: HASH PASSWORD
+    // 🔐 HASH PASSWORD
     // ===============================
-    console.log("🔐 Hashing password...");
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("✅ Password hashed");
 
     // ===============================
-    // 🖼️ STEP 5: IMAGE HANDLING
+    // 🖼️ IMAGE HANDLING
     // ===============================
     const profileImage = req.file ? req.file.filename : null;
 
-    if (profileImage) {
-      console.log("✅ Image uploaded:", profileImage);
-    } else {
-      console.log("⚠️ No image uploaded");
-    }
-
     // ===============================
-    // 📦 STEP 6: CREATE USER
+    // 📦 CREATE OWNER
     // ===============================
-    console.log("📦 Creating user object...");
-// 🔥 STEP: Generate Hostel ID
-const prefix = city.substring(0,3).toUpperCase();
-
-// Count existing IDs
-const count = await Owner.countDocuments({
-  hostelIds: { $regex: `^${prefix}` }
-});
-
-// Create new ID
-const newHostelId = prefix + String(count + 1).padStart(4, "0");
-
-console.log("🏨 Generated Hostel ID:", newHostelId);
     const newOwner = new Owner({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name:            name.trim(),
+      email:           email.toLowerCase().trim(),
       phone,
-      password: hashedPassword,
-      gender,
-      dob,
-      businessName,
-      businessType,
-      whatsapp,
-      city,
-      state,
-      country,
-      pincode,
-      location: `${city}, ${state}, ${country}`,
+      password:        hashedPassword,
       profileImage,
-      status: "Pending" , // 🔥 SaaS feature (admin approval)
-     hostelIds: [newHostelId], // ✅ dynamic ID
-      createdAt: new Date()
+      hostels:         [],      // ✅ correct schema field (ObjectId refs, starts empty)
+      listings:        [],      // ✅ correct schema field (ObjectId refs, starts empty)
+      status:          "Active",
+      isPhoneVerified: true,    // ✅ they just verified via OTP
+      role:            "Owner"  // ✅ explicit, matches schema default
+      // ✅ no createdAt — { timestamps: true } handles createdAt + updatedAt automatically
+      // ✅ gender, dob, businessName, businessType, whatsapp, city, state,
+      //    country, pincode, location — all optional, filled later from profile
     });
 
     // ===============================
-    // 💾 STEP 7: SAVE TO DB
+    // 💾 SAVE TO DB
     // ===============================
-    console.log("💾 Saving to DB...");
     await newOwner.save();
-    console.log("✅ Owner saved successfully");
 
     // ===============================
-    // 🎉 STEP 8: RESPONSE
+    // 📧 WELCOME EMAIL
+    // Non-blocking — a mail failure won't crash signup
     // ===============================
-            await sendMail(
-          newOwner.email,
-          "🎉 Welcome to HostelNode!",
-          `
-          <div style="font-family:Arial;padding:20px">
+    sendMail(
+      newOwner.email,
+      "🎉 Welcome to HostelNode!",
+      `
+      <div style="font-family:Arial;padding:20px">
+        <h2 style="color:#09B850;">Welcome to HostelNode 🚀</h2>
+        <p>Hi ${newOwner.name},</p>
+        <p>🎉 Your account has been successfully created!</p>
+        <p>HostelNode helps you manage your hostel easily — rooms, members, payments, everything in one place.</p>
+        <hr style="margin:20px 0;">
+        <h3>📺 Watch Demo</h3>
+        <p>Learn how to use HostelNode in 2 minutes:</p>
+        <a href="https://www.instagram.com/reel/DYXZ1R0MGQe/?igsh=dTdqcGw0b3Nrb2tx"
+          style="display:inline-block;padding:12px 18px;background:#09B850;color:white;
+                 text-decoration:none;border-radius:8px;font-weight:bold;">
+          ▶ Watch Demo
+        </a>
+        <hr style="margin:20px 0;">
+        <h3>📘 User Manual</h3>
+        <p>Step-by-step guide to use HostelNode:</p>
+        <a href="https://your-manual-link.com"
+          style="display:inline-block;padding:12px 18px;background:#0f172a;color:white;
+                 text-decoration:none;border-radius:8px;font-weight:bold;">
+          📖 Open Manual
+        </a>
+        <hr style="margin:20px 0;">
+        <p style="color:#555;">If you need help, feel free to contact us anytime.</p>
+        <p style="font-weight:bold;">Happy Managing! 🏨</p>
+        <p style="color:#09B850;font-weight:bold;">— Team HostelNode</p>
+      </div>
+      `
+    ).catch(err => console.error("📧 Welcome email failed (non-fatal):", err.message));
 
-            <h2 style="color:#09B850;">Welcome to HostelNode 🚀</h2>
+    sendMail(
+  "ketanmahajan2424@gmail.com",
+  "🚀 New Owner Signup - HostelNode",
+  `
+  <div style="font-family:Arial;padding:20px">
+    
+    <h2 style="color:#09B850;">
+      🎉 New Owner Registered
+    </h2>
 
-            <p>Hi ${newOwner.name},</p>
+    <p>A new hostel owner has signed up on HostelNode.</p>
 
-            <p>🎉 Your account has been successfully created!</p>
+    <table cellpadding="10" cellspacing="0" 
+      style="border-collapse:collapse;width:100%;margin-top:20px;">
+      
+      <tr style="background:#f5f5f5;">
+        <td><strong>Name</strong></td>
+        <td>${newOwner.name}</td>
+      </tr>
 
-            <p>
-              HostelNode helps you manage your hostel easily — rooms, members, payments, everything in one place.
-            </p>
+      <tr>
+        <td><strong>Email</strong></td>
+        <td>${newOwner.email}</td>
+      </tr>
 
-            <hr style="margin:20px 0;">
+      <tr style="background:#f5f5f5;">
+        <td><strong>Phone</strong></td>
+        <td>${newOwner.phone}</td>
+      </tr>
 
-            <h3>📺 Watch Demo</h3>
-            <p>Learn how to use HostelNode in 2 minutes:</p>
+      <tr>
+        <td><strong>Status</strong></td>
+        <td>${newOwner.status}</td>
+      </tr>
 
-            <a href="https://your-demo-video-link.com"
-              style="display:inline-block;padding:12px 18px;
-              background:#09B850;color:white;text-decoration:none;
-              border-radius:8px;font-weight:bold;">
-              ▶ Watch Demo
-            </a>
+      <tr style="background:#f5f5f5;">
+        <td><strong>Signup Time</strong></td>
+        <td>${new Date().toLocaleString("en-IN")}</td>
+      </tr>
 
-            <hr style="margin:20px 0;">
+    </table>
 
-            <h3>📘 User Manual</h3>
-            <p>Step-by-step guide to use HostelNode:</p>
+    <div style="margin-top:25px;">
+      <a href="https://www.hostelnode.com/admin"
+        style="
+          background:#09B850;
+          color:white;
+          padding:12px 18px;
+          text-decoration:none;
+          border-radius:8px;
+          font-weight:bold;
+        ">
+        Open Admin Panel
+      </a>
+    </div>
 
-            <a href="https://your-manual-link.com"
-              style="display:inline-block;padding:12px 18px;
-              background:#0f172a;color:white;text-decoration:none;
-              border-radius:8px;font-weight:bold;">
-              📖 Open Manual
-            </a>
+    <p style="margin-top:30px;color:#666;">
+      — HostelNode System Notification
+    </p>
 
-            <hr style="margin:20px 0;">
-
-            <p style="color:#555;">
-              If you need help, feel free to contact us anytime.
-            </p>
-
-            <p style="font-weight:bold;">Happy Managing! 🏨</p>
-
-            <p style="color:#09B850;font-weight:bold;">
-              — Team HostelNode
-            </p>
-
-          </div>
-          `
-        );
-
-        console.log("📧 Welcome email sent");
-    console.log("🎉 Signup Completed Successfully");
-    console.log("================= ✅ END =================\n");
-
+  </div>
+  `
+).catch(err =>
+  console.error("Admin signup notification failed:", err.message)
+);
+    // ===============================
+    // 🎉 SUCCESS
+    // ===============================
     res.status(201).render("authPrivate/signupSuccess.ejs", {
       message: "Signup successful",
       user: {
-        name: newOwner.name,
-        email: newOwner.email,
+        name:   newOwner.name,
+        email:  newOwner.email,
         status: newOwner.status
       }
-    }); // Render success page with user info
+    });
 
   } catch (err) {
-    console.error("\n❌ SIGNUP ERROR:", err);
-    console.log("================= ❌ FAILED =================\n");
+    console.error("SIGNUP ERROR:", err);
 
-    res.status(500).json({
-      error: "Server error. Please try again later"
-    });
+    // Handle MongoDB duplicate key error (race condition — two signups same time)
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0]; // "email" or "phone"
+      return res.status(400).json({
+        error: `${field === "email" ? "Email" : "Phone"} already registered`
+      });
+    }
+
+    res.status(500).json({ error: "Server error. Please try again later" });
   }
 });
+
 router.post('/login', async (req, res) => {
   
   try {
-    console.log("\n================= 🚀 LOGIN START =================");
-    console.log("📥 BODY:", req.body);
+    // console.log("\n================= 🚀 LOGIN START =================");
+    // console.log("📥 BODY:", req.body);
 
     // Extract from nested user object
     const { email, password, role } = req.body.user;
-    console.log("📥 Login Attempt:", { email, role });
+    // console.log("📥 Login Attempt:", { email, role });
 
     // Basic validation
     if (!email || !password || !role) {
@@ -392,7 +447,7 @@ router.post('/login', async (req, res) => {
     const payload = { id: user._id, email: user.email, role: user.role };
     const token = generateToken(payload);
 
-    console.log(`Login Successful: ${user.email} (${user.role})`);
+    // console.log(`Login Successful: ${user.email} (${user.role})`);
 
     // Set cookie
     res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'strict' });
@@ -440,12 +495,12 @@ router.post('/login', async (req, res) => {
           `
         );
 
-        console.log("📧 Login alert sent");
+        // console.log("📧 Login alert sent");
     // Redirect
     res.redirect('/user');
 
   } catch (err) {
-    console.error("Login Error:", err);
+    // console.error("Login Error:", err);
     res.status(500).render("authPrivate/login.ejs", { error: "Server error. Please try again later" });
   }
 });
@@ -544,10 +599,10 @@ router.get('/', jwtAuthMiddleware, attachHostel, async (req, res) => {
       dueAccounts
     });
 
-    console.log("✅ Dashboard loaded");
+    // console.log("✅ Dashboard loaded");
 
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     res.status(500).send("Server Error");
   }
 });
@@ -558,13 +613,13 @@ router.get('/', jwtAuthMiddleware, attachHostel, async (req, res) => {
     const user = await Owner.findById(req.user.id);
     res.render("showPage/owner/editOwner.ejs", { user });
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     res.status(500).send("Error loading page");
   }
 });
 
 // Edit Owner Profile Handler (POST)
-router.post("/editOwner", jwtAuthMiddleware, upload.single("profileImage"), async (req, res) => {
+router.post("/editOwner", jwtAuthMiddleware, handleMulterError(upload.single("profileImage")), async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -602,7 +657,7 @@ router.post("/editOwner", jwtAuthMiddleware, upload.single("profileImage"), asyn
     res.redirect("/user");
 
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     res.status(500).send("Update failed");
   }
 });
@@ -619,13 +674,13 @@ router.get("/hostel/:id", jwtAuthMiddleware, async (req, res) => {
 router.get("/profile",jwtAuthMiddleware, attachHostel,async(req,res)=>{
     try{
         userData=req.user;
-        console.log("USER DATA",userData);
+        // console.log("USER DATA",userData);
         const userId=userData.id;
         // const user = await Owner.findById(userId);
         // res.status(200).render('dashboard.ejs');
         res.status(200).send("heelo i m profile")
     }catch(err){
-        console.error(err);
+        // console.error(err);
         res.status(500).json({error:"internal server "})
     }
 })
@@ -643,7 +698,7 @@ router.get("/addnewhostel", jwtAuthMiddleware, attachHostel, async (req, res) =>
     });
     
   } catch (err) {
-    console.error("Error loading add new hostel page:", err);
+    // console.error("Error loading add new hostel page:", err);
     res.status(500).send("Internal Server Error");
   }
 });
@@ -651,7 +706,7 @@ router.get("/addnewhostel", jwtAuthMiddleware, attachHostel, async (req, res) =>
 /////////////////////////////////////// ➕ Create New Hostel/////////////////////////////////////////////////////////////
 router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) => {
   try {
-    console.log("\n🏨 ===== CREATE HOSTEL START =====");
+    // console.log("\n🏨 ===== CREATE HOSTEL START =====");
 
     const userId = req.user.id;
     const user = await Owner.findById(userId);
@@ -659,7 +714,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
     // 📥 Get form data
     const { hostelName, city, state, country, pincode } = req.body;
 
-    console.log("📥 BODY:", req.body);
+    // console.log("📥 BODY:", req.body);
 
     // ===============================
     // 🧪 VALIDATION
@@ -687,7 +742,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
 
     const newHostelId = prefix + String(count + 1).padStart(4, "0");
 
-    console.log("🏷️ Generated Hostel ID:", newHostelId);
+    // console.log("🏷️ Generated Hostel ID:", newHostelId);
 
     // ===============================
     // 🏨 CREATE HOSTEL  
@@ -709,7 +764,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
     // 💾 SAVE HOSTEL 
     // ===============================
     await newHostel.save();
-    console.log("✅ Hostel saved:", newHostel);
+    // console.log("✅ Hostel saved:", newHostel);
 
     // ===============================
     // 🔗 LINK HOSTEL TO OWNER
@@ -718,17 +773,17 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
       $push: { hostelIds: newHostelId } // store hostelId in owner
     });
 
-    console.log("🔗 Hostel linked to owner");
+    // console.log("🔗 Hostel linked to owner");
 
     // ===============================
     // 🎉 RESPONSE
     // ===============================
-    console.log("🎉 ===== HOSTEL CREATED SUCCESS =====\n");
+    // console.log("🎉 ===== HOSTEL CREATED SUCCESS =====\n");
 
     res.redirect("/user"); // or dashboard / hostel list
 
   } catch (err) {
-    console.error("❌ Error creating hostel:", err);
+    // console.error("❌ Error creating hostel:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -746,7 +801,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
         // Find floors where userId matches the creator
         // const allFloors = await Floor.find({ user: userId });
 
-        // console.log(user);
+        // // console.log(user);
         res.status(200).render("showPage/floors/floor.ejs",{allFloors,user});
       })
       //all Floor
@@ -807,12 +862,12 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
 
         await newFloor.save();
 
-        console.log("✅ New Floor Added:", newFloor);
+        // console.log("✅ New Floor Added:", newFloor);
 
         res.redirect("/user/floors"); // ✅ fixed route
 
       } catch (error) {
-        console.error("❌ Error saving floor:", error);
+        // console.error("❌ Error saving floor:", error);
 
         if (error.code === 11000) {
           res.status(400).send("Duplicate entry detected.");
@@ -837,7 +892,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
                         user: userId,
                         hostel: selectedHostel
                       });
-      // console.log(deletedMember);
+      // // console.log(deletedMember);
       res.redirect("/user/managefloor");
     })
 
@@ -873,7 +928,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
             });
 
           } catch (err) {
-            console.error(err);
+            // console.error(err);
             res.status(500).send("Server Error");
           }
         });
@@ -898,7 +953,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
             res.render("showPage/rooms/managerooms.ejs", { allRooms, user });
 
           } catch (err) {
-            console.error(err);
+            // console.error(err);
             res.status(500).send("Server Error");
           }
         });
@@ -923,7 +978,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
             res.render("showPage/rooms/newRoom.ejs", { floors, user });
 
           } catch (err) {
-            console.error(err);
+            // console.error(err);
             res.status(500).send("Server Error");
           }
         });
@@ -984,11 +1039,11 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
               }
             });
 
-            console.log("New Room Added:", newRoom);
+            // console.log("New Room Added:", newRoom);
             res.redirect("/user/allrooms");
 
           } catch (error) {
-            console.error("Error saving room:", error);
+            // console.error("Error saving room:", error);
 
             if (error.code === 11000) {
               res.status(400).send("Duplicate room entry.");
@@ -1045,7 +1100,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
             res.redirect("/user/managerooms");
 
           } catch (error) {
-            console.error(error);
+            // console.error(error);
             res.status(500).send("Update failed");
           }
         });
@@ -1075,7 +1130,7 @@ router.post("/create-hostel", jwtAuthMiddleware,attachHostel, async (req, res) =
             res.redirect("/user/managerooms");
 
           } catch (error) {
-            console.error(error);
+            // console.error(error);
             res.status(500).send("Delete failed");
           }
         });
@@ -1105,7 +1160,7 @@ router.get("/members", jwtAuthMiddleware, attachHostel, async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Error loading members:", err);
+    // console.error("Error loading members:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -1142,7 +1197,7 @@ router.get("/member-edit/:id/edit", jwtAuthMiddleware, attachHostel, async (req,
     });
 
   } catch (error) {
-    console.error("❌ Error loading member edit page:", error);
+    // console.error("❌ Error loading member edit page:", error);
     res.status(500).send("Server Error");
   }
 });
@@ -1166,7 +1221,7 @@ router.put("/member-edit/:id", jwtAuthMiddleware, attachHostel, async (req, res)
     res.redirect("/user/members");
 
   } catch (error) {
-    console.error("❌ Error updating member:", error);
+    // console.error("❌ Error updating member:", error);
     res.status(500).send("Server Error");
   }
 });
@@ -1196,7 +1251,7 @@ router.delete("/member/:id", jwtAuthMiddleware, attachHostel, async (req, res) =
     res.redirect("/user/members");
 
   } catch (error) {
-    console.error("❌ Error deleting member:", error);
+    // console.error("❌ Error deleting member:", error);
     res.status(500).send("Server Error");
   }
 });
@@ -1221,7 +1276,7 @@ router.get("/activeMember", jwtAuthMiddleware, attachHostel, async (req, res) =>
     res.render("showPage/memberData/activeMember.ejs", { allMembers, user });
 
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     res.status(500).send("Server Error");
   }
 });
@@ -1253,7 +1308,7 @@ router.get("/activeMember/:id", jwtAuthMiddleware, attachHostel, async (req, res
     res.redirect("/user/members");
 
   } catch (error) {
-    console.error(error);
+    // console.error(error);
     res.status(500).send("Server Error");
   }
 });
@@ -1341,7 +1396,7 @@ router.post("/newMember", jwtAuthMiddleware, attachHostel, async (req, res) => {
     res.redirect("/user/newAdded/successfully");
 
   } catch (error) {
-    console.error("❌ Error saving member:", error);
+    // console.error("❌ Error saving member:", error);
     res.status(500).send("Error saving member");
   }
 });
@@ -1387,7 +1442,7 @@ router.get("/newAdded/successfully", jwtAuthMiddleware, attachHostel, async (req
        // const totalFee = member.payments.reduce((sum,payment) => sum + payment.totalFees, 0)
        res.render("payments/addpayment.ejs", {member,dueAmount,user});
      } catch (err){
-       console.error("Error fetching member:", err);
+       // console.error("Error fetching member:", err);
        res.status(500).send("Server Error");
      }
    });
@@ -1422,7 +1477,7 @@ router.get("/newAdded/successfully", jwtAuthMiddleware, attachHostel, async (req
        // ✅ Instead of rendering, redirect to the GET receipt route
        res.redirect(`/user/payment-receipt/${savedPayment._id}`);
      } catch (error) {
-       console.error("Error adding payment:", error);
+       // console.error("Error adding payment:", error);
        res.status(500).send("Internal Server Error");
      }
    });
@@ -1452,7 +1507,7 @@ router.get("/newAdded/successfully", jwtAuthMiddleware, attachHostel, async (req
          user
        });
      } catch (error) {
-       console.error("Error loading payment receipt:", error);
+       // console.error("Error loading payment receipt:", error);
        res.status(500).send("Internal Server Error");
      }
    });
@@ -1487,7 +1542,7 @@ router.get("/newAdded/successfully", jwtAuthMiddleware, attachHostel, async (req
        res.render("showPage/memberData/searchedMember.ejs", { allMembers: members ,user});
    
      } catch (error) {
-       console.error("Error searching for member:", error);
+       // console.error("Error searching for member:", error);
    
        if (error.code === 11000) {
          res.status(400).send("Error: Duplicate entry detected. Please ensure unique values for unique fields.");
@@ -1542,7 +1597,7 @@ router.get("/newAdded/successfully", jwtAuthMiddleware, attachHostel, async (req
        
        res.render("payments/allrecords.ejs", { allMembers: membersWithFees ,user});
      } catch (err) {
-       console.error("Error fetching records:", err);
+       // console.error("Error fetching records:", err);
        res.status(500).send("Internal Server Error");
      }
    });
@@ -1598,7 +1653,7 @@ router.get("/newAdded/successfully", jwtAuthMiddleware, attachHostel, async (req
          user
        });
      } catch (err) {
-       console.error("Error searching fee records:", err);
+       // console.error("Error searching fee records:", err);
        res.status(500).send("Internal Server Error");
      }
    });
@@ -1618,7 +1673,7 @@ router.get("/newAdded/successfully", jwtAuthMiddleware, attachHostel, async (req
        const payments = await Payment.find({ memberId }).sort({ paymentDate: -1 });
        res.render('payments/PaymentHistoryOfOne.ejs', { member, payments ,user});
      } catch (err) {
-       console.error(err);
+       // console.error(err);
        res.status(500).send('Server Error');
      }
    });
@@ -1658,7 +1713,7 @@ router.get("/upcomingPayments",jwtAuthMiddleware, attachHostel, async (req, res)
    
        res.render("payments/upcomingPayments.ejs", { allMembers: upcomingPayments ,user});
      } catch (err) {
-       console.error("Error fetching upcoming payments:", err);
+       // console.error("Error fetching upcoming payments:", err);
        res.status(500).send("Internal Server Error");
      }
    });
@@ -1702,7 +1757,7 @@ router.get("/upcomingPayments",jwtAuthMiddleware, attachHostel, async (req, res)
    
      res.render("payments/duesReport.ejs", { allMembers: membersWithFees,user });
    } catch (err) {
-     console.error("Error fetching records:", err);
+     // console.error("Error fetching records:", err);
      res.status(500).send("Internal Server Error");
    }
    })
@@ -1805,7 +1860,7 @@ router.get("/revenue", jwtAuthMiddleware, attachHostel, async (req, res) =>{
         });
 
     } catch (error) {
-        console.log("Error in Revenue Route:", error);
+        // console.log("Error in Revenue Route:", error);
         res.status(500).send("Server Error");
     }
 });
@@ -1874,13 +1929,13 @@ router.post("/forgot-password", async (req, res) => {
   </div>
   `
 );
-    console.log("⏳ Expires at:", user.resetPasswordExpires);
+    // console.log("⏳ Expires at:", user.resetPasswordExpires);
     res.render("authPrivate/forgotPassword.ejs", {
       message: "Reset Link sent to your Email Check your inbox!"
     });
 
   } catch (err) {
-    console.error("Forgot Password Error:", err);
+    // console.error("Forgot Password Error:", err);
     res.status(500).send("Server Error");
   }
 }); 
@@ -1889,14 +1944,14 @@ router.post("/forgot-password", async (req, res) => {
 //////////////////////////////////////////////////////////
 router.get("/reset-password/:token", async (req, res) => {
   try {
-    console.log("Incoming token:", req.params.token);
+    // console.log("Incoming token:", req.params.token);
 
     const user = await Owner.findOne({
       resetPasswordToken: req.params.token,
       resetPasswordExpires: { $gt: new Date() } // ✅ FIXED
     });
 
-    console.log("User found:", user ? "YES" : "NO");
+    // console.log("User found:", user ? "YES" : "NO");
 
     if (!user) {
       return res.send("❌ Token expired or invalid");
@@ -1907,7 +1962,7 @@ router.get("/reset-password/:token", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Reset GET Error:", err);
+    // console.error("Reset GET Error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -1981,14 +2036,14 @@ await user.save();
       `
     );
 
-    console.log("📧 Confirmation email sent");
+    // console.log("📧 Confirmation email sent");
 
     res.redirect("/login");
-        console.log("✅ Password reset successful");
+        // console.log("✅ Password reset successful");
  
 
   } catch (err) {
-    console.error("Reset POST Error:", err);
+    // console.error("Reset POST Error:", err);
     res.status(500).send("Error resetting password");
   }
 });
@@ -2013,10 +2068,10 @@ const sendMail = async (to, subject, html) => {
 
     await transporter.sendMail(mailOptions);
 
-    console.log("📧 Email sent successfully");
+    // console.log("📧 Email sent successfully");
 
   } catch (error) {
-    console.error("❌ Email Error:", error);
+    // console.error("❌ Email Error:", error);
   }
 };
 
@@ -2064,7 +2119,7 @@ if (!result.success) {
 res.json({ success: true });
 
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     res.json({ success: false, error: "Failed to send OTP" });
   }
 });
@@ -2116,7 +2171,7 @@ router.get("/list-property", jwtAuthMiddleware, attachHostel, async (req, res) =
 
 
   } catch (err) {
-    console.error("❌ Error loading list property page:", err);
+    // console.error("❌ Error loading list property page:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -2140,7 +2195,7 @@ const listingStorage = multer.diskStorage({
 const listingUpload = multer({
   storage: listingStorage,
   fileFilter,           // reuse the same image-only filter you already have
-  limits: { fileSize: 40 * 1024 * 1024 }  // 40MB per photo
+  limits: { fileSize: 100 * 1024 * 1024 }  // 100MB per photo
 });
 
 // 🏠 POST /list-property  →  save listing to DB
@@ -2151,7 +2206,7 @@ router.post(
   listingUpload.array("images", 15),   // up to 15 photos
   async (req, res) => {
     try {
-      console.log("\n🏠 ===== CREATE LISTING START =====");
+      // console.log("\n🏠 ===== CREATE LISTING START =====");
 
       const userId = req.user.id;
 
@@ -2201,7 +2256,7 @@ router.post(
 
       // ── 2. BASIC VALIDATION ───────────────────────────────────────────
       if (!title || !gender || !startingPrice || !location.address || !location.nearCollege || !contact.phone) {
-        console.log("❌ Missing required fields");
+        // console.log("❌ Missing required fields");
         return res.status(400).send("All required fields must be filled.");
       }
 
@@ -2228,13 +2283,13 @@ router.post(
         amenities: Array.isArray(amenities) ? amenities : (amenities ? [amenities] : []),
         rules:     Array.isArray(rules)     ? rules     : (rules     ? [rules]     : []),
         contact,
-        status: "Pending"   // always starts as Pending for admin review
+        status: "Approved"   // always starts as Approved for admin review
       });
 
       await newListing.save();
-      console.log("✅ Listing saved:", newListing._id);
+      // console.log("✅ Listing saved:", newListing._id);
       const user = await Owner.findById(userId);
-      console.log("🎉 ===== LISTING CREATED SUCCESS =====\n");
+      // console.log("🎉 ===== LISTING CREATED SUCCESS =====\n");
       await sendMail(
   user.email,
   "🏠 Your Listing is Created - HostelNode",
@@ -2337,7 +2392,7 @@ router.post(
       });
 
     } catch (err) {
-      console.error("❌ Error creating listing:", err);
+      // console.error("❌ Error creating listing:", err);
 
       if (err.name === "ValidationError") {
         return res.status(400).send("Validation Error: " + err.message);
@@ -2365,7 +2420,7 @@ router.get("/my-listings", jwtAuthMiddleware, attachHostel, async (req, res) => 
     const enquiries = await Enquiry.find({
       listing: { $in: listingIds }
     })
-    .populate("student", "firstName lastName phone")
+    .populate("student", "firstName lastName phone profileImage") // only pull necessary student fields
     .sort({ createdAt: -1 });
 
     // 3. Attach enquiries to each listing (MATCH YOUR EJS)
@@ -2383,7 +2438,11 @@ router.get("/my-listings", jwtAuthMiddleware, attachHostel, async (req, res) => 
           phone: e.student?.phone || "",
           roomType: e.roomType,
           moveIn: e.moveIn,
+          preferredDate: e.preferredDate,
+          contactMethod: e.contactMethod,
+          
           message: e.message,
+          avatar: e.student?.profileImage || "hello-default-avatar.png",
           createdAt: e.createdAt,
 
           // 🔥 Important for your badge UI
@@ -2406,7 +2465,7 @@ router.get("/my-listings", jwtAuthMiddleware, attachHostel, async (req, res) => 
     });
 
   } catch (err) {
-    console.error("❌ my-listings error:", err);
+    // console.error("❌ my-listings error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -2425,7 +2484,7 @@ router.get("/my-listings", jwtAuthMiddleware, attachHostel, async (req, res) => 
 //     });
 
 //   } catch (err) {
-//     console.error("❌ my-listings error:", err);
+//     // console.error("❌ my-listings error:", err);
 //     res.status(500).send("Server Error");
 //   }
 // });
@@ -2450,7 +2509,7 @@ router.post("/listing/:id/delete", jwtAuthMiddleware, async (req, res) => {
     res.redirect("/user/my-listings");
 
   } catch (err) {
-    console.error("❌ Delete listing error:", err);
+    // console.error("❌ Delete listing error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -2491,7 +2550,7 @@ router.get('/listing/:id/edit', jwtAuthMiddleware, attachHostel, async (req, res
     });
 
   } catch (err) {
-    console.error("❌ Edit listing error:", err);
+    // console.error("❌ Edit listing error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -2514,7 +2573,7 @@ router.post(
         return res.status(404).send('Not found or unauthorized');
       }
 
-      console.log("✏️ EDIT LISTING START");
+      // console.log("✏️ EDIT LISTING START");
 
       // =========================
       // 1. BASIC FIELDS
@@ -2625,17 +2684,17 @@ router.post(
       // =========================
       // 7. RESET STATUS
       // =========================
-      listing.status = "Pending";
+      listing.status = "Approved"; // reset to Approved for re-review
 
       await listing.save();
 
-      console.log("🧠 FINAL LOCATION SAVED:", listing.location);
-      console.log("✅ EDIT SUCCESS:", listing._id);
+      // console.log("🧠 FINAL LOCATION SAVED:", listing.location);
+      // console.log("✅ EDIT SUCCESS:", listing._id);
 
       res.redirect("/user/my-listings");
 
     } catch (err) {
-      console.error("❌ Edit error:", err);
+      // console.error("❌ Edit error:", err);
       res.status(500).send("Server Error");
     }
   }
@@ -2678,7 +2737,7 @@ router.delete("/listing/:listingId/review/:reviewId", jwtAuthMiddleware, async (
     });
 
   } catch (err) {
-    console.error("Delete review error:", err);
+    // console.error("Delete review error:", err);
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
@@ -2713,7 +2772,7 @@ router.get('/secure/profile/:filename', jwtAuthMiddleware, (req, res) => {
     res.sendFile(filePath);
 
   } catch (err) {
-    console.error("Image fetch error:", err);
+    // console.error("Image fetch error:", err);
     res.status(500).send("Server error");
   }
 });
