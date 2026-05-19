@@ -895,3 +895,24 @@ button { font-family: var(--font-b); cursor: pointer; }
   .cta-actions { justify-content: center; }
   .cards-grid { grid-template-columns: 1fr; }
 }
+.city-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.city-chips a {
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.city-chips a:hover {
+  background: #000;
+  color: #fff;
+}

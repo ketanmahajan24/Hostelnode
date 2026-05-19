@@ -15,6 +15,8 @@ const Member   = require("../models/member");
 const Room     = require("../models/room");
 const Enquiry  = require("../models/enquiry");
 const Payment  = require("../models/payment");
+const SearchLog = require("../models/searchLog");
+
 const { sendMail } = require("../utils/sendMail");
 const { jwtAdminAuth, generateAdminToken } = require("../Middlewares/jwtAuth");
 const { sendWhatsAppOTP } = require("../models/Whatsapp");
@@ -635,6 +637,95 @@ router.get("/analytics", jwtAdminAuth, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+
+
+ ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GET /admin/search-analytics
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+router.get("/search-analytics", jwtAdminAuth, async (req, res) => {
+  try {
+    const { range = "7" } = req.query;  // days
+    const days = parseInt(range) || 7;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const [
+      totalSearches,
+      topCities,
+      topAreas,
+      searchTypes,
+      recentSearches,
+      dailyTrend,
+      loggedInSearches,
+    ] = await Promise.all([
+
+      // Total searches in period
+      SearchLog.countDocuments({ createdAt: { $gte: since } }),
+
+      // Top searched cities
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since }, resolvedCity: { $ne: "" } } },
+        { $group: { _id: "$resolvedCity", count: { $sum: 1 } } },
+        { $sort: { count: -1 } }, { $limit: 10 }
+      ]),
+
+      // Top searched areas
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since }, resolvedArea: { $ne: "" } } },
+        { $group: { _id: "$resolvedArea", count: { $sum: 1 }, city: { $first: "$resolvedCity" } } },
+        { $sort: { count: -1 } }, { $limit: 10 }
+      ]),
+
+      // Breakdown by search type
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: { _id: "$searchType", count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+
+      // Recent searches (last 50)
+      SearchLog.find({ createdAt: { $gte: since } })
+        .sort({ createdAt: -1 }).limit(50)
+        .select("searchQuery searchType resolvedCity resolvedArea studentName studentPhone ip createdAt resultsCount"),
+
+      // Daily trend
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }},
+        { $sort: { _id: 1 } }
+      ]),
+
+      // Searches by logged-in students
+      SearchLog.countDocuments({ createdAt: { $gte: since }, studentId: { $ne: null } }),
+    ]);
+
+    const admin = await Admin.findById(req.admin.id).select("-password");
+    res.render("admin/searchAnalytics.ejs", {
+      admin,
+      stats: { totalSearches, loggedInSearches },
+      topCities,
+      topAreas,
+      searchTypes,
+      recentSearches,
+      dailyTrend: JSON.stringify(dailyTrend),
+      range,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
+
+
+
+
+
+
 
 /* ============================================================
    PROFILE

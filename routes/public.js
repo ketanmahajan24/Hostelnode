@@ -6,7 +6,13 @@ const router = express.Router();
 // Models
 // listing property schema
 const Listing = require("../models/listingProperty"); 
- 
+const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
+const { logSearch } = require("../utils/searchLogger");
+
+const {
+  notifyOwnerOnView
+} = require("../utils/leadWhatsapp");
+
 
 router.get("/",   async (req, res) => {
   const listings = await Listing.find({
@@ -40,14 +46,18 @@ res.render("lendingPage.ejs")
 
 
 
-router.get("/hostel/:slug", async (req, res) => {
+router.get(
+  "/hostel/:slug",
+  optionalStudentAuth,
+  async (req, res) => {
   try {
     const { slug } = req.params;
     
 
     // 🔥 Increment views + get updated doc
     const listing = await Listing.findOneAndUpdate(
-      { slug },
+      {  slug,
+    status: "Approved"},
       { $inc: { views: 2 } },
       { new: true }
     ).populate("owner"); // ✅ IMPORTANT: populate owner to get name/avatar for reviews and owner info on page;
@@ -56,7 +66,32 @@ router.get("/hostel/:slug", async (req, res) => {
     if (!listing) {
       return res.status(404).send("Hostel not found");
     }
+    
+// ─────────────────────────────────────────────
+// LOG HOSTEL VIEW
+// ─────────────────────────────────────────────
 
+await logSearch({
+  req,
+  searchType: "listing_view",
+  searchQuery: listing.title,
+  resolvedCity: listing.location?.city || "",
+  resolvedArea: listing.location?.nearCollege || "",
+  resultsCount: 1,
+});
+console.log("STUDENT:", req.student);
+console.log("OWNER:", listing.owner?.phone);
+console.log("HOSTEL:", listing.title);
+
+// Send WhatsApp lead to owner
+if (req.student) {
+  notifyOwnerOnView({
+    student: req.student,
+    listing: listing,
+  }).catch(err =>
+    console.error("WA view notify error:", err)
+  );
+}
     console.log("UPDATED VIEWS:", listing.views); // 👈 debug
 
     // Check if logged-in student already reviewed
@@ -69,6 +104,7 @@ router.get("/hostel/:slug", async (req, res) => {
     
     // Similar listings
     const similar = await Listing.find({
+  status: "Approved",
       "location.city": listing.location.city,
       _id: { $ne: listing._id }
     }).limit(4);

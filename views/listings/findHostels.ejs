@@ -11,7 +11,7 @@
 </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Find Hostel ,Flat & PG Near You | HostelNode</title>
+  <title>Find Hostel PG Flat Near You | HostelNode</title>
   <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
 
   <script type="application/ld+json">
@@ -260,7 +260,13 @@
       <h1>Find your perfect<br><span class="accent">hostel or PG</span> near<br>your college</h1>
       <p class="hero-sub">Search 2,400+ verified hostels and PGs near your college. Compare prices, amenities, and book a visit in seconds.</p>
     <% } %>
-
+  <!-- ── NEARBY BUTTON (location asked ONLY on click) ── -->
+      <div style="text-align:center; margin-top:14px;">
+        <button type="button" id="nearbyBtn" class="nearby-btn" onclick="findNearby()">
+          <i class="fa-solid fa-location-crosshairs"></i>
+          Find PG / Hostel Near Me
+        </button>
+      </div>
     <!-- Search Card -->
     <div class="search-card">
       <div class="search-tabs">
@@ -311,13 +317,7 @@
         </div>
       </form>
 
-      <!-- ── NEARBY BUTTON (location asked ONLY on click) ── -->
-      <div style="text-align:center; margin-top:14px;">
-        <button type="button" id="nearbyBtn" class="nearby-btn" onclick="findNearby()">
-          <i class="fa-solid fa-location-crosshairs"></i>
-          Find PG / Hostel Near Me
-        </button>
-      </div>
+    
 
       <div class="search-quick">
         <span class="search-quick-label">Popular:</span>
@@ -327,6 +327,14 @@
         <button type="button" class="quick-chip" onclick="fillSearch('Pune University')">Pune Univ.</button>
         <button type="button" class="quick-chip" onclick="fillSearch('VIT Vellore')">VIT Vellore</button>
       </div>
+      <div class="city-chips">
+  <a href="/city/mumbai">Mumbai</a>
+  <a href="/city/pune">Pune</a>
+  <a href="/city/bangalore">Bangalore</a>
+  <a href="/city/indore">Indore</a>
+  <a href="/city/hyderabad">Hyderabad</a>
+  <a href="/city/delhi">Delhi</a>
+</div>
     </div>
 
     <!-- ── NEARBY RESULTS PANEL — appears below search card on click ── -->

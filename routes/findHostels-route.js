@@ -2,7 +2,11 @@ const express = require("express");
 const router  = express.Router();
 const Listing = require("../models/listingProperty");
 const { parseSearchQuery } = require("../utils/smartSearch"); // ← new
-
+const { logSearch }            = require("../utils/searchLogger");
+const {
+  notifyOwnersOnSearch,
+  notifyOwnerOnView
+} = require("../utils/leadWhatsapp");
 // ─────────────────────────────────────────────
 // HOME / FIND PAGE  →  GET /findHostels
 // ─────────────────────────────────────────────
@@ -183,7 +187,30 @@ router.get("/results", async (req, res) => {
     }
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
+// ─────────────────────────────────────────────
+// LOG SEARCH + SEND OWNER LEADS
+// ─────────────────────────────────────────────
 
+const collegeQuery = req.query.college || "";
+const cityQuery    = parsed.cityOrArea || "";
+
+await logSearch({
+  req,
+  searchType: "text_search",
+  searchQuery: collegeQuery,
+  resolvedCity: cityQuery,
+  resolvedArea: parsed.college || cityQuery,
+  resultsCount: listings.length,
+});
+
+// Send WhatsApp leads to owners
+if (req.student && collegeQuery && collegeQuery.length > 2) {
+  notifyOwnersOnSearch({
+    student: req.student,
+    area: parsed.college || collegeQuery,
+    city: cityQuery,
+  }).catch(err => console.error("WA notify error:", err));
+}
     // Pass parsed info to template for displaying smart hints
     res.render("listings/findHostels-results", {
       listings,
@@ -232,6 +259,27 @@ router.get("/hostel/:slug", async (req, res) => {
     ).populate("owner");
 
     if (!listing) return res.status(404).send("Hostel not found");
+
+    // ─────────────────────────────────────────────
+// LOG LISTING VIEW
+// ─────────────────────────────────────────────
+
+await logSearch({
+  req,
+  searchType: "listing_view",
+  searchQuery: listing.title,
+  resolvedCity: listing.location?.city || "",
+  resolvedArea: listing.location?.nearCollege || "",
+  resultsCount: 1,
+});
+
+// Send WhatsApp lead to owner
+if (req.student) {
+  notifyOwnerOnView({
+    student: req.student,
+    listing: listing,
+  }).catch(err => console.error("WA view notify error:", err));
+}
 
     let studentReview = null;
     if (req.student) {

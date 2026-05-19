@@ -198,7 +198,49 @@ https://hostelnode.com`
   }
 };
 // 
+
+  // =====================================================
+// GENERIC WHATSAPP MESSAGE SENDER
+// =====================================================
+
+const sendWhatsAppMessage = async (phone, text) => {
+  try {
+
+    if (!isInitialized || !client) {
+      console.error("⏳ WhatsApp not ready");
+      return false;
+    }
+
+    const clean = phone.toString().replace(/\D/g, "");
+
+    const finalNumber = clean.startsWith("91")
+      ? clean
+      : `91${clean}`;
+
+    const number = `${finalNumber}@c.us`;
+
+    const isRegistered = await client.isRegisteredUser(number);
+
+    if (!isRegistered) {
+      console.error("❌ Number not on WhatsApp:", phone);
+      return false;
+    }
+
+    await client.sendMessage(number, text);
+
+    console.log("✅ Generic WA sent:", phone);
+
+    return true;
+
+  } catch (err) {
+    console.error("❌ Generic WA send error:", err.message);
+    return false;
+  }
+}; 
+
+
 const sendOwnerEnquiryMessage = async (phone, data) => {
+
   try {
     if (!isInitialized || !client) {
       error("⏳ WhatsApp not ready");
@@ -248,5 +290,6 @@ https://wa.me/${data.studentPhone}`;
 // ================= EXPORT =================
 module.exports = {
   sendWhatsAppOTP,
-  sendOwnerEnquiryMessage   // ✅ ADD THIS
+  sendOwnerEnquiryMessage,
+  sendWhatsAppMessage
 };

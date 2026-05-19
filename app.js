@@ -1,6 +1,10 @@
 require('dotenv').config() //env variable
 const LoalStrategy=require('passport-local').Strategy
 
+// Near the top with other requires:
+const cityRouter   = require("./routes/cityRoutes");
+const sitemapRouter = require("./routes/sitemapRoute");
+ 
 const express= require("express")
 const app = express();
 const bodyParser = require("body-parser");
@@ -29,6 +33,10 @@ const Student = require("./models/studentSchema");
 // ── At the top with other requires ──
 // const visitorTracker = require("./Middlewares/visitorTracker");
 
+// With other app.use() route mounts:
+app.use("/city", cityRouter);
+app.use("/", sitemapRouter);          // handles /sitemap.xml and /robots.txt
+ 
 // TO THIS (new):
 const { visitorTracker, trackGpsLocation } = require("./Middlewares/visitorTracker");
 

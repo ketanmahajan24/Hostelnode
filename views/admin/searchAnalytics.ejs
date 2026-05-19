@@ -1,0 +1,403 @@
+<!-- ============================================================
+   ADMIN SEARCH ANALYTICS PANEL
+   
+   STEP 1: Add this route to your adminRoutes.js:
+   (See the route code section below marked with ==ROUTE==)
+   
+   STEP 2: Add this EJS panel to your admin dashboard view
+   (admin/dashboard.ejs) wherever you want the analytics section.
+   
+   STEP 3: Add the new GET /admin/search-analytics route.
+============================================================ -->
+
+
+<!-- ===========================================================
+     ==ROUTE== Add to adminRoutes.js
+     =========================================================== -->
+<!--
+const SearchLog = require("../models/searchLog");
+
+// GET /admin/search-analytics
+router.get("/search-analytics", jwtAdminAuth, async (req, res) => {
+  try {
+    const { range = "7" } = req.query;  // days
+    const days = parseInt(range) || 7;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const [
+      totalSearches,
+      topCities,
+      topAreas,
+      searchTypes,
+      recentSearches,
+      dailyTrend,
+      loggedInSearches,
+    ] = await Promise.all([
+
+      // Total searches in period
+      SearchLog.countDocuments({ createdAt: { $gte: since } }),
+
+      // Top searched cities
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since }, resolvedCity: { $ne: "" } } },
+        { $group: { _id: "$resolvedCity", count: { $sum: 1 } } },
+        { $sort: { count: -1 } }, { $limit: 10 }
+      ]),
+
+      // Top searched areas
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since }, resolvedArea: { $ne: "" } } },
+        { $group: { _id: "$resolvedArea", count: { $sum: 1 }, city: { $first: "$resolvedCity" } } },
+        { $sort: { count: -1 } }, { $limit: 10 }
+      ]),
+
+      // Breakdown by search type
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: { _id: "$searchType", count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+
+      // Recent searches (last 50)
+      SearchLog.find({ createdAt: { $gte: since } })
+        .sort({ createdAt: -1 }).limit(50)
+        .select("searchQuery searchType resolvedCity resolvedArea studentName studentPhone ip createdAt resultsCount"),
+
+      // Daily trend
+      SearchLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }},
+        { $sort: { _id: 1 } }
+      ]),
+
+      // Searches by logged-in students
+      SearchLog.countDocuments({ createdAt: { $gte: since }, studentId: { $ne: null } }),
+    ]);
+
+    const admin = await Admin.findById(req.admin.id).select("-password");
+    res.render("admin/searchAnalytics.ejs", {
+      admin,
+      stats: { totalSearches, loggedInSearches },
+      topCities,
+      topAreas,
+      searchTypes,
+      recentSearches,
+      dailyTrend: JSON.stringify(dailyTrend),
+      range,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
+-->
+
+
+<!-- ===========================================================
+     ==VIEW== admin/searchAnalytics.ejs
+     Full standalone admin page for search analytics
+     =========================================================== -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Analytics | HostelNode Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --green: #09b850; --green-light: rgba(9,184,80,.08); }
+    body { background: #f8faf9; font-family: 'Inter', sans-serif; }
+
+    .sa-header {
+      background: #fff; border-bottom: 1px solid #e8f0ea;
+      padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    .sa-title { font-size: 1.3rem; font-weight: 700; color: #0e1a12; margin: 0; }
+    .sa-sub { font-size: 0.82rem; color: #888; margin-top: 2px; }
+
+    .range-pills { display: flex; gap: 6px; }
+    .range-pill {
+      padding: 6px 14px; border-radius: 50px;
+      border: 1.5px solid #e0e8e2; background: #fff;
+      font-size: 12.5px; font-weight: 500; color: #555; cursor: pointer;
+      text-decoration: none; transition: all .15s;
+    }
+    .range-pill.active,
+    .range-pill:hover { border-color: var(--green); background: var(--green-light); color: var(--green); }
+
+    .sa-body { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+    /* Stat cards */
+    .sa-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .sa-stat {
+      background: #fff; border: 1px solid #e8f0ea; border-radius: 16px; padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .sa-stat-num { font-size: 1.6rem; font-weight: 800; color: #0e1a12; }
+    .sa-stat-num span { color: var(--green); }
+    .sa-stat-label { font-size: 0.78rem; color: #888; font-weight: 500; }
+    .sa-stat-icon { font-size: 1.2rem; color: var(--green); margin-bottom: 6px; }
+
+    /* Cards */
+    .sa-card {
+      background: #fff; border: 1px solid #e8f0ea; border-radius: 16px; padding: 20px;
+      margin-bottom: 20px;
+    }
+    .sa-card-title { font-size: 0.82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #888; margin-bottom: 16px; }
+
+    /* Top cities/areas */
+    .top-item {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .top-item-rank { font-size: 0.7rem; font-weight: 700; color: #bbb; width: 20px; text-align: right; }
+    .top-item-name { flex: 1; font-size: 0.88rem; font-weight: 600; color: #0e1a12; }
+    .top-item-sub  { font-size: 0.75rem; color: #888; }
+    .top-item-bar-wrap { width: 100px; background: #f0f4f0; border-radius: 4px; height: 6px; }
+    .top-item-bar { height: 6px; border-radius: 4px; background: var(--green); }
+    .top-item-count { font-size: 0.82rem; font-weight: 700; color: var(--green); min-width: 28px; text-align: right; }
+
+    /* Type badges */
+    .type-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 50px; font-size: 11.5px; font-weight: 600;
+    }
+    .type-text_search  { background: #dbeafe; color: #1d4ed8; }
+    .type-nearby_click { background: #dcfce7; color: #16a34a; }
+    .type-city_page    { background: #fef3c7; color: #d97706; }
+    .type-area_page    { background: #fce7f3; color: #be185d; }
+    .type-listing_view { background: #f0fdf4; color: #15803d; }
+
+    /* Recent table */
+    .sa-table { width: 100%; font-size: 0.83rem; border-collapse: collapse; }
+    .sa-table th { font-size: 0.72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #888; padding: 10px 14px; border-bottom: 1px solid #e8f0ea; text-align: left; background: #fafffe; }
+    .sa-table td { padding: 11px 14px; border-bottom: 1px solid #f0f4f0; color: #333; vertical-align: top; }
+    .sa-table tr:hover td { background: #f8fff9; }
+    .sa-table tr:last-child td { border-bottom: none; }
+
+    .student-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 600;
+      background: #f0fdf4; border: 1px solid rgba(9,184,80,.25); color: #16a34a;
+    }
+    .anon-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 600;
+      background: #f8f8f8; border: 1px solid #e0e0e0; color: #888;
+    }
+
+    @media (max-width: 700px) {
+      .sa-body { padding: 16px; }
+      .sa-header { padding: 16px; }
+      .top-item-bar-wrap { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="sa-header">
+  <div>
+    <div class="sa-title"><i class="fa-solid fa-chart-line" style="color:var(--green)"></i> Search Analytics</div>
+    <div class="sa-sub">What users are searching on HostelNode</div>
+  </div>
+  <div class="range-pills">
+    <a href="?range=7"  class="range-pill <%= range==='7'  ? 'active' : '' %>">7 days</a>
+    <a href="?range=30" class="range-pill <%= range==='30' ? 'active' : '' %>">30 days</a>
+    <a href="?range=90" class="range-pill <%= range==='90' ? 'active' : '' %>">90 days</a>
+  </div>
+</div>
+
+<div class="sa-body">
+
+  <!-- Stat Cards -->
+  <div class="sa-stats">
+    <div class="sa-stat">
+      <div class="sa-stat-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+      <div class="sa-stat-num"><%= stats.totalSearches %><span>+</span></div>
+      <div class="sa-stat-label">Total searches (<%= range %> days)</div>
+    </div>
+    <div class="sa-stat">
+      <div class="sa-stat-icon"><i class="fa-solid fa-user-graduate"></i></div>
+      <div class="sa-stat-num"><%= stats.loggedInSearches %></div>
+      <div class="sa-stat-label">By logged-in students</div>
+    </div>
+    <div class="sa-stat">
+      <div class="sa-stat-icon"><i class="fa-solid fa-user-secret"></i></div>
+      <div class="sa-stat-num"><%= stats.totalSearches - stats.loggedInSearches %></div>
+      <div class="sa-stat-label">Anonymous searches</div>
+    </div>
+    <div class="sa-stat">
+      <div class="sa-stat-icon"><i class="fa-solid fa-city"></i></div>
+      <div class="sa-stat-num"><%= topCities.length %></div>
+      <div class="sa-stat-label">Cities searched</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Daily Trend Chart -->
+    <div class="col-lg-8 mb-4">
+      <div class="sa-card">
+        <div class="sa-card-title">Daily Search Trend</div>
+        <canvas id="trendChart" height="100"></canvas>
+      </div>
+    </div>
+
+    <!-- Search Type Breakdown -->
+    <div class="col-lg-4 mb-4">
+      <div class="sa-card">
+        <div class="sa-card-title">Search Type Breakdown</div>
+        <% searchTypes.forEach(function(t) { %>
+          <div class="top-item">
+            <span class="type-badge type-<%= t._id %>">
+              <i class="fa-solid <%=
+                t._id === 'text_search'  ? 'fa-keyboard' :
+                t._id === 'nearby_click' ? 'fa-location-crosshairs' :
+                t._id === 'city_page'    ? 'fa-city' :
+                t._id === 'area_page'    ? 'fa-map-pin' :
+                'fa-eye'
+              %>"></i>
+              <%= t._id.replace(/_/g, ' ') %>
+            </span>
+            <span class="top-item-count" style="margin-left:auto"><%= t.count %></span>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Top Cities -->
+    <div class="col-md-6 mb-4">
+      <div class="sa-card">
+        <div class="sa-card-title"><i class="fa-solid fa-trophy" style="color:#f59e0b"></i> Top Searched Cities</div>
+        <% const maxCity = topCities[0]?.count || 1; %>
+        <% topCities.forEach(function(c, i) { %>
+          <div class="top-item">
+            <span class="top-item-rank">#<%= i+1 %></span>
+            <span class="top-item-name"><%= c._id || 'Unknown' %></span>
+            <div class="top-item-bar-wrap">
+              <div class="top-item-bar" style="width:<%= Math.round((c.count/maxCity)*100) %>%"></div>
+            </div>
+            <span class="top-item-count"><%= c.count %></span>
+          </div>
+        <% }) %>
+        <% if (!topCities.length) { %><p style="color:#aaa;font-size:.85rem;text-align:center;padding:20px">No data yet</p><% } %>
+      </div>
+    </div>
+
+    <!-- Top Areas -->
+    <div class="col-md-6 mb-4">
+      <div class="sa-card">
+        <div class="sa-card-title"><i class="fa-solid fa-map-pin" style="color:#e53e3e"></i> Top Searched Areas</div>
+        <% const maxArea = topAreas[0]?.count || 1; %>
+        <% topAreas.forEach(function(a, i) { %>
+          <div class="top-item">
+            <span class="top-item-rank">#<%= i+1 %></span>
+            <div style="flex:1">
+              <div class="top-item-name"><%= a._id || 'Unknown' %></div>
+              <div class="top-item-sub"><%= a.city || '' %></div>
+            </div>
+            <div class="top-item-bar-wrap">
+              <div class="top-item-bar" style="width:<%= Math.round((a.count/maxArea)*100) %>%"></div>
+            </div>
+            <span class="top-item-count"><%= a.count %></span>
+          </div>
+        <% }) %>
+        <% if (!topAreas.length) { %><p style="color:#aaa;font-size:.85rem;text-align:center;padding:20px">No data yet</p><% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Searches Table -->
+  <div class="sa-card">
+    <div class="sa-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Searches (last <%= range %> days)</div>
+    <div style="overflow-x:auto">
+      <table class="sa-table">
+        <thead>
+          <tr>
+            <th>Query</th>
+            <th>Type</th>
+            <th>City</th>
+            <th>Area</th>
+            <th>Student</th>
+            <th>Results</th>
+            <th>IP</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% recentSearches.forEach(function(s) { %>
+            <tr>
+              <td><strong><%= s.searchQuery || '—' %></strong></td>
+              <td>
+                <span class="type-badge type-<%= s.searchType %>">
+                  <%= s.searchType.replace(/_/g, ' ') %>
+                </span>
+              </td>
+              <td><%= s.resolvedCity || '—' %></td>
+              <td><%= s.resolvedArea || '—' %></td>
+              <td>
+                <% if (s.studentName) { %>
+                  <div class="student-pill"><i class="fa-solid fa-user-graduate"></i> <%= s.studentName %></div>
+                  <div style="font-size:10px;color:#888;margin-top:3px"><%= s.studentPhone || '' %></div>
+                <% } else { %>
+                  <span class="anon-pill"><i class="fa-solid fa-user-secret"></i> Anonymous</span>
+                <% } %>
+              </td>
+              <td><%= s.resultsCount %></td>
+              <td style="font-size:11px;color:#aaa;font-family:monospace"><%= s.ip ? s.ip.slice(0,15) : '—' %></td>
+              <td style="font-size:11px;color:#888;white-space:nowrap">
+                <%= new Date(s.createdAt).toLocaleString('en-IN', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %>
+              </td>
+            </tr>
+          <% }) %>
+          <% if (!recentSearches.length) { %>
+            <tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa">No searches yet in this period</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /sa-body -->
+
+<script>
+  /* Daily Trend Chart */
+  const trendRaw = <%- dailyTrend %>;
+  const labels   = trendRaw.map(d => d._id);
+  const counts   = trendRaw.map(d => d.count);
+
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Searches',
+        data: counts,
+        borderColor: '#09b850',
+        backgroundColor: 'rgba(9,184,80,.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#09b850',
+        pointRadius: 4,
+        tension: 0.38,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } }, grid: { color: '#f0f4f0' } }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

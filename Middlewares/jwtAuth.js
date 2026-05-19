@@ -1,3 +1,7 @@
+// jwtAuth.js/* ============================================================
+//    Middlewares/jwtAuth.js  —  JWT Authentication for Owners, Students, Admins
+// ============================================================ */
+
 const jwt = require("jsonwebtoken");
 
 // ================= OWNER AUTH =================
@@ -37,6 +41,25 @@ const jwtStudentAuth = (req, res, next) => {
   }
 };
 
+// ================= OPTIONAL STUDENT AUTH =================
+const optionalStudentAuth = (req, res, next) => {
+  const token = req.cookies.studentToken;
+
+  if (!token) {
+    req.student = null;
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.student = decoded;
+  } catch (err) {
+    req.student = null;
+  }
+
+  next();
+};
+
 // ================= TOKEN GENERATOR =================
 const generateToken = (data) => {
   return jwt.sign(data, process.env.JWT_SECRET, {
@@ -67,6 +90,7 @@ function generateAdminToken(payload) {
 module.exports = {
   jwtAuthMiddleware,
   jwtStudentAuth,
+  optionalStudentAuth,
   generateToken,
   jwtAdminAuth,
   generateAdminToken

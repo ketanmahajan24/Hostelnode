@@ -13,6 +13,9 @@ const Student       = require("../models/studentSchema");    // adjust path
 const { generateToken, jwtStudentAuth } = require("../Middlewares/jwtAuth"); // adjust path
 
 const Listing = require("../models/listingProperty");    // adjust path
+
+const { logSearch } = require("../utils/searchLogger");
+
 const otpStore = new Map();
 const { sendWhatsAppOTP , sendOwnerEnquiryMessage} = require("../models/Whatsapp.js");
 // const { sendWhatsAppOTP } = require("../models/whatsappBaileys.js");
@@ -718,6 +721,20 @@ router.get("/nearby", async (req, res) => {
       })
       .filter(l => l.distanceKm <= radius)
       .sort((a, b) => a.distanceKm - b.distanceKm);
+      // ─────────────────────────────────────────────
+// LOG NEARBY SEARCH
+// ─────────────────────────────────────────────
+
+await logSearch({
+  req,
+  searchType: "nearby_click",
+  searchQuery: "Near Me",
+  resolvedCity: "",
+  resolvedArea: "",
+  resultsCount: nearby.length,
+  lat: lat,
+  lng: lng,
+});
 
     res.json({ success: true, count: nearby.length, listings: nearby });
 
