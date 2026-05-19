@@ -11,8 +11,28 @@
   gtag('config', 'G-3J9E7QW77B');
 </script>
   <meta charset="UTF-8">
-  <title><%= hostel.name %> | HostelNode</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>
+<%= hostel.title %> | <%= hostel.gender %> <%= hostel.propertyType %> in <%= hostel.location.city %> | HostelNode
+</title> 
+  <meta name="description"
+content="<%= hostel.title %> in <%= hostel.location.city %>. Affordable <%= hostel.gender %> <%= hostel.propertyType %> with WiFi, meals, security and verified rooms on HostelNode.">
+
+<link rel="canonical"
+href="https://hostelnode.com/hostel/<%= hostel.slug %>">
+<meta name="keywords"
+content="<%= hostel.title %>, hostel in <%= hostel.location.city %>, pg near <%= hostel.location.nearCollege %>, boys hostel, girls hostel, student hostel">
+
+<meta property="og:title" content="<%= hostel.title %> | HostelNode">
+<meta property="og:description"
+content="<%= hostel.description.substring(0,160) %>">
+<meta property="og:image"
+content="https://hostelnode.com/listing-images/<%= hostel.images[0] %>">
+<meta property="og:url"
+content="https://hostelnode.com/hostel/<%= hostel.slug %>">
+<meta property="og:type" content="website">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
 
   <!-- Bootstrap -->
@@ -26,6 +46,28 @@
 
   <link rel="stylesheet" href="/css/hostel-view1.css">
   <link rel="stylesheet" href="/css/findhostel.css">
+
+
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Hostel",
+  "name": "<%= hostel.title %>",
+  "description": "<%= hostel.description %>",
+  "image": "https://hostelnode.com/listing-images/<%= hostel.images[0] %>",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "<%= hostel.location.address %>",
+    "addressLocality": "<%= hostel.location.city %>",
+    "addressRegion": "<%= hostel.location.state %>",
+    "postalCode": "<%= hostel.location.pincode %>",
+    "addressCountry": "IN"
+  },
+  "telephone": "<%= hostel.contact?.phone || '' %>",
+  "url": "https://hostelnode.com/hostel/<%= hostel.slug %>"
+}
+</script>
+
 
 </head>
 <style>
@@ -590,7 +632,7 @@
 
     <!-- Main image -->
     <div class="gallery-main" onclick="openLightbox(0)"> 
-      <img id="mainImage" src="/listing-images/<%= hostel.images[0] %>" alt="<%= hostel.name %> main photo">
+      <img id="mainImage" src="/listing-images/<%= hostel.images[0] %>" alt="<%= hostel.title %> room in <%= hostel.location.city %>">
       <div class="gallery-main-overlay">
         <i class="fa-solid fa-expand"></i>
       </div>
@@ -602,7 +644,7 @@
       <% hostel.images.slice(1, 5).forEach((img, i) => { %>
         <div class="gallery-thumb <%= i === 3 ? 'last-thumb' : '' %>"
              onclick="<%= i === 3 ? 'openLightbox(' + (i+1) + ')' : 'swapMain(this,' + (i+1) + ')' %>">
-          <img src="/listing-images/<%= img %>" alt="Hostel photo <%= i+2 %>">
+          <img loading="lazy" src="/listing-images/<%= img %>" alt="Hostel photo <%= i+2 %>">
           <% if (i === 3) { %>
             <div class="gallery-more-overlay">
               <i class="fa-solid fa-images"></i>
@@ -623,7 +665,7 @@
   <button class="lb-prev"  onclick="lbNav(-1)"><i class="fa-solid fa-chevron-left"></i></button>
   <button class="lb-next"  onclick="lbNav(1)"><i class="fa-solid fa-chevron-right"></i></button>
   <div class="lb-inner">
-    <img id="lbImg" src="" alt="">
+    <img loading="lazy" id="lbImg" src="" alt="">
     <div class="lb-counter" id="lbCounter"></div>
   </div>
 </div>
@@ -918,7 +960,20 @@
       </div>
     </div>
   </div>
+<section class="faq-section">
+<h2>Frequently Asked Questions</h2>
 
+<h3>What is the rent of this hostel?</h3>
+<p>Rent starts from ₹<%= hostel.startingPrice %>.</p>
+
+<h3>Is food included?</h3>
+<p><%= hostel.amenities.includes("Meals")
+? "Yes, meals are available."
+: "Please contact owner for meal details." %></p>
+
+<h3>Is this hostel near <%= hostel.location.nearCollege %>?</h3>
+<p>Yes, it is located nearby.</p>
+</section>
   <!-- ══ WRITE A REVIEW (logged-in students only) ══ -->
   <% if (student) { %>
     <% if (studentReview) { %>
@@ -1012,7 +1067,7 @@
         <div class="review-top">
           <div class="rev-avatar-wrap">
             <% if (rev.avatar) { %>
-              <img src="/student-images/<%= rev.avatar %>" alt="<%= rev.userName %>"
+              <img loading="lazy" src="/student-images/<%= rev.avatar %>" alt="<%= rev.userName %>"
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
               <div class="rev-avatar-fallback" style="display:none">
                 <%= rev.userName?.charAt(0) || '?' %>
@@ -1152,7 +1207,7 @@
         </div>  
         <div class="hstat">
           <span class="hostel-website">
-             <% if ("hostel.website") { %>
+             <% if (hostel.website) { %>
                 <a href="/ketan" target="_blank"  class="near-college">
                    <i class="fa-solid fa-globe"></i>  Visit Website
                 </a>
@@ -1182,7 +1237,7 @@
       <div class="similar-card animate-in" style="animation-delay:<%= i*0.1 %>s"
            onclick="location.href='/hostel/<%= h.slug %>'">
         <div class="sc-img-wrap">
-          <img src="<%= h.image %>" alt="<%= h.name %>"
+          <img loading="lazy" src="/listing-images/<%= h.images?.[0] %>" alt="<%= h.name %>"
             onerror="this.parentNode.style.background='#e8f9ef'">
           <div class="sc-badge"><%= h.gender || 'Co-ed' %></div>
           <div class="sc-wishlist" onclick="event.stopPropagation();this.classList.toggle('active')">
@@ -1733,7 +1788,7 @@ function buildReviewCard(rev) {
     `<i class="fa-solid fa-star${s <= rev.rating ? '' : ' star-empty'}"></i>`
   ).join('');
   const avatarHtml = rev.avatar
-    ? `<img src="/student-images/${rev.avatar}" alt="${rev.userName}"
+    ? `<img loading="lazy" src="/student-images/${rev.avatar}" alt="${rev.userName}"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
        <div class="rev-avatar-fallback" style="display:none">${rev.userName?.charAt(0)}</div>`
     : `<div class="rev-avatar-fallback" style="display:flex">${rev.userName?.charAt(0)}</div>`;

@@ -1,3 +1,5 @@
+// Public.js
+
 const express = require("express");
 const router = express.Router();
 
@@ -8,7 +10,7 @@ const Listing = require("../models/listingProperty");
 
 router.get("/",   async (req, res) => {
   const listings = await Listing.find({
-    // isActive: true,
+    // isActive: true, 
      status: "Approved"
   //  isApproved: true
   }).limit(24).sort({ createdAt: -1 }) // latest first;
