@@ -130,12 +130,4 @@ if (req.student) {
 
 
 
-
-
-
-
-
-
-
-
 module.exports = router;
