@@ -422,8 +422,36 @@
           <i class="fa-solid fa-check-circle" style="color:var(--green)"></i> What amenities do you provide?
         </label>
         <div class="amenities-grid">
-          <% [['WiFi','wifi'],['AC','snowflake'],['Meals','utensils'],['Laundry','shirt'],['Security','shield-halved'],['Parking','car'],['Gym','dumbbell'],['CCTV','camera'],['Hot Water','droplet'],['Power Backup','bolt'],['Study Room','book'],['Attached Bathroom','bath'],['Common Bathroom','bath'],['Water Purifier','droplet'],['Geyser','fire-flame-simple'],['Housekeeping','broom'],['Cafeteria','mug-saucer'],['Library','book-open'],['TV','tv'],['Refrigerator','box']].forEach((a,i) => { %>
-          <div>
+
+          <% [
+  ['WiFi','wifi'],['AC','snowflake'],['Meals','utensils'],['Laundry','shirt'],
+  ['Security','shield-halved'],['Parking','car'],['Gym','dumbbell'],['CCTV','camera'],
+  ['Hot Water','droplet'],['Power Backup','bolt'],['Study Room','book'],
+  ['Attached Bathroom','bath'],['Common Bathroom','bath'],['Water Purifier','droplet'],
+  ['Geyser','fire-flame-simple'],['Housekeeping','broom'],['Cafeteria','mug-saucer'],
+  ['Library','book-open'],['TV','tv'],['Refrigerator','box'],
+
+  // ── NEW AMENITIES ──
+  ['Lift / Elevator','elevator'],
+  ['Night Guard','user-shield'],
+  ['Biometric Entry','fingerprint'],
+  ['Cooking Allowed','fire-burner'],
+  ['Bed with Mattress','bed'],
+  ['Common Room','couch'],
+  ['Bike Parking','bicycle'],
+  ['Bus Stop Nearby','bus'],
+  ['Iron / Ironing','shirt'],
+  ['Drinking Water 24hr','glass-water'],
+  ['Rooftop Access','building'],
+  ['Indoor Games','chess-board'],
+  ['ATM Nearby','money-bill'],
+  ['Grocery Nearby','basket-shopping'],
+  ['Fire Extinguisher','fire-extinguisher'],
+  ['Locker / Safe','lock']
+].forEach((a,i) => { %>
+  
+         
+            <div>
             <input type="checkbox" id="am-<%=i%>" name="amenities[]" value="<%=a[0]%>" class="amenity-cb">
             <label for="am-<%=i%>" class="amenity-lbl"><i class="fa-solid fa-<%=a[1]%>"></i> <%=a[0]%></label>
           </div>

@@ -836,20 +836,39 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
     <section class="hv-section" id="amenities">
       <h2 class="hv-h2">Amenities</h2>
       <div class="amenities-grid">
-        <% const amenityIcons = {
-          'WiFi': 'wifi', 'wifi': 'wifi',
-          'AC': 'snowflake', 'Air Conditioning': 'snowflake',
-          'Meals': 'utensils', 'Food': 'utensils',
-          'Laundry': 'shirt', 'Washing Machine': 'shirt',
-          'Security': 'shield-halved', '24/7 Security': 'shield-halved',
-          'Parking': 'car', 'Gym': 'dumbbell',
-          'TV': 'tv', 'CCTV': 'camera',
-          'Hot Water': 'droplet', 'Water Purifier': 'droplet',
-          'Power Backup': 'bolt', 'Study Room': 'book',
-          'Attached Bathroom': 'bath', 'Common Bathroom': 'bath',
-          'Geyser': 'fire-flame-simple', 'Housekeeping': 'broom',
-          'Cafeteria': 'mug-saucer', 'Library': 'book-open'
-        }; %>
+       <% const amenityIcons = {
+  'WiFi': 'wifi', 'wifi': 'wifi',
+  'AC': 'snowflake', 'Air Conditioning': 'snowflake',
+  'Meals': 'utensils', 'Food': 'utensils',
+  'Laundry': 'shirt', 'Washing Machine': 'shirt',
+  'Security': 'shield-halved', '24/7 Security': 'shield-halved',
+  'Parking': 'car', 'Gym': 'dumbbell',
+  'TV': 'tv', 'CCTV': 'camera',
+  'Hot Water': 'droplet', 'Water Purifier': 'droplet',
+  'Power Backup': 'bolt', 'Study Room': 'book',
+  'Attached Bathroom': 'bath', 'Common Bathroom': 'bath',
+  'Geyser': 'fire-flame-simple', 'Housekeeping': 'broom',
+  'Cafeteria': 'mug-saucer', 'Library': 'book-open',
+
+  // ── NEW AMENITIES ──
+  'Lift / Elevator': 'elevator',
+  'Night Guard': 'user-shield',
+  'Biometric Entry': 'fingerprint',
+  'Cooking Allowed': 'fire-burner',
+  'Bed with Mattress': 'bed',
+  'Common Room': 'couch',
+  'Bike Parking': 'bicycle',
+  'Bus Stop Nearby': 'bus',
+  'Iron / Ironing': 'shirt',
+  'Drinking Water 24hr': 'glass-water',
+  'Rooftop Access': 'building',
+  'Indoor Games': 'chess-board',
+  'ATM Nearby': 'money-bill',
+  'Grocery Nearby': 'basket-shopping',
+  'Fire Extinguisher': 'fire-extinguisher',
+  'Locker / Safe': 'lock',
+  'Refrigerator': 'box'
+}; %>
         <% hostel.amenities.forEach(a => { %>
         <div class="amenity-item animate-in">
           <div class="amenity-icon">
@@ -1226,33 +1245,106 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
 <!-- ============================================================
      SIMILAR HOSTELS
 ============================================================ -->
+<!-- ============================================================
+     SIMILAR HOSTELS
+============================================================ -->
 <section class="similar-section">
   <div class="similar-inner">
     <div class="similar-header">
-      <h2>Similar hostels nearby</h2>
+      <div>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(9,184,80,0.10);border:1px solid rgba(9,184,80,0.25);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;color:#09b850;margin-bottom:10px;letter-spacing:0.04em;">
+          <i class="fa-solid fa-location-dot"></i> NEARBY PICKS
+        </div>
+        <h2 style="font-family:'Instrument Sans',sans-serif;font-size:1.5rem;font-weight:700;color:#0a1628;margin:0;">Similar hostels nearby</h2>
+      </div>
       <a href="/findHostels" class="see-all-link">See all <i class="fa-solid fa-arrow-right"></i></a>
     </div>
+
     <div class="similar-grid" id="similarGrid">
       <% similar.forEach((h, i) => { %>
-      <div class="similar-card animate-in" style="animation-delay:<%= i*0.1 %>s"
+      <div class="sc2-card animate-in" style="animation-delay:<%= i*0.1 %>s"
            onclick="location.href='/hostel/<%= h.slug %>'">
-        <div class="sc-img-wrap">
-          <img loading="lazy" src="/listing-images/<%= h.images?.[0] %>" alt="<%= h.name %>"
-            onerror="this.parentNode.style.background='#e8f9ef'">
-          <div class="sc-badge"><%= h.gender || 'Co-ed' %></div>
-          <div class="sc-wishlist" onclick="event.stopPropagation();this.classList.toggle('active')">
+
+        <!-- IMAGE -->
+        <div class="sc2-img-wrap">
+          <img loading="lazy"
+            src="/listing-images/<%= h.images?.[0] %>"
+            alt="<%= h.title || h.name %>"
+            onerror="this.src='/images/placeholder.jpg'">
+
+          <!-- Gender badge -->
+          <span class="sc2-gender-badge sc2-badge-<%= (h.gender || 'coed').toLowerCase() %>">
+            <i class="fa-solid fa-<%= h.gender === 'Girls' ? 'venus' : h.gender === 'Boys' ? 'mars' : 'venus-mars' %>"></i>
+            <%= h.gender || 'Co-ed' %>
+          </span>
+
+          <!-- Verified badge -->
+          <% if (h.isVerified) { %>
+          <span class="sc2-verified-badge">
+            <i class="fa-solid fa-shield-halved"></i> Verified
+          </span>
+          <% } %>
+
+          <!-- Wishlist -->
+          <button class="sc2-wish" onclick="event.stopPropagation();this.classList.toggle('active')">
             <i class="fa-regular fa-heart"></i>
+          </button>
+
+          <!-- Price overlay -->
+          <div class="sc2-price-overlay">
+            ₹<%= (h.startingPrice || 0).toLocaleString('en-IN') %><span>/mo</span>
           </div>
         </div>
-        <div class="sc-body">
-          <div class="sc-rating">
-            <i class="fa-solid fa-star"></i> <%= h.rating || '4.5' %>
+
+        <!-- BODY -->
+        <div class="sc2-body">
+          <!-- Rating -->
+          <div class="sc2-rating">
+            <i class="fa-solid fa-star"></i>
+            <%= h.rating || '4.5' %>
+            <span class="sc2-review-count">(<%= h.reviewCount || 0 %> reviews)</span>
           </div>
-          <h5 class="sc-name"><%= h.name %></h5>
-          <div class="sc-loc"><i class="fa-solid fa-location-dot"></i> <%= h.location || h.city %></div>
-          <div class="sc-price-row">
-            <div class="sc-price">₹<%= (h.startingPrice || 0).toLocaleString('en-IN') %><span>/mo</span></div>
-            <button class="sc-cta">View</button>
+
+          <!-- Name -->
+          <h5 class="sc2-name"><%= h.title || h.name %></h5>
+
+          <!-- Location — properly formatted -->
+          <div class="sc2-loc">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>
+              <%= h.location?.address ? h.location.address + ', ' : '' %><%= h.location?.city || h.city || '' %>
+            </span>
+          </div>
+
+          <!-- Near college pill -->
+          <% if (h.location?.nearCollege) { %>
+          <div class="sc2-near">
+            <i class="fa-solid fa-graduation-cap"></i>
+            Near <%= h.location.nearCollege %>
+          </div>
+          <% } %>
+
+          <!-- Amenities -->
+          <% if (h.amenities && h.amenities.length > 0) { %>
+          <div class="sc2-amenities">
+            <% h.amenities.slice(0, 3).forEach(a => { %>
+              <span class="sc2-amenity-tag"><%= a %></span>
+            <% }) %>
+            <% if (h.amenities.length > 3) { %>
+              <span class="sc2-amenity-tag sc2-more">+<%= h.amenities.length - 3 %></span>
+            <% } %>
+          </div>
+          <% } %>
+
+          <!-- Footer -->
+          <div class="sc2-footer">
+            <div class="sc2-type-pill">
+              <i class="fa-solid fa-building"></i>
+              <%= h.propertyType || 'Hostel' %>
+            </div>
+            <button class="sc2-cta" onclick="event.stopPropagation();location.href='/hostel/<%= h.slug %>'">
+              View <i class="fa-solid fa-arrow-right"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -1261,6 +1353,315 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
   </div>
 </section>
 
+<style>
+/* ── SIMILAR SECTION ── */
+.similar-section {
+  background: #f5fbf7;
+  padding: 52px 0 60px;
+}
+.similar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.similar-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.see-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #09b850;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px 18px;
+  border: 1.5px solid rgba(9,184,80,0.35);
+  border-radius: 50px;
+  transition: all .18s;
+  white-space: nowrap;
+}
+.see-all-link:hover {
+  background: #09b850;
+  color: #fff;
+  border-color: #09b850;
+}
+
+/* Grid */
+.similar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px;
+}
+
+/* Card */
+.sc2-card {
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #e8f3ea;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transition: transform .22s, box-shadow .22s;
+  display: flex;
+  flex-direction: column;
+}
+.sc2-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 36px rgba(9,184,80,0.14);
+  border-color: rgba(9,184,80,0.3);
+}
+
+/* Image */
+.sc2-img-wrap {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
+  background: #e8f3ea;
+}
+.sc2-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .4s ease;
+}
+.sc2-card:hover .sc2-img-wrap img {
+  transform: scale(1.04);
+}
+
+/* Gender badge */
+.sc2-gender-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+}
+.sc2-badge-boys   { background: rgba(37,99,235,0.88); color: #fff; }
+.sc2-badge-girls  { background: rgba(219,39,119,0.88); color: #fff; }
+.sc2-badge-co-ed,
+.sc2-badge-coed   { background: rgba(9,184,80,0.88);   color: #fff; }
+
+/* Verified badge */
+.sc2-verified-badge {
+  position: absolute;
+  top: 12px;
+  right: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.92);
+  color: #09b850;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+/* Wishlist btn */
+.sc2-wish {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.92);
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .18s;
+  backdrop-filter: blur(4px);
+}
+.sc2-wish:hover, .sc2-wish.active { color: #e53e3e; background: #fff; }
+.sc2-wish.active i { font-weight: 900; }
+
+/* Price overlay */
+.sc2-price-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 28px 14px 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Instrument Sans', sans-serif;
+}
+.sc2-price-overlay span {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* Body */
+.sc2-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 6px;
+}
+
+/* Rating */
+.sc2-rating {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0a1628;
+}
+.sc2-rating .fa-star { color: #f59e0b; font-size: 12px; }
+.sc2-review-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+/* Name */
+.sc2-name {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0a1628;
+  margin: 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Location */
+.sc2-loc {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+.sc2-loc .fa-location-dot { color: #09b850; margin-top: 2px; flex-shrink: 0; }
+.sc2-loc span {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Near college */
+.sc2-near {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #09b850;
+  background: rgba(9,184,80,0.08);
+  border-radius: 20px;
+  padding: 3px 10px;
+  width: fit-content;
+}
+.sc2-near .fa-graduation-cap { font-size: 10px; }
+
+/* Amenities */
+.sc2-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.sc2-amenity-tag {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 20px;
+  padding: 2px 9px;
+}
+.sc2-amenity-tag.sc2-more {
+  background: #e8f3ea;
+  color: #09b850;
+  font-weight: 700;
+}
+
+/* Footer */
+.sc2-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f1;
+}
+.sc2-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+.sc2-type-pill .fa-building { color: #09b850; }
+.sc2-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: #09b850;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, transform .15s;
+  font-family: 'Instrument Sans', sans-serif;
+}
+.sc2-cta:hover { background: #078a3c; transform: scale(1.03); }
+
+/* Mobile scroll */
+@media (max-width: 640px) {
+  .similar-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .sc2-img-wrap { height: 150px; }
+  .sc2-name { font-size: 13px; }
+  .sc2-body { padding: 10px 12px 12px; }
+}
+@media (max-width: 420px) {
+  .similar-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 14px;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+  .similar-grid::-webkit-scrollbar { display: none; }
+  .sc2-card { min-width: 230px; }
+}
+</style>
 <!-- ═══════════════════════════════════════════════════════════
      MODAL HTML { LOGIN/SIGNUP + ENQUIRY FORM } for GUESTS Users
 ═══════════════════════════════════════════════════════════ -->
