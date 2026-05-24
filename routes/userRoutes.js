@@ -1411,6 +1411,7 @@ const listingUploadMiddleware = (req, res, next) => {
         return res.status(400).json({ ok: false, message: "You can upload a maximum of 15 photos." });
       return res.status(400).json({ ok: false, message: `Upload error: ${err.message}` });
     }
+    
     if (err?.isFileTypeError)
       return res.status(400).json({ ok: false, message: err.message });
     console.error("❌ Listing upload error:", err?.message);

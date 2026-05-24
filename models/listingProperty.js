@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const roomSchema = new mongoose.Schema({
   type: {
     type: String, // Single, Double, Triple
-    required: true
+    required: true 
   },
   price: {
     type: Number,
