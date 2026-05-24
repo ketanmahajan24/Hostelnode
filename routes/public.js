@@ -4,118 +4,115 @@ const express = require("express");
 const router = express.Router();
 
 // Models
-// listing property schema
-const Listing = require("../models/listingProperty"); 
+const Listing = require("../models/listingProperty");
+const Student = require("../models/studentSchema");          // ✅ ADD THIS
 const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
 const { logSearch } = require("../utils/searchLogger");
+const { notifyOwnerOnView } = require("../utils/leadWhatsapp");
 
-const {
-  notifyOwnerOnView
-} = require("../utils/leadWhatsapp");
 
+/* ─────────────────────────────────────────────────────────────
+   HELPER — always fetch the full student document from DB
+   so navbar gets firstName, profileImage, city, etc.
+───────────────────────────────────────────────────────────── */
+async function getFullStudent(req) {
+  if (!req.student?.id) return null;
+  try {
+    return await Student.findById(req.student.id).lean();
+  } catch {
+    return null;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   HOME  →  GET /
+───────────────────────────────────────────────────────────── */
 router.get("/", optionalStudentAuth, async (req, res) => {
+  try {
+    const [listings, student] = await Promise.all([
+      Listing.find({ status: "Approved" })
+        .limit(24)
+        .sort({ createdAt: -1 }),
+      getFullStudent(req),   // ✅ full doc, not just JWT payload
+    ]);
 
-  const listings = await Listing.find({
-    // isActive: true, 
-     status: "Approved"
-  //  isApproved: true
-  }).limit(24).sort({ createdAt: -1 }) // latest first;
-
-  // console.log("Fetched Listings for Home Page:", listings);
-  // console.log("Fetched Listings for Home Page:", listings.map(l => l.title)); // Log titles only
-  // console.log("Home Page loaded '/' route");
-  res.render("listings/findHostels", {  listings,student: res.locals.student || null });
+    res.render("listings/findHostels", { listings, student });
+  } catch (err) {
+    console.error("❌ Home page error:", err);
+    res.status(500).send("Server Error");
+  }
 });
 
- 
+
+/* ─────────────────────────────────────────────────────────────
+   TEMP LANDING PAGE  →  GET /StartManagingYourHostel
+───────────────────────────────────────────────────────────── */
+router.get("/StartManagingYourHostel", async (req, res) => {
+  res.render("lendingPage.ejs");
+});
 
 
-
-
-
-
-
-
- // ================== TEMP HOME PAGE (REPLACE WITH REAL ONE LATER) ==================
-router.get("/StartManagingYourHostel",async(req,res)=>{
-  // const { username, password } = req.query;
-  // console.log(username,password);
-//   res.send("user");
-res.render("lendingPage.ejs")
-}); 
-
-
-
-router.get(
-  "/hostel/:slug",
-  optionalStudentAuth,
-  async (req, res) => {
+/* ─────────────────────────────────────────────────────────────
+   HOSTEL VIEW  →  GET /hostel/:slug
+───────────────────────────────────────────────────────────── */
+router.get("/hostel/:slug", optionalStudentAuth, async (req, res) => {
   try {
     const { slug } = req.params;
-    
 
-    // 🔥 Increment views + get updated doc
-    const listing = await Listing.findOneAndUpdate(
-      {  slug,
-    status: "Approved"},
-      { $inc: { views: 2 } },
-      { new: true }
-    ).populate("owner"); // ✅ IMPORTANT: populate owner to get name/avatar for reviews and owner info on page;
+    // Fetch full student + listing in parallel
+    const [listing, student] = await Promise.all([
+      Listing.findOneAndUpdate(
+        { slug, status: "Approved" },
+        { $inc: { views: 2 } },
+        { new: true }
+      ).populate("owner"),
+      getFullStudent(req),   // ✅ full doc so navbar shows name + avatar
+    ]);
 
-    // ❗ Handle not found
     if (!listing) {
       return res.status(404).send("Hostel not found");
     }
-    
-// ─────────────────────────────────────────────
-// LOG HOSTEL VIEW
-// ─────────────────────────────────────────────
 
-await logSearch({
-  req,
-  searchType: "listing_view",
-  searchQuery: listing.title,
-  resolvedCity: listing.location?.city || "",
-  resolvedArea: listing.location?.nearCollege || "",
-  resultsCount: 1,
-});
-console.log("STUDENT:", req.student);
-console.log("OWNER:", listing.owner?.phone);
-console.log("HOSTEL:", listing.title);
+    // Log view
+    await logSearch({
+      req,
+      searchType: "listing_view",
+      searchQuery: listing.title,
+      resolvedCity: listing.location?.city || "",
+      resolvedArea: listing.location?.nearCollege || "",
+      resultsCount: 1,
+    });
 
-// Send WhatsApp lead to owner
-if (req.student) {
-  notifyOwnerOnView({
-    student: req.student,
-    listing: listing,
-  }).catch(err =>
-    console.error("WA view notify error:", err)
-  );
-}
-    console.log("UPDATED VIEWS:", listing.views); // 👈 debug
-
-    // Check if logged-in student already reviewed
-    let studentReview = null;
-    if (req.student) {
-      studentReview = listing.reviews.find(
-        rv => rv.student?.toString() === req.student.id
-      ) || null;
+    // WhatsApp lead to owner
+    if (student) {
+      notifyOwnerOnView({ student, listing }).catch(err =>
+        console.error("WA view notify error:", err)
+      );
     }
-    
+
+    // Has this student already reviewed?
+    let studentReview = null;
+    if (student) {
+      studentReview =
+        listing.reviews.find(
+          rv => rv.student?.toString() === student._id.toString()
+        ) || null;
+    }
+
     // Similar listings
     const similar = await Listing.find({
-  status: "Approved",
+      status: "Approved",
       "location.city": listing.location.city,
-      _id: { $ne: listing._id }
+      _id: { $ne: listing._id },
     }).limit(4);
 
     res.render("listings/hostel-view.ejs", {
-    hostel:listing,
-    similar,
-   
-    student: req.student || null,
-    studentReview,            // ← null if not reviewed, object if already reviewed
-    breadcrumb: true
+      hostel: listing,
+      similar,
+      student,           // ✅ full student document — navbar works everywhere
+      studentReview,
+      breadcrumb: true,
     });
 
   } catch (err) {
@@ -123,11 +120,6 @@ if (req.student) {
     res.status(500).send("Server Error");
   }
 });
-
-
-
-
-
 
 
 module.exports = router;
