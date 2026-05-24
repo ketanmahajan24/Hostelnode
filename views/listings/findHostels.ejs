@@ -1149,60 +1149,7 @@ function buildNearbyCard(l) {
 <!-- ═══════════════════════════════════════
      SIGNUP NUDGE OVERLAY (Guest Only)
 ═══════════════════════════════════════ -->
-<% if (!student) { %>
-<div class="hn-nudge-overlay" id="hnNudgeOverlay" onclick="hnNudgeOutsideClick(event)">
-  <div class="hn-nudge-box">
-
-    <button class="hn-nudge-close" onclick="closeHnNudge()" aria-label="Close">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-
-    <div class="hn-nudge-header">
-      <span class="hn-nudge-emoji">🏠</span>
-      <h3>Find your perfect hostel, faster</h3>
-      <p>Join thousands of students discovering verified hostels near their college</p>
-    </div>
-
-    <div class="hn-nudge-perks">
-      <div class="hn-perk">
-        <div class="hn-perk-icon">❤️</div>
-        <div>
-          <div class="hn-perk-title">Save hostels to wishlist</div>
-          <div class="hn-perk-sub">Bookmark & compare later</div>
-        </div>
-      </div>
-      <div class="hn-perk">
-        <div class="hn-perk-icon">📩</div>
-        <div>
-          <div class="hn-perk-title">Send enquiries instantly</div>
-          <div class="hn-perk-sub">Direct to owner, zero broker fee</div>
-        </div>
-      </div>
-      <div class="hn-perk">
-        <div class="hn-perk-icon">🔔</div>
-        <div>
-          <div class="hn-perk-title">Get availability alerts</div>
-          <div class="hn-perk-sub">Be first when rooms open up</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="hn-nudge-cta">
-      <button class="hn-nudge-btn-primary" onclick="hnNudgeSignup()">
-        🚀 Sign up free — takes 30 seconds
-      </button>
-      <button class="hn-nudge-btn-later" onclick="closeHnNudge()">
-        Maybe later
-      </button>
-    </div>
-
-    <div class="hn-nudge-footer">
-      No spam. No broker fees. <strong>100% free</strong> for students.
-    </div>
-
-  </div>
-</div>
-<% } %>
+ 
 <% if (!student) { %>
 
 <!-- ══ ENQUIRY/SIGNUP MODAL (same as hostel-view) ══ -->

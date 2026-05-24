@@ -13,8 +13,8 @@ const {
   notifyOwnerOnView
 } = require("../utils/leadWhatsapp");
 
+router.get("/", optionalStudentAuth, async (req, res) => {
 
-router.get("/",   async (req, res) => {
   const listings = await Listing.find({
     // isActive: true, 
      status: "Approved"
@@ -113,7 +113,7 @@ if (req.student) {
     hostel:listing,
     similar,
    
-    // student: req.student || null,
+    student: req.student || null,
     studentReview,            // ← null if not reviewed, object if already reviewed
     breadcrumb: true
     });
