@@ -4,10 +4,10 @@ const os     = require('os');
 const path   = require('path');
 
 // ================= GLOBAL STATE =================
-let client        = null;
-let isInitialized = false;
+let client         = null;
+let isInitialized  = false;
 let isInitializing = false;
-let restartTimer  = null;
+let restartTimer   = null;
 
 // ================= SESSION PATH =================
 const sessionPath = os.platform() === 'linux'
@@ -18,8 +18,22 @@ const sessionPath = os.platform() === 'linux'
 const log   = (...a) => console.log("🟢",  ...a);
 const error = (...a) => console.error("🔴", ...a);
 
+// ================= READY CHECK =================
+// Guards against the window where client exists but Puppeteer page is already dead
+function isReady() {
+  try {
+    return (
+      isInitialized &&
+      client        &&
+      client.pupPage &&
+      !client.pupPage.isClosed()
+    );
+  } catch {
+    return false;
+  }
+}
+
 // ================= MESSAGE QUEUE =================
-// Prevents parallel sends from crashing the browser
 const queue = [];
 let isProcessing = false;
 
@@ -29,30 +43,40 @@ async function processQueue() {
 
   while (queue.length > 0) {
     const { number, text, resolve } = queue.shift();
+
+    if (!isReady()) {
+      resolve({ success: false, error: "not_ready" });
+      continue;
+    }
+
     try {
-      if (!isInitialized || !client) {
-        resolve({ success: false, error: "not_ready" });
-        continue;
-      }
-      await client.sendMessage(number, text);
+      // ✅ KEY FIX: getChatById forces WA to open chat first,
+      //    allowing delivery to numbers with NO prior conversation.
+      const chat = await client.getChatById(number);
+      await chat.sendMessage(text);
       resolve({ success: true });
     } catch (err) {
       error("Send error:", err.message);
       resolve({ success: false, error: err.message });
 
-      // If browser crashed, restart
-      if (
-        err.message.includes("timed out") ||
+      const isCrash =
+        err.message.includes("timed out")             ||
         err.message.includes("context was destroyed") ||
-        err.message.includes("Session closed")
-      ) {
-        restartWhatsApp("Browser crash during send");
-        break; // stop processing, restart will reinit
+        err.message.includes("Session closed")        ||
+        err.message.includes("getChat")               ||
+        err.message.includes("getChatById")           ||
+        err.message.includes("WidFactory")            ||
+        err.message.includes("Target closed");
+
+      if (isCrash) {
+        isInitialized = false; // immediately mark not ready
+        scheduleRestart("Browser crash during send");
+        break;
       }
     }
 
-    // Small delay between messages — prevents browser overload
-    await new Promise(r => setTimeout(r, 500));
+    // 200 ms between sends — fast enough, safe enough
+    await new Promise(r => setTimeout(r, 200));
   }
 
   isProcessing = false;
@@ -65,9 +89,19 @@ function enqueue(number, text) {
   });
 }
 
+// ================= DRAIN QUEUE =================
+// Resolves all pending promises before a restart so callers don't hang
+function drainQueue(reason) {
+  while (queue.length > 0) {
+    const { resolve } = queue.shift();
+    resolve({ success: false, error: reason });
+  }
+  isProcessing = false;
+}
+
 // ================= FORMAT NUMBER =================
 function formatNumber(phone) {
-  const clean = phone.toString().replace(/\D/g, "");
+  const clean    = phone.toString().replace(/\D/g, "");
   const withCode = clean.startsWith("91") ? clean : `91${clean}`;
   return `${withCode}@c.us`;
 }
@@ -79,14 +113,11 @@ function createClient() {
     authStrategy: new LocalAuth({ dataPath: sessionPath }),
     puppeteer: {
       headless: true,
-
-      // ✅ THE KEY FIX — increase protocol timeout
       protocolTimeout: 120000,
-
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',   // Critical on Linux
+        '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-first-run',
         '--no-zygote',
@@ -110,7 +141,6 @@ async function startWhatsApp() {
   isInitialized  = false;
 
   try {
-    // Destroy old client cleanly
     if (client) {
       try { await client.destroy(); } catch {}
       client = null;
@@ -127,8 +157,7 @@ async function startWhatsApp() {
       isInitialized  = true;
       isInitializing = false;
       log("✅ WhatsApp Connected and Ready!");
-      // Flush any queued messages
-      processQueue();
+      processQueue(); // flush anything queued during startup
     });
 
     client.on('auth_failure', (msg) => {
@@ -160,49 +189,46 @@ async function startWhatsApp() {
   }
 }
 
-// ================= RESTART — with debounce =================
+// ================= RESTART =================
 function scheduleRestart(reason) {
-  // Prevent multiple restart timers stacking up
-  if (restartTimer) {
-    clearTimeout(restartTimer);
-  }
+  if (restartTimer) clearTimeout(restartTimer);
+  drainQueue(reason); // resolve all pending promises immediately
   error("🔄 Scheduling restart due to:", reason);
   restartTimer = setTimeout(() => {
     restartTimer = null;
     startWhatsApp();
-  }, 8000); // wait 8s before restarting
+  }, 8000);
 }
-
-// ✅ REMOVED: global uncaughtException/unhandledRejection handlers
-// They were restarting WhatsApp for unrelated app errors
 
 // ================= START =================
 setTimeout(() => startWhatsApp(), 3000);
 
+// ================= REGISTRATION CHECK =================
+// Shared helper — 10s timeout, fails open (assumes registered)
+async function checkRegistered(number) {
+  try {
+    return await Promise.race([
+      client.isRegisteredUser(number),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("isRegisteredUser timeout")), 10000)
+      )
+    ]);
+  } catch (e) {
+    error("isRegisteredUser failed:", e.message);
+    return true; // fail open — let sendMessage be the final arbiter
+  }
+}
+
 // ================= SEND OTP =================
 const sendWhatsAppOTP = async (phone, otp) => {
   try {
-    if (!isInitialized || !client) {
+    if (!isReady()) {
       error("⏳ WhatsApp not ready for OTP");
       return { success: false, error: "not_ready" };
     }
 
     const number = formatNumber(phone);
-
-    // Check registration with timeout protection
-    let isRegistered = false;
-    try {
-      isRegistered = await Promise.race([
-        client.isRegisteredUser(number),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("isRegisteredUser timeout")), 15000)
-        )
-      ]);
-    } catch (e) {
-      error("isRegisteredUser failed:", e.message);
-      // Assume registered if check fails — let sendMessage handle it
-      isRegistered = true;
-    }
+    const isRegistered = await checkRegistered(number);
 
     if (!isRegistered) {
       error("❌ Not on WhatsApp:", phone);
@@ -218,13 +244,8 @@ Valid for 5 minutes.
 
 https://hostelnode.com`;
 
-    // Use queue to prevent parallel sends
     const result = await enqueue(number, text);
-
-    if (result.success) {
-      log("✅ OTP sent:", phone);
-    }
-
+    if (result.success) log("✅ OTP sent:", phone);
     return result;
 
   } catch (err) {
@@ -236,25 +257,13 @@ https://hostelnode.com`;
 // ================= SEND GENERIC MESSAGE =================
 const sendWhatsAppMessage = async (phone, text) => {
   try {
-    if (!isInitialized || !client) {
+    if (!isReady()) {
       error("⏳ WhatsApp not ready");
       return false;
     }
 
     const number = formatNumber(phone);
-
-    // Check registration with timeout protection
-    let isRegistered = false;
-    try {
-      isRegistered = await Promise.race([
-        client.isRegisteredUser(number),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 15000)
-        )
-      ]);
-    } catch {
-      isRegistered = true; // assume registered on timeout
-    }
+    const isRegistered = await checkRegistered(number);
 
     if (!isRegistered) {
       error("❌ Number not on WhatsApp:", phone);
@@ -274,7 +283,7 @@ const sendWhatsAppMessage = async (phone, text) => {
 // ================= SEND OWNER ENQUIRY =================
 const sendOwnerEnquiryMessage = async (phone, data) => {
   try {
-    if (!isInitialized || !client) {
+    if (!isReady()) {
       error("⏳ WhatsApp not ready");
       return;
     }
@@ -288,10 +297,10 @@ const sendOwnerEnquiryMessage = async (phone, data) => {
 📞 ${data.studentPhone}
 
 🏢 ${data.hostelName}
-🛏 ${data.roomType  || "N/A"}
-📅 ${data.moveIn    || "N/A"}
+🛏 ${data.roomType || "N/A"}
+📅 ${data.moveIn   || "N/A"}
 
-💬 ${data.message   || "No message"}
+💬 ${data.message  || "No message"}
 
 👉 Chat: https://wa.me/${data.studentPhone}`;
 
