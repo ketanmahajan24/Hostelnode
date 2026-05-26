@@ -916,3 +916,91 @@ button { font-family: var(--font-b); cursor: pointer; }
   background: #000;
   color: #fff;
 }
+
+
+/*  badge - list property  */
+
+
+
+@keyframes goldSheen {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes pulseGlow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(218,165,32,0.6), 0 2px 8px rgba(180,130,0,0.4); }
+  50%     { box-shadow: 0 0 0 5px rgba(218,165,32,0), 0 4px 16px rgba(180,130,0,0.5); }
+}
+@keyframes flipOut {
+  0%   { transform: rotateX(0deg);   opacity: 1; }
+  100% { transform: rotateX(-90deg); opacity: 0; }
+}
+@keyframes flipIn {
+  0%   { transform: rotateX(90deg); opacity: 0; }
+  100% { transform: rotateX(0deg);  opacity: 1; }
+}
+
+.capsule-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  overflow: hidden;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  min-height: 36px;
+  min-width: 160px;
+  background: linear-gradient(105deg,
+    #6b3e00 0%, #c8860a 15%, #f7d060 35%,
+    #e8a812 50%, #c8860a 65%, #f7d060 82%, #6b3e00 100%);
+  background-size: 300% 100%;
+  animation: goldSheen 2.4s linear infinite, pulseGlow 2.6s ease-in-out infinite;
+  position: relative;
+}
+.capsule-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 0 15px;
+  min-height: 36px;
+  position: absolute;
+  left: 0; top: 0;
+  transform-origin: center center;
+}
+.face-back { display: none; }
+
+.capsule-btn.flipped .face-front {
+  animation: flipOut 0.32s cubic-bezier(0.4,0,0.6,1) forwards;
+}
+.capsule-btn.flipped .face-back {
+  display: flex;
+  animation: flipIn 0.32s cubic-bezier(0.4,0,0.6,1) 0.2s both;
+}
+.capsule-btn.unflipping .face-front {
+  animation: flipIn 0.32s cubic-bezier(0.4,0,0.6,1) 0.2s both;
+}
+.capsule-btn.unflipping .face-back {
+  display: flex;
+  animation: flipOut 0.32s cubic-bezier(0.4,0,0.6,1) forwards;
+}
+
+.face-icon, .back-icon { font-size: 14px; color: #3b2000; flex-shrink: 0; }
+.face-text, .back-text { font-size: 12px; font-weight: 800; color: #3b2000; white-space: nowrap; }
+.free-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #3b2000;
+  color: #f7d060;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 2px 7px 2px 5px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* @media (max-width: 520px) { .capsule-btn { display: none; } } */

@@ -155,10 +155,25 @@
     <% } else { %>
     <!-- ══ GUEST: login + signup buttons ══ -->
 
-      <a href="/student/login"  class="btn-ghost">Login</a>
-      <a href="/student/signup" class="btn-nav-green">
-        <i class="fa-solid fa-user-plus"></i> Signup 
-      </a>
+      <!-- <a href="/student/login"  class="btn-ghost">Login</a> -->
+      <!-- <a href="/student/signup" class="btn-nav-green">
+        <i class="fa-solid fa-user-plus"></i> List Property *free
+      </a> -->
+      <a href="/signup" class="capsule-btn" id="capsule" aria-label="List Property Free">
+  <div class="capsule-face face-front">
+    <i class="fa-solid fa-building"></i>
+    <span class="face-text">List Property</span>
+    <span class="free-tag">
+      <i class="fa-solid fa-bolt"></i> FREE
+    </span>
+  </div>
+  <div class="capsule-face face-back">
+    <i class="fa-solid fa-chart-line"></i>
+    <span class="back-text">Get More Admissions</span>
+  </div>
+</a>
+
+      
 
     <% } %>
 
@@ -194,3 +209,26 @@
   );
 })();
 </script> -->
+<script>
+  (function() {
+  var btn   = document.getElementById('capsule');
+  var front = true;
+  var locked = false;
+
+  function flip() {
+    if (locked) return;
+    locked = true;
+    if (front) {
+      btn.classList.add('flipped');
+      btn.classList.remove('unflipping');
+    } else {
+      btn.classList.add('unflipping');
+      btn.classList.remove('flipped');
+    }
+    front = !front;
+    setTimeout(function() { locked = false; }, 700);
+  }
+
+  setInterval(flip, 3000);
+})();
+</script>
