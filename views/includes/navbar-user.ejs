@@ -50,8 +50,8 @@
       <a href="/#cotactus">Contact</a>
       <a href="/#aboutus">About</a>
       <div class="divider"></div>
-        <!-- <a href="#" onclick="openNudgeModal(); return false;" class="btn-ghost">Login</a>
-        <a href="#" onclick="openNudgeModal(); return false;" class="btn-nav-green">Sign up free</a> -->
+        <a href="#" onclick="openNudgeModal(); return false;" class="btn-ghost">Login</a>
+        <a href="#" onclick="openNudgeModal(); return false;" class="btn-nav-green">Sign up free</a>
 
     <% } %>
 
@@ -82,20 +82,6 @@
 
     <% if (student) { %>
     <!-- ══ LOGGED IN: profile pill with dropdown ══ -->
-
-      <a href="/signup" class="capsule-btn" id="capsule" aria-label="List Property Free">
-         <div class="capsule-face face-front">
-            <i class="fa-solid fa-building"></i>
-            <span class="face-text">List Property</span>
-            <span class="free-tag">
-              <i class="fa-solid fa-bolt"></i> FREE
-            </span>
-        </div>
-        <div class="capsule-face face-back">
-          <i class="fa-solid fa-chart-line"></i>
-          <span class="back-text">Get More Admissions</span>
-        </div>
-      </a>
 
       <div class="sn-pill" id="snPill" onclick="snToggle(event)">
 
@@ -144,6 +130,20 @@
 
           <!-- Menu items -->
           <div class="sn-dd-items">
+            
+      <a href="/signup" class="capsule-btn" id="capsule" aria-label="List Property Free">
+         <div class="capsule-face face-front">
+            <i class="fa-solid fa-building"></i>
+            <span class="face-text">List Property</span>
+            <span class="free-tag">
+              <i class="fa-solid fa-bolt"></i> FREE
+            </span>
+        </div>
+        <div class="capsule-face face-back">
+          <i class="fa-solid fa-chart-line"></i>
+          <span class="back-text">Get More Admissions</span>
+        </div>
+      </a>
 
             <a href="/findHostels" class="sn-dd-link">
               <i class="fa-solid fa-magnifying-glass"></i> Find Hostel
