@@ -8,7 +8,7 @@
 
 const express = require("express");
 const router  = express.Router();
-const { sendWhatsAppMessage } = require("./whatsapp"); // tera existing file
+const { sendWhatsAppMessage } = require("./models/Whatsapp");
 
 // ── In-memory session store ──────────────────────────────────
 // Key: phone number  |  Value: { state, timestamp }

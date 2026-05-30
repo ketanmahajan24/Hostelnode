@@ -1,9 +1,7 @@
 require('dotenv').config() //env variable
 const LoalStrategy=require('passport-local').Strategy
 
-// WhatsApp Bot Webhook
-const waBot = require("./app-wa-bot");
-app.use("/webhook", waBot);
+
 // Near the top with other requires:
 const cityRouter   = require("./routes/cityRoutes");
 const sitemapRouter = require("./routes/sitemapRoute");
@@ -1097,13 +1095,7 @@ app.use(
   )
 );
 
-
-
-app.listen(PORT,()=>{
-    console.log(`Server is Listening on port ${PORT}`);
-});
-
-
+//private policy and terms of service page--------------------------------------------------------------------------
 // Privacy Policy
 app.get('/privacy-policy', (req, res) => {
   res.send(`
@@ -1133,3 +1125,13 @@ app.get('/terms', (req, res) => {
     <p>Email: support@hostelnode.com</p>
   `);
 });
+
+
+// WhatsApp Bot Webhook-----------------------------------------------------------------------------------------
+const waBot = require("./app-wa-bot");
+app.use("/webhook", waBot);
+// ////////////////////////////////////////////////////////////////////////////////////////////
+app.listen(PORT,()=>{
+    console.log(`Server is Listening on port ${PORT}`);
+});
+
