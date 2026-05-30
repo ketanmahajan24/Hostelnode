@@ -1,4 +1,3 @@
-
 /* ============================================================
    utils/leadWhatsapp.js  —  HostelNode WA Lead Alerts
    Sends WhatsApp messages to PG owners when students search
@@ -7,27 +6,45 @@
 
 const WaCooldown = require("../models/waCooldown");
 const Listing    = require("../models/listingProperty");
+const axios      = require("axios");
 
-// ── Your existing WA sender (reuse what's already in your codebase) ──
-// Adjust this import to match your actual WA util path
-const { sendWhatsAppMessage } = require("../models/Whatsapp");
+// ── WhatsApp Business API Config ─────────────────────────────
+const WA_TOKEN    = process.env.WA_TOKEN;
+const WA_PHONE_ID = process.env.WA_PHONE_ID;
+const BASE_URL    = `https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`;
 
 /* ============================================================
-   LOW-LEVEL: Send a raw WA message to a phone number
-   Replace this function body if you have a different WA API
+   LOW-LEVEL: Send raw WA message via Official Business API
 ============================================================ */
- async function sendWAMessage(phone, message) {
+async function sendWAMessage(phone, message) {
   try {
+    // Clean phone number — remove all non-digits
+    const cleanPhone = phone.toString().replace(/[^0-9]/g, "");
 
-    await sendWhatsAppMessage(phone, message);
+    // Add country code if missing
+    const fullPhone = cleanPhone.startsWith("91")
+      ? cleanPhone
+      : `91${cleanPhone}`;
 
-    return { success: true };
+    const res = await axios.post(BASE_URL, {
+      messaging_product: "whatsapp",
+      to:   fullPhone,
+      type: "text",
+      text: { body: message }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${WA_TOKEN}`,
+        'Content-Type':  'application/json'
+      },
+      timeout: 15000
+    });
+
+    console.log(`🟢 WA sent to ${fullPhone}`);
+    return { success: true, data: res.data };
 
   } catch (err) {
-
-    console.error("WA send error:", err.message);
-
-    return null;
+    console.error("🔴 WA send error:", err.response?.data || err.message);
+    return { success: false, error: err.message };
   }
 }
 
@@ -37,9 +54,9 @@ const { sendWhatsAppMessage } = require("../models/Whatsapp");
 async function shouldSend(ownerId, studentId) {
   try {
     const existing = await WaCooldown.findOne({ ownerId, studentId });
-    return !existing; // if no record → should send
+    return !existing;
   } catch (err) {
-    return false; // on error, don't send
+    return false;
   }
 }
 
@@ -58,7 +75,7 @@ async function markCooldown(ownerId, studentId) {
 /* ============================================================
    TRIGGER 1: Student searches an area
    Finds top owners with listings in that area and sends WA
-   
+
    @param {object} student   - logged-in student object
    @param {string} area      - area searched e.g. "Nerul"
    @param {string} city      - city e.g. "Mumbai"
@@ -68,7 +85,6 @@ async function notifyOwnersOnSearch({ student, area, city, maxOwners = 10 }) {
   if (!student || !area) return;
 
   try {
-    // Find listings matching this area/city — only get owner phone numbers
     const searchTerm = area || city;
     const listings = await Listing.find({
       status: "Approved",
@@ -80,26 +96,24 @@ async function notifyOwnersOnSearch({ student, area, city, maxOwners = 10 }) {
     })
     .populate("owner", "name phone")
     .select("owner title location")
-    .limit(50); // fetch more, then dedupe by owner
+    .limit(50);
 
     if (!listings.length) return;
 
-    // Deduplicate by owner so one owner doesn't get 5 messages
     const seenOwners = new Set();
     let notified = 0;
 
     for (const listing of listings) {
       if (notified >= maxOwners) break;
+
       const owner = listing.owner;
       if (!owner || !owner.phone) continue;
       if (seenOwners.has(owner._id.toString())) continue;
       seenOwners.add(owner._id.toString());
 
-      // Check 24-hour cooldown
       const ok = await shouldSend(owner._id, student._id);
       if (!ok) continue;
 
-      const phone   = owner.phone.replace(/[^0-9]/g, "");
       const message =
 `🏠 *New Lead — HostelNode*
 
@@ -110,25 +124,30 @@ A student is searching for PG/Hostel in *${area}${city ? ", " + city : ""}*.
 🎓 *College:* ${student.collegeName || "Not mentioned"}
 
 💬 Respond quickly to convert this lead!
-📲 View your listing: https://www.hostelnode.com
+📲 View your listings: https://hostelnode.com
 
 — HostelNode Team`;
 
-      await sendWAMessage(phone, message);
-      await markCooldown(owner._id, student._id);
-      notified++;
+      const result = await sendWAMessage(owner.phone, message);
+
+      if (result.success) {
+        await markCooldown(owner._id, student._id);
+        notified++;
+        console.log(`🟢 Lead sent to owner: ${owner.name} (${owner.phone})`);
+      }
     }
 
     console.log(`✅ WA lead sent to ${notified} owners for area: ${area}`);
+
   } catch (err) {
-    console.error("notifyOwnersOnSearch error:", err.message);
+    console.error("🔴 notifyOwnersOnSearch error:", err.message);
   }
 }
 
 /* ============================================================
    TRIGGER 2: Student views a specific listing
    Sends WA only to THAT listing's owner
-   
+
    @param {object} student  - logged-in student object
    @param {object} listing  - the listing being viewed (populated with owner)
 ============================================================ */
@@ -139,12 +158,11 @@ async function notifyOwnerOnView({ student, listing }) {
     const owner = listing.owner;
     if (!owner || !owner.phone) return;
 
-    // Check 24-hour cooldown
     const ok = await shouldSend(owner._id, student._id);
     if (!ok) return;
 
-    const phone   = owner.phone.replace(/[^0-9]/g, "");
-    const area    = listing.location?.nearCollege || listing.location?.city || "";
+    const area = listing.location?.nearCollege || listing.location?.city || "";
+
     const message =
 `👀 *Your Listing Was Viewed — HostelNode*
 
@@ -156,16 +174,19 @@ A student just viewed *"${listing.title}"*!
 📍 *Looking in:* ${area}
 
 🔥 This is a hot lead — reach out now!
-🔗 Listing: https://www.hostelnode.com/hostel/${listing.slug}
+🔗 Listing: https://hostelnode.com/hostel/${listing.slug}
 
 — HostelNode Team`;
 
-    await sendWAMessage(phone, message);
-    await markCooldown(owner._id, student._id);
+    const result = await sendWAMessage(owner.phone, message);
 
-    console.log(`✅ WA view-lead sent to owner: ${owner.name} for listing: ${listing.title}`);
+    if (result.success) {
+      await markCooldown(owner._id, student._id);
+      console.log(`🟢 View-lead sent to owner: ${owner.name} for: ${listing.title}`);
+    }
+
   } catch (err) {
-    console.error("notifyOwnerOnView error:", err.message);
+    console.error("🔴 notifyOwnerOnView error:", err.message);
   }
 }
 
