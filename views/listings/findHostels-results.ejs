@@ -1,3 +1,5 @@
+<!-- findHostels-results.ejs -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,6 +22,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
 
   <style>
     /* ── RESULTS PAGE SPECIFIC ────────────────────── */
@@ -1104,6 +1107,27 @@ async function nudgeLogin() {
 
 
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  /* ═════ PROFILE DROPDOWN ════ */
+  function snToggle(e) {
+    e.stopPropagation();
+    const pill = document.getElementById('snPill');
+    if (pill) pill.classList.toggle('open');
+  }
+
+  document.addEventListener('click', function () {
+    const pill = document.getElementById('snPill');
+    if (pill) pill.classList.remove('open');
+  });
+
+  /* ── Areas toggle ── */
+  function toggleAreas() {
+    // ... rest of your code
+  }
+  
+  // ... other functions
+</script>
 
 </body>
 </html>

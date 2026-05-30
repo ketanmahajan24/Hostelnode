@@ -2407,7 +2407,7 @@ async function authNext() {
   const btn = document.getElementById('authNextBtn');
   btn.disabled = true; btn.textContent = 'Setting up…';
 
-  const res  = await fetch('/student/signup', {
+  const res = await fetch('/student/signup', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ firstName, lastName, phone })
   }).catch(() => null);
@@ -2420,9 +2420,13 @@ async function authNext() {
     return showAuthAlert(data.error || 'Signup failed');
   }
 
-  showEnqStep('form');   // ← JWT cookie set, move to enquiry
+  // ── requireLogin mode mein reload, warna form dikhao ──
+  if (typeof onLoginSuccess === 'function') {
+    onLoginSuccess();
+  } else {
+    showEnqStep('form');
+  }
 }
-
 /* ════════════════════
    LOGIN FLOW
 ════════════════════ */
@@ -2482,7 +2486,7 @@ async function loginNext() {
   const btn   = document.getElementById('loginNextBtn');
   btn.disabled = true; btn.textContent = 'Logging in…';
 
-  const res  = await fetch('/student/login', {
+  const res = await fetch('/student/login', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ phone })
   }).catch(() => null);
@@ -2495,9 +2499,13 @@ async function loginNext() {
     return showAuthAlert(data.error || 'Login failed');
   }
 
-  showEnqStep('form');   // ← JWT cookie set, move to enquiry
+  // ── requireLogin mode mein reload, warna form dikhao ──
+  if (typeof onLoginSuccess === 'function') {
+    onLoginSuccess();
+  } else {
+    showEnqStep('form');
+  }
 }
-
 /* ════════════════════
    ENQUIRY SUBMIT
 ════════════════════ */
@@ -2553,5 +2561,54 @@ async function submitEnquiry() {
 }
 
 </script>
+
+
+
+
+
+
+<% if (typeof requireLogin !== 'undefined' && requireLogin) { %>
+<style>
+  .hv-container,
+  .gallery-section,
+  .progress-nav,
+  .similar-section {
+    filter: blur(6px);
+    pointer-events: none;
+    user-select: none;
+  }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+
+    var overlay = document.getElementById('enqOverlay');
+    var box     = overlay?.querySelector('.enq-box');
+
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    document.getElementById('enqStepAuth').style.display  = 'block';
+    document.getElementById('enqStepForm').style.display  = 'none';
+    document.getElementById('enqStepSuccess').style.display = 'none';
+
+    var closeBtn = document.querySelector('.enq-close');
+    if (closeBtn) {
+      closeBtn.onclick = function () {
+        window.location.href = '/findHostels';
+      };
+    }
+
+    overlay.onclick = function (e) {
+      if (e.target === overlay) window.location.href = '/findHostels';
+    };
+  });
+
+  function onLoginSuccess() {
+    setTimeout(function () {
+      window.location.reload();
+    }, 1500);
+  }
+</script>
+<% } %>
 </body>
 </html>

@@ -1,3 +1,13 @@
+// ================= findHostels-route.js =============================
+/* ============================================================
+   findHostels-route.js  —  Search & Listing Routes for HostelNode
+   - GET /findHostels         → Search page + recent listings
+   - GET /findHostels/results → Search results with filters + pagination
+   - GET /hostel/:slug        → Individual hostel detail page
+   Integrates smart search parsing, search logging, and WA lead alerts.
+============================================================ */
+
+const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
 const express = require("express");
 const router  = express.Router();
 const Listing = require("../models/listingProperty");
@@ -10,7 +20,7 @@ const {
 // ─────────────────────────────────────────────
 // HOME / FIND PAGE  →  GET /findHostels
 // ─────────────────────────────────────────────
-router.get("/", async (req, res) => {
+router.get("/", optionalStudentAuth, async (req, res) => {
   try {
     const listings = await Listing.find({ status: "Approved"})
       .limit(24)
@@ -29,7 +39,7 @@ router.get("/", async (req, res) => {
 // ─────────────────────────────────────────────
 // SEARCH RESULTS  →  GET /findHostels/results
 // ─────────────────────────────────────────────
-router.get("/results", async (req, res) => {
+router.get("/results", optionalStudentAuth, async (req, res) => {
   try {
     const {
       college  = "",
@@ -248,62 +258,62 @@ if (req.student && collegeQuery && collegeQuery.length > 2) {
 // ─────────────────────────────────────────────
 // HOSTEL DETAIL  →  GET /hostel/:slug
 // ─────────────────────────────────────────────
-router.get("/hostel/:slug", async (req, res) => {
-  try {
-    const { slug } = req.params;
+// router.get("/hostel/:slug", async (req, res) => {
+//   try {
+//     const { slug } = req.params;
 
-    const listing = await Listing.findOneAndUpdate(
-        { slug, status: "Approved" },   // 🔥 ADD THIS
-      { $inc: { views: 2 } },
-      { new: true }
-    ).populate("owner");
+//     const listing = await Listing.findOneAndUpdate(
+//         { slug, status: "Approved" },   // 🔥 ADD THIS
+//       { $inc: { views: 2 } },
+//       { new: true }
+//     ).populate("owner");
 
-    if (!listing) return res.status(404).send("Hostel not found");
+//     if (!listing) return res.status(404).send("Hostel not found");
 
-    // ─────────────────────────────────────────────
-// LOG LISTING VIEW
-// ─────────────────────────────────────────────
+//     // ─────────────────────────────────────────────
+// // LOG LISTING VIEW
+// // ─────────────────────────────────────────────
 
-await logSearch({
-  req,
-  searchType: "listing_view",
-  searchQuery: listing.title,
-  resolvedCity: listing.location?.city || "",
-  resolvedArea: listing.location?.nearCollege || "",
-  resultsCount: 1,
-});
+// await logSearch({
+//   req,
+//   searchType: "listing_view",
+//   searchQuery: listing.title,
+//   resolvedCity: listing.location?.city || "",
+//   resolvedArea: listing.location?.nearCollege || "",
+//   resultsCount: 1,
+// });
 
-// Send WhatsApp lead to owner
-if (req.student) {
-  notifyOwnerOnView({
-    student: req.student,
-    listing: listing,
-  }).catch(err => console.error("WA view notify error:", err));
-}
+// // Send WhatsApp lead to owner
+// if (req.student) {
+//   notifyOwnerOnView({
+//     student: req.student,
+//     listing: listing,
+//   }).catch(err => console.error("WA view notify error:", err));
+// }
 
-    let studentReview = null;
-    if (req.student) {
-      studentReview = listing.reviews.find(
-        rv => rv.student?.toString() === req.student.id
-      ) || null;
-    }
+//     let studentReview = null;
+//     if (req.student) {
+//       studentReview = listing.reviews.find(
+//         rv => rv.student?.toString() === req.student.id
+//       ) || null;
+//     }
 
-    const similar = await Listing.find({
-        status: "Approved",   // 🔥 ADD
-      "location.city": listing.location.city,
-      _id: { $ne: listing._id },
-    }).limit(4);
+//     const similar = await Listing.find({
+//         status: "Approved",   // 🔥 ADD
+//       "location.city": listing.location.city,
+//       _id: { $ne: listing._id },
+//     }).limit(4);
 
-    res.render("listings/hostel-view.ejs", {
-      hostel: listing,
-      similar,
-      studentReview,
-      breadcrumb: true,
-    });
-  } catch (err) {
-    // console.error("❌ Hostel view error:", err);
-    res.status(500).send("Server Error");
-  }
-});
+//     res.render("listings/hostel-view.ejs", {
+//       hostel: listing,
+//       similar,
+//       studentReview,
+//       breadcrumb: true,
+//     });
+//   } catch (err) {
+//     // console.error("❌ Hostel view error:", err);
+//     res.status(500).send("Server Error");
+//   }
+// });
 
 module.exports = router;

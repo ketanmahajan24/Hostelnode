@@ -1,12 +1,12 @@
-// jwtAuth.js/* ============================================================
-//    Middlewares/jwtAuth.js  —  JWT Authentication for Owners, Students, Admins
-// ============================================================ */
+/* ============================================================
+   Middlewares/jwtAuth.js  —  JWT Authentication
+============================================================ */
 
 const jwt = require("jsonwebtoken");
 
 // ================= OWNER AUTH =================
 const jwtAuthMiddleware = (req, res, next) => {
-  const token = req.cookies.token;
+  const token = req.cookies?.token;
 
   if (!token) {
     return res.redirect("/login");
@@ -22,9 +22,9 @@ const jwtAuthMiddleware = (req, res, next) => {
   }
 };
 
-// ================= STUDENT AUTH =================
+// ================= STUDENT AUTH (hard guard) =================
 const jwtStudentAuth = (req, res, next) => {
-  const token = req.cookies.studentToken;   // 🔥 DIFFERENT COOKIE
+  const token = req.cookies?.studentToken;
 
   if (!token) {
     return res.redirect("/student/login");
@@ -32,29 +32,34 @@ const jwtStudentAuth = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.student = decoded;   // 🔥 IMPORTANT (req.user nahi)
+    req.student = decoded;
     next();
   } catch (err) {
     console.error("Student Token Error:", err);
-    res.clearCookie("studentToken"); // invalid token remove
+    res.clearCookie("studentToken");
     return res.redirect("/student/login");
   }
 };
 
 // ================= OPTIONAL STUDENT AUTH =================
 const optionalStudentAuth = (req, res, next) => {
-  const token = req.cookies.studentToken;
+  // req.cookies undefined hoga agar cookie-parser nahi laga
+  const token = req.cookies?.studentToken;
 
   if (!token) {
-    req.student = null;
+    req.student      = null;
+    res.locals.student = null;
     return next();
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.student = decoded;
+    const decoded      = jwt.verify(token, process.env.JWT_SECRET);
+    req.student        = decoded;
+    res.locals.student = decoded;  // ← EJS templates mein directly available
   } catch (err) {
-    req.student = null;
+    req.student        = null;
+    res.locals.student = null;
+    res.clearCookie("studentToken"); // invalid token clear karo
   }
 
   next();
@@ -67,12 +72,12 @@ const generateToken = (data) => {
   });
 };
 
-// // Add to your existing jwtAuth.js
-// const jwt = require("jsonwebtoken");
-
+// ================= ADMIN AUTH =================
 function jwtAdminAuth(req, res, next) {
-  const token = req.cookies.adminToken;
+  const token = req.cookies?.adminToken;
+
   if (!token) return res.redirect("/admin/login");
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role !== "SuperAdmin") return res.redirect("/admin/login");
@@ -87,6 +92,7 @@ function jwtAdminAuth(req, res, next) {
 function generateAdminToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "12h" });
 }
+
 module.exports = {
   jwtAuthMiddleware,
   jwtStudentAuth,
@@ -94,4 +100,4 @@ module.exports = {
   generateToken,
   jwtAdminAuth,
   generateAdminToken
-};
+}; 

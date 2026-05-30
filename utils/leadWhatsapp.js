@@ -1,30 +1,28 @@
 /* ============================================================
    utils/leadWhatsapp.js  —  HostelNode WA Lead Alerts
-   Sends WhatsApp messages to PG owners when students search
-   or view listings. Includes 24-hour cooldown per owner+student.
 ============================================================ */
 
 const WaCooldown = require("../models/waCooldown");
 const Listing    = require("../models/listingProperty");
 const axios      = require("axios");
 
-// ── WhatsApp Business API Config ─────────────────────────────
 const WA_TOKEN    = process.env.WA_TOKEN;
 const WA_PHONE_ID = process.env.WA_PHONE_ID;
 const BASE_URL    = `https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`;
 
 /* ============================================================
-   LOW-LEVEL: Send raw WA message via Official Business API
+   LOW-LEVEL: Send raw WA message
 ============================================================ */
 async function sendWAMessage(phone, message) {
-  try {
-    // Clean phone number — remove all non-digits
-    const cleanPhone = phone.toString().replace(/[^0-9]/g, "");
+  console.log("🔵 sendWAMessage called — phone:", phone);
+  console.log("🔵 WA_TOKEN exists:", !!WA_TOKEN);
+  console.log("🔵 WA_PHONE_ID:", WA_PHONE_ID);
 
-    // Add country code if missing
-    const fullPhone = cleanPhone.startsWith("91")
-      ? cleanPhone
-      : `91${cleanPhone}`;
+  try {
+    const cleanPhone = phone.toString().replace(/[^0-9]/g, "");
+    const fullPhone  = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+
+    console.log("🔵 Sending to:", fullPhone);
 
     const res = await axios.post(BASE_URL, {
       messaging_product: "whatsapp",
@@ -49,44 +47,67 @@ async function sendWAMessage(phone, message) {
 }
 
 /* ============================================================
-   Check cooldown — returns true if we SHOULD send (not in cooldown)
+   Cooldown helpers — Student (24 hours)
 ============================================================ */
 async function shouldSend(ownerId, studentId) {
   try {
     const existing = await WaCooldown.findOne({ ownerId, studentId });
+    console.log(`🔵 shouldSend — ownerId:${ownerId} studentId:${studentId} → ${!existing ? 'SEND' : 'SKIP (cooldown)'}`);
     return !existing;
   } catch (err) {
+    console.error("🔴 shouldSend error:", err.message);
     return false;
   }
 }
 
-/* ============================================================
-   Mark cooldown — records that WA was sent, expires in 24h
-============================================================ */
 async function markCooldown(ownerId, studentId) {
   try {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await WaCooldown.create({ ownerId, studentId, expiresAt });
+  } catch {
+    // ignore duplicate
+  }
+}
+
+/* ============================================================
+   Cooldown helpers — Guest (1 hour per listing)
+============================================================ */
+async function shouldSendGuest(ownerId, listingId) {
+  try {
+    const key      = `guest_${listingId}`;
+    const existing = await WaCooldown.findOne({ ownerId, studentId: key });
+    console.log(`🔵 shouldSendGuest — ownerId:${ownerId} listingId:${listingId} → ${!existing ? 'SEND' : 'SKIP (cooldown)'}`);
+    return !existing;
   } catch (err) {
-    // ignore duplicate key errors
+    console.error("🔴 shouldSendGuest error:", err.message);
+    return false;
+  }
+}
+
+async function markGuestCooldown(ownerId, listingId) {
+  try {
+    const key       = `guest_${listingId}`;
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await WaCooldown.create({ ownerId, studentId: key, expiresAt });
+  } catch {
+    // ignore duplicate
   }
 }
 
 /* ============================================================
    TRIGGER 1: Student searches an area
-   Finds top owners with listings in that area and sends WA
-
-   @param {object} student   - logged-in student object
-   @param {string} area      - area searched e.g. "Nerul"
-   @param {string} city      - city e.g. "Mumbai"
-   @param {number} maxOwners - max owners to notify (default 10)
 ============================================================ */
 async function notifyOwnersOnSearch({ student, area, city, maxOwners = 10 }) {
-  if (!student || !area) return;
+  console.log("🔵 notifyOwnersOnSearch called — area:", area, "city:", city);
+
+  if (!student || !area) {
+    console.log("❌ notifyOwnersOnSearch — student or area missing, skipping");
+    return;
+  }
 
   try {
     const searchTerm = area || city;
-    const listings = await Listing.find({
+    const listings   = await Listing.find({
       status: "Approved",
       $or: [
         { "location.nearCollege": { $regex: searchTerm, $options: "i" } },
@@ -98,16 +119,20 @@ async function notifyOwnersOnSearch({ student, area, city, maxOwners = 10 }) {
     .select("owner title location")
     .limit(50);
 
+    console.log(`🔵 notifyOwnersOnSearch — ${listings.length} listings found for: ${searchTerm}`);
     if (!listings.length) return;
 
     const seenOwners = new Set();
-    let notified = 0;
+    let notified     = 0;
 
     for (const listing of listings) {
       if (notified >= maxOwners) break;
 
       const owner = listing.owner;
-      if (!owner || !owner.phone) continue;
+      if (!owner?.phone) {
+        console.log("⚠️ Listing has no owner/phone — skipping:", listing.title);
+        continue;
+      }
       if (seenOwners.has(owner._id.toString())) continue;
       seenOwners.add(owner._id.toString());
 
@@ -133,11 +158,11 @@ A student is searching for PG/Hostel in *${area}${city ? ", " + city : ""}*.
       if (result.success) {
         await markCooldown(owner._id, student._id);
         notified++;
-        console.log(`🟢 Lead sent to owner: ${owner.name} (${owner.phone})`);
+        console.log(`🟢 Search-lead sent to owner: ${owner.name} (${owner.phone})`);
       }
     }
 
-    console.log(`✅ WA lead sent to ${notified} owners for area: ${area}`);
+    console.log(`✅ WA search-leads sent to ${notified} owners for area: ${area}`);
 
   } catch (err) {
     console.error("🔴 notifyOwnersOnSearch error:", err.message);
@@ -145,21 +170,71 @@ A student is searching for PG/Hostel in *${area}${city ? ", " + city : ""}*.
 }
 
 /* ============================================================
-   TRIGGER 2: Student views a specific listing
-   Sends WA only to THAT listing's owner
-
-   @param {object} student  - logged-in student object
-   @param {object} listing  - the listing being viewed (populated with owner)
+   TRIGGER 2: Listing view — student ya guest dono handle karta hai
 ============================================================ */
-async function notifyOwnerOnView({ student, listing }) {
-  if (!student || !listing) return;
+async function notifyOwnerOnView({ student, listing, isGuest = false }) {
+  console.log("🔵 notifyOwnerOnView called — isGuest:", isGuest, "| listing:", listing?.title);
+
+  if (!listing) {
+    console.log("❌ notifyOwnerOnView — listing missing");
+    return;
+  }
 
   try {
     const owner = listing.owner;
-    if (!owner || !owner.phone) return;
+
+    if (!owner) {
+      console.log("❌ listing.owner is null — populate hua nahi lagta");
+      return;
+    }
+    if (!owner.phone) {
+      console.log("❌ owner.phone missing — owner:", owner);
+      return;
+    }
+
+    // ── GUEST VIEW ──
+    if (isGuest) {
+      const ok = await shouldSendGuest(owner._id, listing._id);
+      if (!ok) {
+        console.log("⏭️ Guest cooldown active — skipping WA");
+        return;
+      }
+
+      const message =
+`👀 *Listing Viewed — HostelNode*
+
+Ek *Guest User* ne abhi aapki listing dekhi!
+(Abhi login nahi kiya — interested hai)
+
+🏠 *${listing.title}*
+📍 ${listing.location?.city || ""}
+🔗 https://hostelnode.com/hostel/${listing.slug}
+
+⚡ Listing attractive lag rahi hai!
+
+— HostelNode Team`;
+
+      const result = await sendWAMessage(owner.phone, message);
+
+      if (result.success) {
+        await markGuestCooldown(owner._id, listing._id);
+        console.log(`🟢 Guest view-lead sent to owner for: ${listing.title}`);
+      }
+
+      return;
+    }
+
+    // ── LOGGED IN STUDENT VIEW ──
+    if (!student) {
+      console.log("❌ notifyOwnerOnView — student missing aur isGuest false hai");
+      return;
+    }
 
     const ok = await shouldSend(owner._id, student._id);
-    if (!ok) return;
+    if (!ok) {
+      console.log("⏭️ Student cooldown active — skipping WA");
+      return;
+    }
 
     const area = listing.location?.nearCollege || listing.location?.city || "";
 
@@ -174,7 +249,7 @@ A student just viewed *"${listing.title}"*!
 📍 *Looking in:* ${area}
 
 🔥 This is a hot lead — reach out now!
-🔗 Listing: https://hostelnode.com/hostel/${listing.slug}
+🔗 https://hostelnode.com/hostel/${listing.slug}
 
 — HostelNode Team`;
 
@@ -187,6 +262,7 @@ A student just viewed *"${listing.title}"*!
 
   } catch (err) {
     console.error("🔴 notifyOwnerOnView error:", err.message);
+    console.error(err.stack);
   }
 }
 

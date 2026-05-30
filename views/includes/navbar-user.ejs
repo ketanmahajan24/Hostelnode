@@ -45,13 +45,13 @@
         <i class="fa-solid fa-heart"></i> My Wishlist
       </a>
       <!-- <a href="/StartManagingYourHostel">Start Managing Your Hostel </a> -->
-       <a href="/signup">List Your Hostel for Free </a>
+       <!-- <a href="/signup">List Your Hostel for Free </a> -->
       <a href="/#feature-list">Features</a>
       <a href="/#cotactus">Contact</a>
       <a href="/#aboutus">About</a>
       <div class="divider"></div>
-      <a href="/student/login"  class="btn-ghost">Login</a>
-      <a href="/student/signup" class="btn-green">Sign up free</a>
+        <a href="#" onclick="openNudgeModal(); return false;" class="btn-ghost">Login</a>
+        <a href="#" onclick="openNudgeModal(); return false;" class="btn-nav-green">Sign up free</a>
 
     <% } %>
 
@@ -71,7 +71,7 @@
   <ul class="hn-nav-links">
     <li><a href="/" class="active">Find Hostel</a></li>
     <li>
-       <a href="/signup"> List Your Hostel for Free </a>
+       <!-- <a href="/signup"> List Your Hostel for Free </a> -->
     </li>
     <li><a href="/#feature-list">Features</a></li>
     <li><a href="/#cotactus">Contact</a></li>
@@ -82,6 +82,20 @@
 
     <% if (student) { %>
     <!-- ══ LOGGED IN: profile pill with dropdown ══ -->
+
+      <a href="/signup" class="capsule-btn" id="capsule" aria-label="List Property Free">
+         <div class="capsule-face face-front">
+            <i class="fa-solid fa-building"></i>
+            <span class="face-text">List Property</span>
+            <span class="free-tag">
+              <i class="fa-solid fa-bolt"></i> FREE
+            </span>
+        </div>
+        <div class="capsule-face face-back">
+          <i class="fa-solid fa-chart-line"></i>
+          <span class="back-text">Get More Admissions</span>
+        </div>
+      </a>
 
       <div class="sn-pill" id="snPill" onclick="snToggle(event)">
 
@@ -153,25 +167,24 @@
       </div><!-- /sn-pill -->
 
     <% } else { %>
-    <!-- ══ GUEST: login + signup buttons ══ -->
-
-      <!-- <a href="/student/login"  class="btn-ghost">Login</a> -->
-      <!-- <a href="/student/signup" class="btn-nav-green">
-        <i class="fa-solid fa-user-plus"></i> List Property *free
-      </a> -->
+        <!-- ══ GUEST: login + signup buttons ══ -->
+    <a href="#" onclick="openNudgeModal(); closeMobileNav({target:document.getElementById('mobileNav')}); return false;" class="btn-ghost">Login</a>
+    <a href="#" onclick="openNudgeModal(); closeMobileNav({target:document.getElementById('mobileNav')}); return false;" class="btn-green">Sign up free</a>
+        <!-- <i class="fa-solid fa-user-plus"></i> List Property *free -->
+      </a>
       <a href="/signup" class="capsule-btn" id="capsule" aria-label="List Property Free">
-  <div class="capsule-face face-front">
-    <i class="fa-solid fa-building"></i>
-    <span class="face-text">List Property</span>
-    <span class="free-tag">
-      <i class="fa-solid fa-bolt"></i> FREE
-    </span>
-  </div>
-  <div class="capsule-face face-back">
-    <i class="fa-solid fa-chart-line"></i>
-    <span class="back-text">Get More Admissions</span>
-  </div>
-</a>
+         <div class="capsule-face face-front">
+            <i class="fa-solid fa-building"></i>
+            <span class="face-text">List Property</span>
+            <span class="free-tag">
+              <i class="fa-solid fa-bolt"></i> FREE
+            </span>
+        </div>
+        <div class="capsule-face face-back">
+          <i class="fa-solid fa-chart-line"></i>
+          <span class="back-text">Get More Admissions</span>
+        </div>
+      </a>
 
       
 

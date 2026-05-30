@@ -1,4 +1,4 @@
-/* ============================================================
+/* =================studentroutes.js===========================================
    STUDENT ROUTES — HostelNode
    Mount in app.js:  app.use('/student', studentRouter)
 ============================================================ */
@@ -202,9 +202,9 @@ router.post("/signup", async (req, res) => {
 
     res.cookie("studentToken", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",  // HTTPS pe auto-true
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000   // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     // ── Welcome email (if email filled later, skip now) ──
@@ -260,16 +260,16 @@ router.post("/login", async (req, res) => {
 
     res.cookie("studentToken", token, {
       httpOnly: true,
-      secure: false,
+        secure: process.env.NODE_ENV === "production",   
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
-
-    //console.log(`✅ Student login: ${student.phone}`);
-    //console.log("=========== ✅ END ===========\n");
-
-    res.json({ success: true, redirect: "/student" });
-
+      // ── REDIRECT TO ORIGINAL PAGE IF `next` EXISTS ──
+        const redirectTo = req.body.next || req.query.next || "/";
+        res.json({ success: true, redirect: redirectTo });
+          //console.log(`✅ Student login: ${student.phone}`);
+          //console.log("=========== ✅ END ===========\n");
+ 
   } catch (err) {
     //console.error("❌ Student login error:", err);
     res.status(500).json({ success: false, error: "Server error" });
@@ -425,8 +425,7 @@ router.get("/wishlist", jwtStudentAuth, async (req, res) => {
 
     res.render("student/studentWishlist.ejs", {
       student,
-      wishlist: student.wishlist || [],   // always an array, never null
-      student: res.locals.student || null  // for navbar
+      wishlist: student.wishlist || [],
     });
 
   } catch (err) {
@@ -667,9 +666,13 @@ router.post("/logout", (req, res) =>{
 ============================================================ */
 router.get("/logout", (req, res) => {
   res.clearCookie("studentToken");
-  res.redirect("/student/login");
+  res.redirect("/");
 });
-
+ 
+router.post("/logout", (req, res) => {
+  res.clearCookie("studentToken");
+  res.redirect("/");
+});
 
 
 /* ============================================================

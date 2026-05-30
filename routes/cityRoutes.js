@@ -16,19 +16,8 @@ const { logSearch } = require("../utils/searchLogger");
 // Optional: student auth middleware (if you have one that doesn't redirect)
 // Replace "optionalStudentAuth" with your actual middleware name
 // It should set req.student if logged in, but not block if not logged in
-const optionalStudentAuth = (req, res, next) => {
-  // If you use JWT cookie:
-  try {
-    const jwt = require("jsonwebtoken");
-    const token = req.cookies?.studentToken;
-    if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      // Fetch student from DB or just attach decoded payload
-      req.student = decoded;
-    }
-  } catch (e) { /* not logged in, that's fine */ }
-  next();
-};
+
+const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
 
 /* ============================================================
    GET /city/:citySlug  →  City landing page
