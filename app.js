@@ -1,6 +1,9 @@
 require('dotenv').config() //env variable
 const LoalStrategy=require('passport-local').Strategy
 
+// WhatsApp Bot Webhook
+const waBot = require("./app-wa-bot");
+app.use("/webhook", waBot);
 // Near the top with other requires:
 const cityRouter   = require("./routes/cityRoutes");
 const sitemapRouter = require("./routes/sitemapRoute");
