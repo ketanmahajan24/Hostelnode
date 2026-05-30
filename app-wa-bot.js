@@ -18,8 +18,8 @@ const log   = (...a) => console.log("🟢", ...a);
 const error = (...a) => console.error("🔴", ...a);
 
 // ── Session Store ────────────────────────────────────────────
-const sessions     = new Map();
-const SESSION_TTL  = 10 * 60 * 1000; // 10 min
+const sessions    = new Map();
+const SESSION_TTL = 10 * 60 * 1000; // 10 min
 
 function getSession(phone) {
   const s = sessions.get(phone);
@@ -234,16 +234,26 @@ function formatCity(slug) {
 function detectIntent(text) {
   const t = text.toLowerCase();
   if (t.match(/^(hi|hello|hey|hii|start|menu|help)$/)) return 'GREET';
-  if (t.match(/find|search|looking|need|want|pg|hostel|room|accommodation|flat|near/)) return 'FIND';
+  if (t.match(/find|search|looking|need|want|pg|hostel|room|flat|near|accommodation/)) return 'FIND';
   if (t.match(/list|add|register|owner|property|rent out|my hostel/)) return 'LIST';
   if (t.match(/price|cost|rent|budget|how much|fees|monthly/)) return 'PRICE';
   if (t.match(/support|problem|issue|contact|agent|human|call/)) return 'SUPPORT';
   if (t.match(/thank|thanks|great|awesome|perfect|done/)) return 'THANKS';
-  if (t === 'menu') return 'GREET';
   return 'UNKNOWN';
 }
 
-// ── API Callers ──────────────────────────────────────────────
+// ── All Button Labels (max 20 chars each) ────────────────────
+const BTN = {
+  FIND:    '🔎 Find PG/Hostel',   // 17 chars ✅
+  LIST:    '🏡 List Property',    // 16 chars ✅
+  SUPPORT: '🤝 Support',          // 11 chars ✅
+  PRICES:  '💰 Check Prices',     // 15 chars ✅
+  MENU:    '🏠 Main Menu',        // 13 chars ✅
+  AGAIN:   '🔍 Try Again',        // 13 chars ✅
+  OTHER:   '🔍 Another City',     // 15 chars ✅
+};
+
+// ── API Caller ───────────────────────────────────────────────
 async function callAPI(payload) {
   try {
     const res = await axios.post(BASE_URL, payload, {
@@ -255,7 +265,7 @@ async function callAPI(payload) {
     });
     return { success: true, data: res.data };
   } catch (err) {
-    error("API Error:", err.response?.data || err.message);
+    error("API Error:", JSON.stringify(err.response?.data || err.message));
     return { success: false };
   }
 }
@@ -270,8 +280,7 @@ async function sendText(phone, text) {
   });
 }
 
-// ── Send Interactive Buttons ─────────────────────────────────
-// Max 3 buttons — WhatsApp limit
+// ── Send Interactive Buttons (max 3) ─────────────────────────
 async function sendButtons(phone, bodyText, buttons, headerText = null) {
   const payload = {
     messaging_product: "whatsapp",
@@ -284,62 +293,45 @@ async function sendButtons(phone, bodyText, buttons, headerText = null) {
         buttons: buttons.map((b, i) => ({
           type:  "reply",
           reply: {
-            id:    `btn_${i}_${b.replace(/\s+/g,'_').toLowerCase()}`,
-            title: b
+            id:    `btn_${i}_${b.replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,20)}`,
+            title: b.slice(0, 20) // hard limit
           }
         }))
       }
     }
   };
   if (headerText) {
-    payload.interactive.header = { type: "text", text: headerText };
+    payload.interactive.header = {
+      type: "text",
+      text: headerText.slice(0, 60)
+    };
   }
   return callAPI(payload);
-}
-
-// ── Send List Message ────────────────────────────────────────
-// For 4+ options — scrollable list
-async function sendList(phone, bodyText, buttonLabel, sections) {
-  return callAPI({
-    messaging_product: "whatsapp",
-    to:   phone,
-    type: "interactive",
-    interactive: {
-      type: "list",
-      body: { text: bodyText },
-      action: {
-        button: buttonLabel,
-        sections
-      }
-    }
-  });
 }
 
 // ── Bot Messages ─────────────────────────────────────────────
 const MSG = {
 
-  // Welcome / Main Menu
   welcome: (phone) => sendButtons(
     phone,
     `👋 Welcome to *HostelNode*!\n\nIndia's #1 platform to find verified Hostels & PGs near your college.\n\nHow can I help you today?`,
-    ['🔎 Find PG / Hostel', '🏡 List My Property', '🤝 Support'],
+    [BTN.FIND, BTN.LIST, BTN.SUPPORT],
     '🏠 HostelNode'
   ),
 
-  // Ask City
   askCity: (phone) => sendText(
     phone,
-    `📍 *Which city are you looking in?*\n\nJust type the city name:\n\n` +
+    `📍 *Which city are you looking in?*\n\n` +
+    `Just type the city name:\n\n` +
     `🌆 Mumbai  |  🏙️ Pune  |  🌃 Bangalore\n` +
     `🏛️ Delhi   |  🌇 Hyderabad  |  🌴 Chennai\n` +
     `🏘️ Kota    |  🎓 Vellore  |  🌿 Manipal\n\n` +
     `_We cover 300+ cities across India!_ 🇮🇳`
   ),
 
-  // City Result + Action Buttons
   cityResult: (phone, citySlug) => {
     const cityName = formatCity(citySlug);
-    const url = `https://hostelnode.com/city/${citySlug}`;
+    const url      = `https://hostelnode.com/city/${citySlug}`;
     return sendButtons(
       phone,
       `🎯 *Verified listings in ${cityName}:*\n\n` +
@@ -347,33 +339,30 @@ const MSG = {
       `✅ Verified photos & reviews\n` +
       `✅ Direct owner contact\n` +
       `✅ Zero broker fees`,
-      ['🔍 Search Another City', '🏡 List My Property', '🤝 Support'],
-      `📍 ${cityName} Results`
+      [BTN.OTHER, BTN.LIST, BTN.SUPPORT],
+      `📍 ${cityName}`
     );
   },
 
-  // City Not Found
   cityNotFound: (phone, input) => sendButtons(
     phone,
-    `😕 Sorry, couldn't find *"${input}"* in our database.\n\n` +
-    `Please check the spelling or try a nearby major city.\n\n` +
+    `😕 Sorry, couldn't find *"${input}"*.\n\n` +
+    `Please check spelling or try a nearby major city.\n\n` +
     `Example: Mumbai, Pune, Delhi, Bangalore...`,
-    ['🔍 Try Again', '🏠 Main Menu', '🤝 Support']
+    [BTN.AGAIN, BTN.MENU, BTN.SUPPORT]
   ),
 
-  // List Property
   listProperty: (phone) => sendButtons(
     phone,
-    `🏡 *List Your Property on HostelNode — FREE!*\n\n` +
+    `🏡 *List on HostelNode — FREE!*\n\n` +
     `✅ Reach 50,000+ students monthly\n` +
     `✅ Zero setup cost\n` +
     `✅ Get verified badge\n` +
     `✅ Direct student enquiries\n\n` +
     `👉 https://hostelnode.com/list-property`,
-    ['🔎 Find PG Instead', '💰 Check Prices', '🤝 Support']
+    [BTN.FIND, BTN.PRICES, BTN.SUPPORT]
   ),
 
-  // Price Info
   prices: (phone) => sendButtons(
     phone,
     `💰 *HostelNode Price Range:*\n\n` +
@@ -384,10 +373,9 @@ const MSG = {
     `🏘️ *Flat Share*\n` +
     `• Starting from ₹4,000/mo\n\n` +
     `_Prices vary by city & amenities_`,
-    ['🔎 Find PG Now', '🏡 List Property', '🤝 Support']
+    [BTN.FIND, BTN.LIST, BTN.SUPPORT]
   ),
 
-  // Support
   support: (phone) => sendButtons(
     phone,
     `🤝 *HostelNode Support*\n\n` +
@@ -396,27 +384,49 @@ const MSG = {
     `🌐 Website: https://hostelnode.com\n` +
     `⏰ Hours: 9 AM – 9 PM, Mon–Sun\n\n` +
     `Our team will get back to you shortly!`,
-    ['🔎 Find PG', '🏡 List Property', '🏠 Main Menu']
+    [BTN.FIND, BTN.LIST, BTN.MENU]
   ),
 
-  // Thanks
   thanks: (phone) => sendButtons(
     phone,
     `😊 *Thank you for using HostelNode!*\n\n` +
     `We're glad we could help! 🏠✨\n\n` +
-    `Visit us anytime at:\n` +
     `👉 https://hostelnode.com`,
-    ['🔎 Find PG', '🏡 List Property', '🤝 Support']
+    [BTN.FIND, BTN.LIST, BTN.SUPPORT]
   ),
 
-  // Unknown
   unknown: (phone) => sendButtons(
     phone,
-    `🤔 Sorry, I didn't understand that.\n\n` +
-    `Here's what I can help you with:`,
-    ['🔎 Find PG / Hostel', '🏡 List My Property', '🤝 Support']
+    `🤔 Sorry, I didn't understand that.\n\nHere's what I can help you with:`,
+    [BTN.FIND, BTN.LIST, BTN.SUPPORT]
   ),
 };
+
+// ── All Button Values (for matching) ─────────────────────────
+const ALL_BUTTONS = Object.values(BTN);
+
+function isButton(text) {
+  return ALL_BUTTONS.includes(text);
+}
+
+async function handleButton(phone, text) {
+  if (text === BTN.FIND || text === BTN.OTHER || text === BTN.AGAIN) {
+    setSession(phone, 'AWAITING_CITY');
+    await MSG.askCity(phone);
+  } else if (text === BTN.LIST) {
+    clearSession(phone);
+    await MSG.listProperty(phone);
+  } else if (text === BTN.PRICES) {
+    clearSession(phone);
+    await MSG.prices(phone);
+  } else if (text === BTN.SUPPORT) {
+    clearSession(phone);
+    await MSG.support(phone);
+  } else if (text === BTN.MENU) {
+    clearSession(phone);
+    await MSG.welcome(phone);
+  }
+}
 
 // ── Webhook Verification (GET) ───────────────────────────────
 router.get("/", (req, res) => {
@@ -444,7 +454,7 @@ router.post("/", async (req, res) => {
     const phone   = msg.from;
     const session = getSession(phone);
 
-    // ── Extract text from text or button reply ──
+    // ── Extract text ──────────────────────────────────────
     let text = '';
     if (msg.type === 'text') {
       text = msg.text?.body?.trim() || '';
@@ -456,29 +466,24 @@ router.post("/", async (req, res) => {
         text = ir.list_reply?.title?.trim() || '';
       }
     } else {
-      // Image, audio, doc etc — ignore gracefully
       await MSG.unknown(phone);
       return;
     }
 
+    if (!text) return;
+
     log(`📨 [${phone}] "${text}" | State: ${session.state}`);
 
-    const intent = detectIntent(text);
-
-    // ── AWAITING CITY ─────────────────────────
+    // ── AWAITING CITY state ───────────────────────────────
     if (session.state === 'AWAITING_CITY') {
 
-      // Check if user tapped a button instead of typing city
-      if (text === '🔍 Search Another City' || text === '🔍 Try Again') {
-        await MSG.askCity(phone);
-        return;
-      }
-      if (text === '🏠 Main Menu') {
-        clearSession(phone);
-        await MSG.welcome(phone);
+      // Button tap in city state
+      if (isButton(text)) {
+        await handleButton(phone, text);
         return;
       }
 
+      // City detect karo
       const citySlug = detectCity(text);
 
       if (citySlug) {
@@ -488,75 +493,46 @@ router.post("/", async (req, res) => {
       } else {
         log(`❌ City not found: ${text}`);
         await MSG.cityNotFound(phone, text);
-        setSession(phone, 'AWAITING_CITY');
+        setSession(phone, 'AWAITING_CITY'); // stay in city state
       }
       return;
     }
 
-    // ── BUTTON ACTIONS ────────────────────────
-    if (text === '🔎 Find PG / Hostel' || text === '🔎 Find PG Now' ||
-        text === '🔍 Search Another City' || text === '🔍 Try Again') {
-      setSession(phone, 'AWAITING_CITY');
-      await MSG.askCity(phone);
+    // ── Button tap in IDLE state ──────────────────────────
+    if (isButton(text)) {
+      await handleButton(phone, text);
       return;
     }
 
-    if (text === '🏡 List My Property' || text === '🏡 List Property') {
-      clearSession(phone);
-      await MSG.listProperty(phone);
-      return;
-    }
+    // ── Intent based ──────────────────────────────────────
+    const intent = detectIntent(text);
+    log(`🎯 Intent: ${intent}`);
 
-    if (text === '💰 Check Prices') {
-      clearSession(phone);
-      await MSG.prices(phone);
-      return;
-    }
-
-    if (text === '🤝 Support') {
-      clearSession(phone);
-      await MSG.support(phone);
-      return;
-    }
-
-    if (text === '🏠 Main Menu') {
-      clearSession(phone);
-      await MSG.welcome(phone);
-      return;
-    }
-
-    // ── INTENT BASED ──────────────────────────
     switch (intent) {
       case 'GREET':
         clearSession(phone);
         await MSG.welcome(phone);
         break;
-
       case 'FIND':
         setSession(phone, 'AWAITING_CITY');
         await MSG.askCity(phone);
         break;
-
       case 'LIST':
         clearSession(phone);
         await MSG.listProperty(phone);
         break;
-
       case 'PRICE':
         clearSession(phone);
         await MSG.prices(phone);
         break;
-
       case 'SUPPORT':
         clearSession(phone);
         await MSG.support(phone);
         break;
-
       case 'THANKS':
         clearSession(phone);
         await MSG.thanks(phone);
         break;
-
       default:
         await MSG.unknown(phone);
         break;
