@@ -1,50 +1,119 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const os = require('os');
-const path = require('path');
-const fs = require('fs');
+const os     = require('os');
+const path   = require('path');
 
 // ================= GLOBAL STATE =================
-let client;
-let isInitialized = false;
+let client         = null;
+let isInitialized  = false;
 let isInitializing = false;
-
-const isLinux = os.platform() === 'linux';
+let restartTimer   = null;
 
 // ================= SESSION PATH =================
-const sessionPath = isLinux
+const sessionPath = os.platform() === 'linux'
   ? '/var/lib/jenkins/whatsapp_session'
   : path.join(__dirname, 'whatsapp_session');
 
-// ================= CHROME PATH AUTO DETECT =================
-let chromePath;
+// ================= LOGGER =================
+const log   = (...a) => console.log("🟢",  ...a);
+const error = (...a) => console.error("🔴", ...a);
 
-if (isLinux) {
-  if (fs.existsSync('/snap/bin/chromium')) {
-    chromePath = '/snap/bin/chromium';
-  } else if (fs.existsSync('/snap/bin/chromium')) {
-    chromePath = '/snap/bin/chromium';
-  } else {
-    chromePath = undefined; // fallback to puppeteer bundled
+// ================= READY CHECK =================
+// Guards against the window where client exists but Puppeteer page is already dead
+function isReady() {
+  try {
+    return (
+      isInitialized &&
+      client        &&
+      client.pupPage &&
+      !client.pupPage.isClosed()
+    );
+  } catch {
+    return false;
   }
 }
 
-// ================= SAFE LOGGER =================
-const log = (...args) => console.log("🟢", ...args);
-const error = (...args) => console.error("🔴", ...args);
+// ================= MESSAGE QUEUE =================
+const queue = [];
+let isProcessing = false;
+
+async function processQueue() {
+  if (isProcessing || queue.length === 0) return;
+  isProcessing = true;
+
+  while (queue.length > 0) {
+    const { number, text, resolve } = queue.shift();
+
+    if (!isReady()) {
+      resolve({ success: false, error: "not_ready" });
+      continue;
+    }
+
+    try {
+      // ✅ KEY FIX: getChatById forces WA to open chat first,
+      //    allowing delivery to numbers with NO prior conversation.
+      const chat = await client.getChatById(number);
+      await chat.sendMessage(text);
+      resolve({ success: true });
+    } catch (err) {
+      error("Send error:", err.message);
+      resolve({ success: false, error: err.message });
+
+      const isCrash =
+        err.message.includes("timed out")             ||
+        err.message.includes("context was destroyed") ||
+        err.message.includes("Session closed")        ||
+        err.message.includes("getChat")               ||
+        err.message.includes("getChatById")           ||
+        err.message.includes("WidFactory")            ||
+        err.message.includes("Target closed");
+
+      if (isCrash) {
+        isInitialized = false; // immediately mark not ready
+        scheduleRestart("Browser crash during send");
+        break;
+      }
+    }
+
+    // 200 ms between sends — fast enough, safe enough
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  isProcessing = false;
+}
+
+function enqueue(number, text) {
+  return new Promise((resolve) => {
+    queue.push({ number, text, resolve });
+    processQueue();
+  });
+}
+
+// ================= DRAIN QUEUE =================
+// Resolves all pending promises before a restart so callers don't hang
+function drainQueue(reason) {
+  while (queue.length > 0) {
+    const { resolve } = queue.shift();
+    resolve({ success: false, error: reason });
+  }
+  isProcessing = false;
+}
+
+// ================= FORMAT NUMBER =================
+function formatNumber(phone) {
+  const clean    = phone.toString().replace(/\D/g, "");
+  const withCode = clean.startsWith("91") ? clean : `91${clean}`;
+  return `${withCode}@c.us`;
+}
 
 // ================= CREATE CLIENT =================
 function createClient() {
   log("⚙️ Creating WhatsApp client...");
-
   return new Client({
-    authStrategy: new LocalAuth({
-      dataPath: sessionPath
-    }),
-
+    authStrategy: new LocalAuth({ dataPath: sessionPath }),
     puppeteer: {
       headless: true,
-      executablePath: undefined,
+      protocolTimeout: 120000,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -52,238 +121,194 @@ function createClient() {
         '--disable-gpu',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
-        '--disable-extensions'
+        '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
       ]
     }
   });
 }
 
-// ================= INIT FUNCTION =================
+// ================= INIT =================
 async function startWhatsApp() {
   if (isInitializing) {
-    log("⏳ Already initializing...");
+    log("⏳ Already initializing, skipping...");
     return;
   }
 
   isInitializing = true;
+  isInitialized  = false;
 
   try {
+    if (client) {
+      try { await client.destroy(); } catch {}
+      client = null;
+    }
+
     client = createClient();
 
-    // QR
     client.on('qr', (qr) => {
-      log("📲 Scan QR:");
+      log("📲 Scan QR to connect WhatsApp:");
       qrcode.generate(qr, { small: true });
     });
 
-    // READY
     client.on('ready', () => {
-      isInitialized = true;
+      isInitialized  = true;
       isInitializing = false;
-      log("✅ WhatsApp Connected!");
+      log("✅ WhatsApp Connected and Ready!");
+      processQueue(); // flush anything queued during startup
     });
 
-    // AUTH FAIL
     client.on('auth_failure', (msg) => {
-      isInitialized = false;
+      isInitialized  = false;
       isInitializing = false;
       error("❌ Auth failure:", msg);
-      restartWhatsApp("Auth failure");
+      scheduleRestart("Auth failure");
     });
 
-    // DISCONNECT
     client.on('disconnected', (reason) => {
-      isInitialized = false;
+      isInitialized  = false;
       isInitializing = false;
       error("⚠️ Disconnected:", reason);
-      restartWhatsApp(reason);
+      scheduleRestart(reason);
     });
 
-    // LOADING
     client.on('loading_screen', (percent, msg) => {
-      log(`⏳ Loading ${percent}% - ${msg}`);
+      log(`⏳ Loading ${percent}% — ${msg}`);
     });
 
-    // INIT
-    log("🚀 Starting WhatsApp...");
+    log("🚀 Initializing WhatsApp...");
     await client.initialize();
 
   } catch (err) {
-    isInitialized = false;
+    isInitialized  = false;
     isInitializing = false;
     error("💥 Init crash:", err.message);
-    restartWhatsApp(err.message);
+    scheduleRestart(err.message);
   }
 }
 
-// ================= RESTART LOGIC =================
-function restartWhatsApp(reason) {
-  error("🔄 Restarting WhatsApp due to:", reason);
-
-  setTimeout(() => {
-    try {
-      if (client) {
-        client.destroy();
-      }
-    } catch (e) {
-      error("Error destroying client:", e.message);
-    }
-
+// ================= RESTART =================
+function scheduleRestart(reason) {
+  if (restartTimer) clearTimeout(restartTimer);
+  drainQueue(reason); // resolve all pending promises immediately
+  error("🔄 Scheduling restart due to:", reason);
+  restartTimer = setTimeout(() => {
+    restartTimer = null;
     startWhatsApp();
-  }, 5000);
+  }, 8000);
 }
 
-// ================= GLOBAL CRASH HANDLER =================
-process.on('uncaughtException', (err) => {
-  error("💥 Uncaught Exception:", err.stack || err.message);
-  restartWhatsApp("uncaughtException");
-});
+// ================= START =================
+setTimeout(() => startWhatsApp(), 3000);
 
-process.on('unhandledRejection', (err) => {
-  error("💥 Unhandled Rejection:", err);
-  restartWhatsApp("unhandledRejection");
-});
+// ================= REGISTRATION CHECK =================
+// Shared helper — 10s timeout, fails open (assumes registered)
+async function checkRegistered(number) {
+  try {
+    return await Promise.race([
+      client.isRegisteredUser(number),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("isRegisteredUser timeout")), 10000)
+      )
+    ]);
+  } catch (e) {
+    error("isRegisteredUser failed:", e.message);
+    return true; // fail open — let sendMessage be the final arbiter
+  }
+}
 
-// ================= START WITH DELAY =================
-setTimeout(() => {
-  startWhatsApp();
-}, 3000);
-
-
-// ================= OTP FUNCTION =================
+// ================= SEND OTP =================
 const sendWhatsAppOTP = async (phone, otp) => {
   try {
-    if (!isInitialized || !client || !client.info || !client.info.wid) {
-      error("⏳ WhatsApp not ready");
+    if (!isReady()) {
+      error("⏳ WhatsApp not ready for OTP");
       return { success: false, error: "not_ready" };
     }
 
-    const clean = phone.toString().replace(/\D/g, "");
-const finalNumber = clean.startsWith("91") ? clean : `91${clean}`;
-const number = `${finalNumber}@c.us`;
-
-    // Check if registered
-    const isRegistered = await client.isRegisteredUser(number);
+    const number = formatNumber(phone);
+    const isRegistered = await checkRegistered(number);
 
     if (!isRegistered) {
       error("❌ Not on WhatsApp:", phone);
       return { success: false, error: "not_whatsapp" };
     }
 
-    // Send message
-    await client.sendMessage(
-      number,
-`🔐 HostelNode OTP
+    const text =
+`🔐 *HostelNode OTP*
 
-Your OTP is: ${otp}
+Your OTP is: *${otp}*
 
 Valid for 5 minutes.
 
-https://hostelnode.com`
-    );
+https://hostelnode.com`;
 
-    log("✅ OTP sent:", phone);
-    return { success: true };
+    const result = await enqueue(number, text);
+    if (result.success) log("✅ OTP sent:", phone);
+    return result;
 
   } catch (err) {
     error("❌ OTP send error:", err.message);
-
-    // auto recover if browser crashed
-    if (err.message.includes("Execution context destroyed")) {
-      restartWhatsApp("Execution context destroyed");
-    }
-
     return { success: false, error: err.message };
   }
 };
-// 
 
-  // =====================================================
-// GENERIC WHATSAPP MESSAGE SENDER
-// =====================================================
-
+// ================= SEND GENERIC MESSAGE =================
 const sendWhatsAppMessage = async (phone, text) => {
   try {
-
-    if (!isInitialized || !client) {
-      console.error("⏳ WhatsApp not ready");
+    if (!isReady()) {
+      error("⏳ WhatsApp not ready");
       return false;
     }
 
-    const clean = phone.toString().replace(/\D/g, "");
-
-    const finalNumber = clean.startsWith("91")
-      ? clean
-      : `91${clean}`;
-
-    const number = `${finalNumber}@c.us`;
-
-    const isRegistered = await client.isRegisteredUser(number);
+    const number = formatNumber(phone);
+    const isRegistered = await checkRegistered(number);
 
     if (!isRegistered) {
-      console.error("❌ Number not on WhatsApp:", phone);
+      error("❌ Number not on WhatsApp:", phone);
       return false;
     }
 
-    await client.sendMessage(number, text);
-
-    console.log("✅ Generic WA sent:", phone);
-
-    return true;
+    const result = await enqueue(number, text);
+    if (result.success) log("✅ Generic WA sent:", phone);
+    return result.success;
 
   } catch (err) {
-    console.error("❌ Generic WA send error:", err.message);
+    error("❌ Generic WA send error:", err.message);
     return false;
   }
-}; 
+};
 
-
+// ================= SEND OWNER ENQUIRY =================
 const sendOwnerEnquiryMessage = async (phone, data) => {
-
   try {
-    if (!isInitialized || !client) {
+    if (!isReady()) {
       error("⏳ WhatsApp not ready");
       return;
     }
 
-    // const finalNumber = formatNumber(phone);
-    // const number = `${finalNumber}@c.us`;
-      const clean = phone.toString().replace(/\D/g, "");
-const finalNumber = clean.startsWith("91") ? clean : `91${clean}`;
-const number = `${finalNumber}@c.us`;
+    const number = formatNumber(phone);
 
-    const isRegistered = await client.isRegisteredUser(number);
-
-    if (!isRegistered) {
-      error("❌ Owner not on WhatsApp:", phone);
-      return;
-    }
-
-    const text = `🏠 *New Enquiry*
+    const text =
+`🏠 *New Enquiry — HostelNode*
 
 👤 ${data.studentName}
 📞 ${data.studentPhone}
 
 🏢 ${data.hostelName}
 🛏 ${data.roomType || "N/A"}
-📅 ${data.moveIn || "N/A"}
+📅 ${data.moveIn   || "N/A"}
 
-💬 ${data.message || "No message"}
+💬 ${data.message  || "No message"}
 
-👉 Chat:
-https://wa.me/${data.studentPhone}`;
+👉 Chat: https://wa.me/${data.studentPhone}`;
 
-    await client.sendMessage(number, text);
-
-    log("✅ Sent to owner:", phone);
+    const result = await enqueue(number, text);
+    if (result.success) log("✅ Enquiry sent to owner:", phone);
 
   } catch (err) {
-    error("❌ Send error:", err.message);
-
-    if (err.message.includes("Execution context destroyed")) {
-      restartWhatsApp("Execution context destroyed");
-    }
+    error("❌ Enquiry send error:", err.message);
   }
 };
 

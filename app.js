@@ -1099,3 +1099,34 @@ app.use(
 app.listen(PORT,()=>{
     console.log(`Server is Listening on port ${PORT}`);
 });
+
+
+// Privacy Policy
+app.get('/privacy-policy', (req, res) => {
+  res.send(`
+    <h1>Privacy Policy - HostelNode</h1>
+    <p>Last updated: May 2026</p>
+    <p>HostelNode ("we") operates hostelnode.com.</p>
+    <h2>Information We Collect</h2>
+    <p>We collect name, phone number, and email for account creation and communication.</p>
+    <h2>How We Use Information</h2>
+    <p>We use your information to provide hostel listing and booking services.</p>
+    <h2>Contact Us</h2>
+    <p>Email: support@hostelnode.com</p>
+  `);
+});
+
+// Terms of Service
+app.get('/terms', (req, res) => {
+  res.send(`
+    <h1>Terms of Service - HostelNode</h1>
+    <p>Last updated: May 2026</p>
+    <p>By using HostelNode, you agree to these terms.</p>
+    <h2>Use of Service</h2>
+    <p>HostelNode provides an online platform for hostel listings and bookings.</p>
+    <h2>User Responsibilities</h2>
+    <p>Users must provide accurate information and use the platform responsibly.</p>
+    <h2>Contact Us</h2>
+    <p>Email: support@hostelnode.com</p>
+  `);
+});

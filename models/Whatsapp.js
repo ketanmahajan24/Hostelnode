@@ -1,251 +1,73 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const os     = require('os');
-const path   = require('path');
+const axios = require('axios');
 
-// ================= GLOBAL STATE =================
-let client         = null;
-let isInitialized  = false;
-let isInitializing = false;
-let restartTimer   = null;
-
-// ================= SESSION PATH =================
-const sessionPath = os.platform() === 'linux'
-  ? '/var/lib/jenkins/whatsapp_session'
-  : path.join(__dirname, 'whatsapp_session');
+// ================= CONFIG =================
+const WA_TOKEN    = process.env.WA_TOKEN;
+const WA_PHONE_ID = process.env.WA_PHONE_ID;
+const BASE_URL    = `https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`;
 
 // ================= LOGGER =================
-const log   = (...a) => console.log("🟢",  ...a);
+const log   = (...a) => console.log("🟢", ...a);
 const error = (...a) => console.error("🔴", ...a);
-
-// ================= READY CHECK =================
-// Guards against the window where client exists but Puppeteer page is already dead
-function isReady() {
-  try {
-    return (
-      isInitialized &&
-      client        &&
-      client.pupPage &&
-      !client.pupPage.isClosed()
-    );
-  } catch {
-    return false;
-  }
-}
-
-// ================= MESSAGE QUEUE =================
-const queue = [];
-let isProcessing = false;
-
-async function processQueue() {
-  if (isProcessing || queue.length === 0) return;
-  isProcessing = true;
-
-  while (queue.length > 0) {
-    const { number, text, resolve } = queue.shift();
-
-    if (!isReady()) {
-      resolve({ success: false, error: "not_ready" });
-      continue;
-    }
-
-    try {
-      // ✅ KEY FIX: getChatById forces WA to open chat first,
-      //    allowing delivery to numbers with NO prior conversation.
-      const chat = await client.getChatById(number);
-      await chat.sendMessage(text);
-      resolve({ success: true });
-    } catch (err) {
-      error("Send error:", err.message);
-      resolve({ success: false, error: err.message });
-
-      const isCrash =
-        err.message.includes("timed out")             ||
-        err.message.includes("context was destroyed") ||
-        err.message.includes("Session closed")        ||
-        err.message.includes("getChat")               ||
-        err.message.includes("getChatById")           ||
-        err.message.includes("WidFactory")            ||
-        err.message.includes("Target closed");
-
-      if (isCrash) {
-        isInitialized = false; // immediately mark not ready
-        scheduleRestart("Browser crash during send");
-        break;
-      }
-    }
-
-    // 200 ms between sends — fast enough, safe enough
-    await new Promise(r => setTimeout(r, 200));
-  }
-
-  isProcessing = false;
-}
-
-function enqueue(number, text) {
-  return new Promise((resolve) => {
-    queue.push({ number, text, resolve });
-    processQueue();
-  });
-}
-
-// ================= DRAIN QUEUE =================
-// Resolves all pending promises before a restart so callers don't hang
-function drainQueue(reason) {
-  while (queue.length > 0) {
-    const { resolve } = queue.shift();
-    resolve({ success: false, error: reason });
-  }
-  isProcessing = false;
-}
 
 // ================= FORMAT NUMBER =================
 function formatNumber(phone) {
-  const clean    = phone.toString().replace(/\D/g, "");
-  const withCode = clean.startsWith("91") ? clean : `91${clean}`;
-  return `${withCode}@c.us`;
+  const clean = phone.toString().replace(/\D/g, "");
+  return clean.startsWith("91") ? clean : `91${clean}`;
 }
 
-// ================= CREATE CLIENT =================
-function createClient() {
-  log("⚙️ Creating WhatsApp client...");
-  return new Client({
-    authStrategy: new LocalAuth({ dataPath: sessionPath }),
-    puppeteer: {
-      headless: true,
-      protocolTimeout: 120000,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-extensions',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-      ]
-    }
-  });
-}
-
-// ================= INIT =================
-async function startWhatsApp() {
-  if (isInitializing) {
-    log("⏳ Already initializing, skipping...");
-    return;
-  }
-
-  isInitializing = true;
-  isInitialized  = false;
-
+// ================= API CALL =================
+async function callWAAPI(payload) {
   try {
-    if (client) {
-      try { await client.destroy(); } catch {}
-      client = null;
-    }
-
-    client = createClient();
-
-    client.on('qr', (qr) => {
-      log("📲 Scan QR to connect WhatsApp:");
-      qrcode.generate(qr, { small: true });
+    const res = await axios.post(BASE_URL, payload, {
+      headers: {
+        'Authorization': `Bearer ${WA_TOKEN}`,
+        'Content-Type':  'application/json'
+      },
+      timeout: 15000
     });
-
-    client.on('ready', () => {
-      isInitialized  = true;
-      isInitializing = false;
-      log("✅ WhatsApp Connected and Ready!");
-      processQueue(); // flush anything queued during startup
-    });
-
-    client.on('auth_failure', (msg) => {
-      isInitialized  = false;
-      isInitializing = false;
-      error("❌ Auth failure:", msg);
-      scheduleRestart("Auth failure");
-    });
-
-    client.on('disconnected', (reason) => {
-      isInitialized  = false;
-      isInitializing = false;
-      error("⚠️ Disconnected:", reason);
-      scheduleRestart(reason);
-    });
-
-    client.on('loading_screen', (percent, msg) => {
-      log(`⏳ Loading ${percent}% — ${msg}`);
-    });
-
-    log("🚀 Initializing WhatsApp...");
-    await client.initialize();
-
+    return { success: true, data: res.data };
   } catch (err) {
-    isInitialized  = false;
-    isInitializing = false;
-    error("💥 Init crash:", err.message);
-    scheduleRestart(err.message);
-  }
-}
-
-// ================= RESTART =================
-function scheduleRestart(reason) {
-  if (restartTimer) clearTimeout(restartTimer);
-  drainQueue(reason); // resolve all pending promises immediately
-  error("🔄 Scheduling restart due to:", reason);
-  restartTimer = setTimeout(() => {
-    restartTimer = null;
-    startWhatsApp();
-  }, 8000);
-}
-
-// ================= START =================
-setTimeout(() => startWhatsApp(), 3000);
-
-// ================= REGISTRATION CHECK =================
-// Shared helper — 10s timeout, fails open (assumes registered)
-async function checkRegistered(number) {
-  try {
-    return await Promise.race([
-      client.isRegisteredUser(number),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("isRegisteredUser timeout")), 10000)
-      )
-    ]);
-  } catch (e) {
-    error("isRegisteredUser failed:", e.message);
-    return true; // fail open — let sendMessage be the final arbiter
+    const errData = err.response?.data || err.message;
+    error("❌ API Error:", JSON.stringify(errData));
+    return { success: false, error: errData };
   }
 }
 
 // ================= SEND OTP =================
+// ================= SEND OTP =================
+// Uses approved "Authentication" template: hostelnode_otp
+// Meta template body: "{{1}} is your verification code. For your security, do not share this code."
+// ⚠️  Both body AND button parameters required
 const sendWhatsAppOTP = async (phone, otp) => {
   try {
-    if (!isReady()) {
-      error("⏳ WhatsApp not ready for OTP");
-      return { success: false, error: "not_ready" };
-    }
-
     const number = formatNumber(phone);
-    const isRegistered = await checkRegistered(number);
+    log("📤 Sending OTP to:", phone);
 
-    if (!isRegistered) {
-      error("❌ Not on WhatsApp:", phone);
-      return { success: false, error: "not_whatsapp" };
-    }
+    const payload = {
+      messaging_product: "whatsapp",
+      to:                number,
+      type:              "template",
+      template: {
+        name:     "hostelnode_otp",
+        language: { code: "en" },
+        components: [
+          {
+            type:       "body",
+            parameters: [{ type: "text", text: String(otp) }]
+          },
+          {
+            type:       "button",
+            sub_type:   "url",
+            index:      "0",
+            parameters: [{ type: "text", text: String(otp) }]
+          }
+        ]
+      }
+    };
 
-    const text =
-`🔐 *HostelNode OTP*
-
-Your OTP is: *${otp}*
-
-Valid for 5 minutes.
-
-https://hostelnode.com`;
-
-    const result = await enqueue(number, text);
+    const result = await callWAAPI(payload);
     if (result.success) log("✅ OTP sent:", phone);
+    else               error("❌ OTP failed:", phone);
     return result;
 
   } catch (err) {
@@ -254,61 +76,72 @@ https://hostelnode.com`;
   }
 };
 
+// ================= SEND OWNER ENQUIRY =================
+// Uses approved "Utility" template: hostelnode_enquiry
+// Template body: "A new enquiry has been received on HostelNode platform!
+//   Student name is {{1}} and contact number is {{2}}. They are interested
+//   in {{3}} hostel for {{4}} room type. Their preferred move-in date is {{5}}
+//   and their message reads: {{6}}. Please contact the student on WhatsApp to respond."
+const sendOwnerEnquiryMessage = async (phone, data) => {
+  try {
+    const number = formatNumber(phone);
+    log("📤 Sending enquiry to owner:", phone);
+
+    const payload = {
+      messaging_product: "whatsapp",
+      to:                number,
+      type:              "template",
+      template: {
+        name:     "hostelnode_enquiry",
+        language: { code: "en" },
+        components: [{
+          type:       "body",
+          parameters: [
+            { type: "text", text: data.studentName          },
+            { type: "text", text: data.studentPhone         },
+            { type: "text", text: data.hostelName           },
+            { type: "text", text: data.roomType  || "N/A"   },
+            { type: "text", text: data.moveIn    || "N/A"   },
+            { type: "text", text: data.message   || "No message" }
+          ]
+        }]
+      }
+    };
+
+    const result = await callWAAPI(payload);
+    if (result.success) log("✅ Enquiry sent to owner:", phone);
+    else               error("❌ Enquiry failed:", phone);
+    return result;
+
+  } catch (err) {
+    error("❌ Enquiry send error:", err.message);
+    return { success: false, error: err.message };
+  }
+};
+
 // ================= SEND GENERIC MESSAGE =================
+// ⚠️  Only works inside 24-hour customer service window
+//     (i.e. user ne pehle message kiya ho)
 const sendWhatsAppMessage = async (phone, text) => {
   try {
-    if (!isReady()) {
-      error("⏳ WhatsApp not ready");
-      return false;
-    }
-
     const number = formatNumber(phone);
-    const isRegistered = await checkRegistered(number);
+    log("📤 Sending message to:", phone);
 
-    if (!isRegistered) {
-      error("❌ Number not on WhatsApp:", phone);
-      return false;
-    }
+    const payload = {
+      messaging_product: "whatsapp",
+      to:                number,
+      type:              "text",
+      text:              { body: text }
+    };
 
-    const result = await enqueue(number, text);
-    if (result.success) log("✅ Generic WA sent:", phone);
+    const result = await callWAAPI(payload);
+    if (result.success) log("✅ Message sent:", phone);
+    else               error("❌ Message failed:", phone);
     return result.success;
 
   } catch (err) {
     error("❌ Generic WA send error:", err.message);
     return false;
-  }
-};
-
-// ================= SEND OWNER ENQUIRY =================
-const sendOwnerEnquiryMessage = async (phone, data) => {
-  try {
-    if (!isReady()) {
-      error("⏳ WhatsApp not ready");
-      return;
-    }
-
-    const number = formatNumber(phone);
-
-    const text =
-`🏠 *New Enquiry — HostelNode*
-
-👤 ${data.studentName}
-📞 ${data.studentPhone}
-
-🏢 ${data.hostelName}
-🛏 ${data.roomType || "N/A"}
-📅 ${data.moveIn   || "N/A"}
-
-💬 ${data.message  || "No message"}
-
-👉 Chat: https://wa.me/${data.studentPhone}`;
-
-    const result = await enqueue(number, text);
-    if (result.success) log("✅ Enquiry sent to owner:", phone);
-
-  } catch (err) {
-    error("❌ Enquiry send error:", err.message);
   }
 };
 
@@ -318,3 +151,18 @@ module.exports = {
   sendOwnerEnquiryMessage,
   sendWhatsAppMessage
 };
+// ================= STARTUP HEALTH CHECK =================
+(async () => {
+  try {
+    const res = await axios.get(
+      `https://graph.facebook.com/v19.0/${WA_PHONE_ID}`,
+      { 
+        headers: { 'Authorization': `Bearer ${WA_TOKEN}` }, 
+        timeout: 10000 
+      }
+    );
+    log(`✅ WhatsApp API Connected! Number: ${res.data?.display_phone_number || res.data?.id}`);
+  } catch (err) {
+    error("❌ WhatsApp API NOT connected:", err.response?.data?.error?.message || err.message);
+  }
+})();
