@@ -188,45 +188,75 @@ button { font-family: var(--font-b); cursor: pointer; }
 /* ============================================================
    LIGHTBOX
 ============================================================ */
+/* ============================================================
+   LIGHTBOX
+============================================================ */
 .lightbox {
-  display: none; position: fixed; inset: 0; z-index: 2000;
-  background: rgba(0,0,0,0.92);
-  align-items: center; justify-content: center;
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.94);
+  align-items: center;
+  justify-content: center;
   animation: fadeIn 0.2s ease;
 }
-.lightbox.open { display: flex; }
+.lightbox.open {
+  display: flex !important;
+}
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
 .lb-inner {
-  max-width: 90vw; max-height: 90vh;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  max-width: 92vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
 }
 .lb-inner img {
-  max-width: 90vw; max-height: 82vh;
-  border-radius: var(--radius-md); object-fit: contain;
+  max-width: 92vw;
+  max-height: 82vh;
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: transparent;
+  transition: opacity 0.2s ease;
 }
 .lb-counter {
-  font-size: 0.82rem; color: rgba(255,255,255,0.6);
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.65);
+  font-weight: 500;
 }
 .lb-close {
   position: fixed; top: 20px; right: 24px;
-  width: 40px; height: 40px; border-radius: 50%;
-  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.25);
   color: #fff; font-size: 1rem;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.18s;
+  z-index: 10000;
 }
-.lb-close:hover { background: rgba(255,255,255,0.25); }
+.lb-close:hover { background: rgba(255,255,255,0.28); }
 .lb-prev, .lb-next {
   position: fixed; top: 50%; transform: translateY(-50%);
-  width: 44px; height: 44px; border-radius: 50%;
-  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-  color: #fff; font-size: 1rem;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff; font-size: 1.1rem;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.18s;
+  z-index: 10000;
 }
-.lb-prev { left: 20px; }
-.lb-next { right: 20px; }
-.lb-prev:hover, .lb-next:hover { background: rgba(255,255,255,0.25); }
+.lb-prev { left: 18px; }
+.lb-next { right: 18px; }
+.lb-prev:hover, .lb-next:hover { background: rgba(255,255,255,0.28); }
 
 /* ============================================================
    PROGRESS NAV

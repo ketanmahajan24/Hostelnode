@@ -81,7 +81,7 @@ router.get("/:citySlug", optionalStudentAuth, async (req, res) => {
       listings,
       areaCounts,
       totalListings,
-      student: req.student || null,
+      student:res.locals.student || null,
     });
 
   } catch (err) {

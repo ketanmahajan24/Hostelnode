@@ -289,7 +289,7 @@ router.get("/", jwtStudentAuth, async (req, res) => {
 
     //console.log("Home Page loaded '/student' route");
     //console.log("Student Dashboard accessed by:", student.phone);
-    res.render("listings/findHostels.ejs", { listings });
+   res.render("listings/findHostels.ejs", { listings, student });
     // res.redirect("/")
   } catch (err) {
     //console.error(err);
