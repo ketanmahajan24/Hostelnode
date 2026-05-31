@@ -26,7 +26,7 @@
         </div>
       </div>
 
-      <a href="/findHostels" class="active">Find Hostel</a>
+      <a href= "/#search-card" class="active">Find Hostel</a>
       <a href="/student/wishlist" class="sn-dd-link">
         <i class="fa-solid fa-heart"></i> My Wishlist
       </a>
@@ -40,7 +40,7 @@
     <% } else { %>
 
       <!-- Guest links -->
-      <a href="/findHostels" class="active">Find Hostel</a>
+      <a href= "/#search-card" class="active">Find Hostel</a>
       <a href="/student/wishlist" class="sn-dd-link">
         <i class="fa-solid fa-heart"></i> My Wishlist
       </a>
@@ -51,7 +51,8 @@
       <a href="/#aboutus">About</a>
       
       <div class="divider"></div>
-        <a href="#" onclick="openNudgeModal(); return false;" class="btn-ghost">Login</a>
+     
+      <a href="#" onclick="openNudgeModal(); return false;" class="btn-ghost">Login</a>
         <a href="#" onclick="openNudgeModal(); return false;" class="btn-nav-green">Sign up free</a>
 
     <% } %>
@@ -70,16 +71,18 @@
   </a>
 
   <ul class="hn-nav-links">
-    <li><a href="/" class="active">Find Hostel</a></li>
+    <li><a href="/#search-card" class="active">Find Hostel</a></li>
     <li>
        <!-- <a href="/signup"> List Your Hostel for Free </a> -->
     </li>
     <li><a href="/#feature-list">Features</a></li>
     <li><a href="/#cotactus">Contact</a></li>
     <li><a href="/#aboutus">About</a></li>
+    <% if (student) { %>
+    <%} else { %>
     <li><a href="#" onclick="openNudgeModal(); return false;" class="btn-ghost">Login</a></li>
     <li>   <a href="#" onclick="openNudgeModal(); return false;" class="btn-nav-green">Sign up free</a></li>
-
+    <% } %>
   </ul>
 
   <div class="hn-nav-actions">
@@ -149,7 +152,7 @@
         </div>
       </a>
 
-            <a href="/findHostels" class="sn-dd-link">
+            <a href= "/#search-card" class="sn-dd-link">
               <i class="fa-solid fa-magnifying-glass"></i> Find Hostel
             </a>
             <a href="/student/wishlist" class="sn-dd-link">

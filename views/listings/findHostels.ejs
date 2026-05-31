@@ -268,7 +268,7 @@
         </button>
       </div>
     <!-- Search Card -->
-    <div class="search-card">
+    <div class="search-card" id="search-card">
       <div class="search-tabs">
         <button class="search-tab active" onclick="switchTab(this)">All</button>
         <button class="search-tab" onclick="switchTab(this)">Hostel</button>
@@ -1282,7 +1282,9 @@ function buildNearbyCard(l) {
         <div class="enq-success-icon">🎉</div>
         <h3>Welcome to HostelNode!</h3>
         <p>You're all set. Explore verified hostels near your college.</p>
-        <button class="enq-btn-primary" onclick="closeNudgeModal()">Start Exploring →</button>
+         <!--btn for starting exploration after login+ -->
+        <button class="enq-btn-primary" onclick="closeNudgeModal(true)">Start Exploring →</button> 
+
       </div>
     </div>
 
@@ -1310,11 +1312,11 @@ function openNudgeModal() {
   sessionStorage.setItem('hn_nudge_shown', 'true');
 }
 
-function closeNudgeModal() {
+function closeNudgeModal(isLogin = false) {
   document.getElementById('enqOverlay').classList.remove('open');
   document.body.style.overflow = '';
+  if (isLogin) location.reload();
 }
-
 // Close on overlay background click
 document.getElementById('enqOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeNudgeModal();
@@ -1462,6 +1464,7 @@ async function nudgeLoginSendOtp() {
       document.getElementById('nudgeLoginBtn').disabled = false;
       showNudgeAlert('Verified! Click Login ✅', 'success');
     } else {
+
       showNudgeAlert(d.error || 'Wrong OTP');
     }
   });
