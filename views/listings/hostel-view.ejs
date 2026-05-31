@@ -663,9 +663,16 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
      LIGHTBOX
 ============================================================ -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
-  <button class="lb-close" onclick="closeLightbox()"><i class="fa-solid fa-xmark"></i></button>
-  <button class="lb-prev"  onclick="lbNav(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-  <button class="lb-next"  onclick="lbNav(1)"><i class="fa-solid fa-chevron-right"></i></button>
+ <button class="lb-close" onclick="document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow=''">
+  <i class="fa-solid fa-xmark"></i>
+</button>
+<button class="lb-prev" onclick="event.stopPropagation(); lbNav(-1)">
+  <i class="fa-solid fa-chevron-left"></i>
+</button>
+<button class="lb-next" onclick="event.stopPropagation(); lbNav(1)">
+  <i class="fa-solid fa-chevron-right"></i>
+</button>
+
   <div class="lb-inner">
     <img loading="lazy" id="lbImg" src="" alt="">
     <div class="lb-counter" id="lbCounter"></div>
@@ -2407,7 +2414,7 @@ async function authNext() {
   const btn = document.getElementById('authNextBtn');
   btn.disabled = true; btn.textContent = 'Setting up…';
 
-  const res = await fetch('/student/signup', {
+  const res  = await fetch('/student/signup', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ firstName, lastName, phone })
   }).catch(() => null);
@@ -2420,13 +2427,9 @@ async function authNext() {
     return showAuthAlert(data.error || 'Signup failed');
   }
 
-  // ── requireLogin mode mein reload, warna form dikhao ──
-  if (typeof onLoginSuccess === 'function') {
-    onLoginSuccess();
-  } else {
-    showEnqStep('form');
-  }
+  location.reload();   // ← JWT cookie set, move to enquiry
 }
+
 /* ════════════════════
    LOGIN FLOW
 ════════════════════ */
@@ -2486,7 +2489,7 @@ async function loginNext() {
   const btn   = document.getElementById('loginNextBtn');
   btn.disabled = true; btn.textContent = 'Logging in…';
 
-  const res = await fetch('/student/login', {
+  const res  = await fetch('/student/login', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ phone })
   }).catch(() => null);
@@ -2499,13 +2502,9 @@ async function loginNext() {
     return showAuthAlert(data.error || 'Login failed');
   }
 
-  // ── requireLogin mode mein reload, warna form dikhao ──
-  if (typeof onLoginSuccess === 'function') {
-    onLoginSuccess();
-  } else {
-    showEnqStep('form');
-  }
+  location.reload();;   // ← JWT cookie set, move to enquiry
 }
+
 /* ════════════════════
    ENQUIRY SUBMIT
 ════════════════════ */
@@ -2580,26 +2579,26 @@ async function submitEnquiry() {
 </style>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-
     var overlay = document.getElementById('enqOverlay');
-    var box     = overlay?.querySelector('.enq-box');
-
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
 
-    document.getElementById('enqStepAuth').style.display  = 'block';
-    document.getElementById('enqStepForm').style.display  = 'none';
+    document.getElementById('enqStepAuth').style.display    = 'block';
+    document.getElementById('enqStepForm').style.display    = 'none';
     document.getElementById('enqStepSuccess').style.display = 'none';
 
+    // ✅ Just go back — works from anywhere
     var closeBtn = document.querySelector('.enq-close');
     if (closeBtn) {
       closeBtn.onclick = function () {
-        window.location.href = '/findHostels';
+        window.history.back();
       };
     }
 
     overlay.onclick = function (e) {
-      if (e.target === overlay) window.location.href = '/findHostels';
+      if (e.target === overlay) {
+        window.history.back();
+      }
     };
   });
 
@@ -2610,5 +2609,40 @@ async function submitEnquiry() {
   }
 </script>
 <% } %>
+<script>
+  const LB_IMAGES = <%- JSON.stringify(hostel.images) %>;
+let lbIndex = 0;
+
+function openLightbox(index) {
+  lbIndex = index;
+  document.getElementById('lbImg').src = '/listing-images/' + LB_IMAGES[lbIndex];
+  document.getElementById('lbCounter').textContent = (lbIndex + 1) + ' / ' + LB_IMAGES.length;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function lbNav(direction) {
+  lbIndex = (lbIndex + direction + LB_IMAGES.length) % LB_IMAGES.length;
+  document.getElementById('lbImg').src = '/listing-images/' + LB_IMAGES[lbIndex];
+  document.getElementById('lbCounter').textContent = (lbIndex + 1) + ' / ' + LB_IMAGES.length;
+}
+
+function closeLightbox(e) {
+  // Close button click, ya background click (lb-prev/lb-next nahi)
+  if (e && e.target !== document.getElementById('lightbox')) return;
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'ArrowLeft')  lbNav(-1);
+  if (e.key === 'Escape') {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+</script>
 </body>
 </html>

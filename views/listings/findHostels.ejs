@@ -1,5 +1,3 @@
-<!-- findHostels.ejs -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -56,7 +54,177 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/findhostel.css">
   <link rel="stylesheet" href="style.css">
-  
+  <style>
+    .sn-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 12px 5px 5px; border-radius: 50px;
+      border: 1.5px solid rgba(9, 184, 80, 0.30);
+      background: rgba(9, 184, 80, 0.07);
+      cursor: pointer; user-select: none; position: relative;
+      transition: border-color .2s, background .2s;
+    }
+    .sn-pill:hover { border-color: rgba(9, 184, 80, 0.55); background: rgba(9, 184, 80, 0.12); }
+    .sn-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid #09b850; background: #e8faf0;
+      overflow: hidden; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .sn-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-name { font-size: 13.5px; font-weight: 600; color: #0a1628; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sn-chevron { font-size: 10px; color: #09b850; transition: transform .2s; }
+    .sn-pill.open .sn-chevron { transform: rotate(180deg); }
+    .sn-dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0; width: 240px;
+      background: #fff; border-radius: 16px; border: 1px solid #e8f0ea;
+      box-shadow: 0 8px 40px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.06);
+      overflow: hidden; z-index: 9999;
+      opacity: 0; transform: translateY(-6px);
+      pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+    }
+    .sn-pill.open .sn-dropdown { opacity: 1; transform: translateY(0); pointer-events: all; }
+    .sn-dd-header { padding: 16px; background: linear-gradient(135deg, #09B850 0%, #00c264 100%); }
+    .sn-dd-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4); background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; overflow: hidden; margin-bottom: 10px;
+    }
+    .sn-dd-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-dd-name { font-size: 14px; font-weight: 700; color: #fff; }
+    .sn-dd-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
+    .sn-nudge {
+      display: flex; align-items: center; gap: 8px;
+      margin: 8px 12px; padding: 8px 12px;
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 10px; font-size: 12px; color: #92400e;
+      text-decoration: none; transition: background .15s;
+    }
+    .sn-nudge:hover { background: #fef3c7; color: #92400e; }
+    .sn-nudge i { color: #f59e0b; }
+    .sn-dd-items { padding: 6px 0; }
+    .sn-dd-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 13.5px; font-weight: 500;
+      color: #0a1628; text-decoration: none; transition: background .14s;
+    }
+    .sn-dd-link:hover { background: #f5fbf7; color: #09b850; }
+    .sn-dd-link i { width: 16px; text-align: center; color: #09b850; font-size: 13px; }
+    .sn-dd-divider { height: 1px; background: #eef3ee; margin: 4px 0; }
+    .sn-dd-logout {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; width: 100%; font-size: 13.5px; font-weight: 500;
+      color: #e53e3e; background: none; border: none;
+      text-align: left; cursor: pointer; text-decoration: none; transition: background .14s;
+    }
+    .sn-dd-logout:hover { background: #fff5f5; }
+    .sn-dd-logout i { width: 16px; text-align: center; }
+    .sn-mob-strip {
+      display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+      background: linear-gradient(135deg, #09B850, #00c264);
+    }
+    .sn-mob-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4); background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; overflow: hidden; flex-shrink: 0;
+    }
+    .sn-mob-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sn-mob-name  { font-size: 15px; font-weight: 700; color: #fff; }
+    .sn-mob-phone { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
+    .mobile-nav-drawer .sn-logout-link { color: #e53e3e !important; }
+    .mobile-nav-drawer .sn-logout-link:hover { background: #fff5f5 !important; }
+
+    /* ── NEARBY FEATURE STYLES ── */
+    .nearby-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 24px;
+      background: linear-gradient(135deg, #09B850, #00c264);
+      color: white; border: none; border-radius: 50px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(9,184,80,0.30);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .nearby-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(9,184,80,0.40); }
+    .nearby-btn:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+
+    .nearby-panel {
+      display: none;
+      margin-top: 28px;
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid #e8f3ea;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+
+    .nearby-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px;
+      background: linear-gradient(135deg, #09B850, #00c264);
+    }
+    .nearby-panel-title {
+      font-size: 16px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .nearby-count-badge {
+      background: rgba(255,255,255,.25); color: #fff;
+      font-size: 12px; font-weight: 700;
+      padding: 2px 10px; border-radius: 20px;
+    }
+    .nearby-close-btn {
+      background: rgba(255,255,255,.2); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 6px 14px; font-size: 13px;
+      cursor: pointer; transition: background .15s;
+    }
+    .nearby-close-btn:hover { background: rgba(255,255,255,.35); }
+
+    .nearby-radius-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 14px 22px; border-bottom: 1px solid #f0f4f0;
+      background: #fafffe;
+    }
+    .nearby-radius-label { font-size: 13px; color: #666; font-weight: 500; }
+
+    .radius-btn {
+      padding: 5px 16px; border-radius: 20px;
+      border: 1.5px solid #dde8dd; background: #fff;
+      font-size: 13px; font-weight: 500; cursor: pointer; color: #555;
+      transition: all .15s;
+    }
+    .radius-btn.active {
+      border-color: #09b850; background: rgba(9,184,80,.08); color: #09b850;
+    }
+
+    .nearby-body { padding: 20px 22px; }
+
+    .nearby-loading {
+      text-align: center; padding: 40px;
+      color: #888; font-size: 14px;
+    }
+    .nearby-loading i { font-size: 1.8rem; color: #09b850; display: block; margin-bottom: 12px; }
+
+    .nearby-empty {
+      display: none; text-align: center; padding: 40px; color: #999;
+    }
+    .nearby-empty i { font-size: 2rem; color: #ddd; display: block; margin-bottom: 12px; }
+    .nearby-empty strong { display: block; font-size: 15px; color: #666; margin-bottom: 6px; }
+
+    .nearby-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    /* distance badge on card */
+    .dist-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(9,184,80,.12); color: #09b850;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 9px; border-radius: 20px; margin-left: 6px;
+    }
+  </style>
 </head>
 <body>
 
@@ -1027,7 +1195,7 @@ function buildNearbyCard(l) {
 
 <div class="enq-overlay" id="enqOverlay">
   <div class="enq-box" onclick="event.stopPropagation()">
-    <button class="enq-close" onclick="window.location.reload()">
+    <button class="enq-close" onclick="closeNudgeModal()">
       <i class="fa-solid fa-xmark"></i>
     </button>
 
@@ -1071,7 +1239,7 @@ function buildNearbyCard(l) {
               <button class="enq-btn-otp" id="nudgeVerifyBtn" onclick="nudgeVerifyOtp()">Verify</button>
             </div>
             <div id="nudgeVerifiedBadge" style="display:none;margin-top:6px">
-              <span class="enq-verified-badge">Verified</span>
+              <span class="enq-verified-badge">✅ Verified</span>
             </div>
           </div>
           <button class="enq-btn-primary" id="nudgeSignupBtn" onclick="nudgeSignup()" disabled>
@@ -1114,7 +1282,7 @@ function buildNearbyCard(l) {
         <div class="enq-success-icon">🎉</div>
         <h3>Welcome to HostelNode!</h3>
         <p>You're all set. Explore verified hostels near your college.</p>
-        <button class="enq-btn-primary" onclick="window.location.reload()">Start Exploring →</button>
+        <button class="enq-btn-primary" onclick="closeNudgeModal()">Start Exploring →</button>
       </div>
     </div>
 
