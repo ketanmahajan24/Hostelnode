@@ -288,8 +288,8 @@ router.get("/", jwtStudentAuth, async (req, res) => {
     // if (!student) return res.redirect("/student/login");
 
     //console.log("Home Page loaded '/student' route");
-    //console.log("Student Dashboard accessed by:", student.phone);
-   res.render("listings/findHostels.ejs", { listings, student });
+    console.log("Student Dashboard accessed by:", student.phone);
+   res.render("listings/findHostels.ejs", { listings, student});
     // res.redirect("/")
   } catch (err) {
     //console.error(err);

@@ -2,6 +2,8 @@
    app.js  —  HostelNode Main Server
 ============================================================ */
 require('dotenv').config();
+// At the top with other requires
+const userRouter = require("./routes/userRoutes.js"); // or whatever your owner router file is named
 
 const express      = require("express");
 const app          = express();
@@ -58,7 +60,8 @@ app.use(express.urlencoded({ extended: true }));  // 3. form body
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(methodOverride("_method"));               // 4. PUT/DELETE via POST
-
+// With other app.use() route mounts (after session middleware)
+app.use("/user", userRouter);
 app.use(session({
   secret: process.env.SESSION_SECRET || "hostelnode_secret",
   resave: false,

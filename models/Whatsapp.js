@@ -66,7 +66,7 @@ const sendWhatsAppOTP = async (phone, otp) => {
     };
 
     const result = await callWAAPI(payload);
-    if (result.success) log("✅ OTP sent:", phone);
+    if (result.success) log("✅ OTP sent:", {phone, otp}); 
     else               error("❌ OTP failed:", phone);
     return result;
 

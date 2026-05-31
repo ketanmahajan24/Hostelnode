@@ -10,6 +10,7 @@
 const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
 const express = require("express");
 const router  = express.Router();
+const Student       = require("../models/studentSchema");
 const Listing = require("../models/listingProperty");
 const { parseSearchQuery } = require("../utils/smartSearch"); // ← new
 const { logSearch }            = require("../utils/searchLogger");
@@ -22,13 +23,16 @@ const {
 // ─────────────────────────────────────────────
 router.get("/", optionalStudentAuth, async (req, res) => {
   try {
+    
+    
+     const student = await Student.findById(req.student.id)
     const listings = await Listing.find({ status: "Approved"})
       .limit(24)
       .sort({ createdAt: -1 });
 
     res.render("listings/findHostels", {
       listings,
-      student: res.locals.student || null,
+      student: student || null,
     });
   } catch (err) {
     // console.error("❌ findHostels error:", err);
@@ -41,6 +45,7 @@ router.get("/", optionalStudentAuth, async (req, res) => {
 // ─────────────────────────────────────────────
 router.get("/results", optionalStudentAuth, async (req, res) => {
   try {
+     const student = await Student.findById(req.student.id)
     const {
       college  = "",
       budget,
@@ -216,7 +221,7 @@ await logSearch({
 // Send WhatsApp leads to owners
 if (req.student && collegeQuery && collegeQuery.length > 2) {
   notifyOwnersOnSearch({
-    student: req.student,
+    student: student || null,
     area: parsed.college || collegeQuery,
     city: cityQuery,
   }).catch(err => console.error("WA notify error:", err));
@@ -246,7 +251,7 @@ if (req.student && collegeQuery && collegeQuery.length > 2) {
         amenities: parsed.amenities,
         budget   : parsed.budget,
       },
-      student: res.locals.student || null,
+      student:  student || null,
     });
 
   } catch (err) {

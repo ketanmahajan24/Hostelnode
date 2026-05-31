@@ -10,6 +10,7 @@
 const express  = require("express");
 const router   = express.Router();
 const Listing  = require("../models/listingProperty");
+const Student  = require("../models/studentSchema");
 const { getCityBySlug, getAreaBySlug, getAllCities } = require("../config/cityData");
 const { logSearch } = require("../utils/searchLogger");
 
@@ -25,6 +26,7 @@ const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
 ============================================================ */
 router.get("/:citySlug", optionalStudentAuth, async (req, res) => {
   try {
+        const student = await Student.findById(req.student.id).lean();
     const cityData = getCityBySlug(req.params.citySlug);
     if (!cityData) return res.status(404).render("404.ejs", { message: "City not found" });
 
@@ -81,7 +83,7 @@ router.get("/:citySlug", optionalStudentAuth, async (req, res) => {
       listings,
       areaCounts,
       totalListings,
-      student:res.locals.student || null,
+      student: student || null,
     });
 
   } catch (err) {
