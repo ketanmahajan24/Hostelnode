@@ -243,6 +243,7 @@ function detectIntent(text) {
 }
 
 // ── All Button Labels (max 20 chars each) ────────────────────
+// ── All Button Labels (max 20 chars each) ────────────────────
 const BTN = {
   FIND:    '🔎 Find PG/Hostel',   // 17 chars ✅
   LIST:    '🏡 List Property',    // 16 chars ✅
@@ -312,49 +313,6 @@ async function sendButtons(phone, bodyText, buttons, headerText = null) {
   return callAPI(payload);
 }
 
-// ── NEW: Send Image with Buttons (max 3) ────────────────────
-async function sendImageWithButtons(phone, imageUrl, caption, buttons) {
-  const payload = {
-    messaging_product: "whatsapp",
-    to:   phone,
-    type: "interactive",
-    interactive: {
-      type: "button",
-      header: {
-        type:  "image",
-        image: {
-          link: imageUrl // Must be HTTPS URL
-        }
-      },
-      body: { text: caption },
-      action: {
-        buttons: buttons.map((b, i) => ({
-          type:  "reply",
-          reply: {
-            id:    `btn_${i}_${b.replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,20)}`,
-            title: b.slice(0, 20)
-          }
-        }))
-      }
-    }
-  };
-  return callAPI(payload);
-}
-
-// ── NEW: Send Image with Caption (no buttons) ──────────────
-async function sendImageWithCaption(phone, imageUrl, caption) {
-  const payload = {
-    messaging_product: "whatsapp",
-    to:   phone,
-    type: "image",
-    image: {
-      link:    imageUrl, // Must be HTTPS URL
-      caption: caption
-    }
-  };
-  return callAPI(payload);
-}
-
 // ── Bot Messages ─────────────────────────────────────────────
 const MSG = {
 
@@ -398,46 +356,42 @@ const MSG = {
     [BTN.AGAIN, BTN.MENU, BTN.SUPPORT]
   ),
 
-  // ── UPDATED: listProperty with 2 messages + image ────────────────
-  listProperty: async (phone) => {
-    // Message 1: Image + caption with 3 new buttons
-    await sendImageWithButtons(
-      phone,
-      'https://hostelnode.com/images/WhatsApp-Bot-Images/listing-steps-banner.jpg',
-      `🏡 *List Your Property on HostelNode*\n\n` +
-      `Follow the steps shown above to list your\n` +
-      `Hostel / PG / Flat in just 5 minutes! 🚀\n\n` +
-      `_Want to know more before listing?_`,
-      [BTN.CHARGES, BTN.HOW, BTN.VIDEO]
-    );
-
-    // Wait a bit before sending second message (WhatsApp API best practice)
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Message 2: Existing listing info with original buttons
-    await sendButtons(
-      phone,
-      `✅ *Ready to List? It's FREE!*\n\n` +
-      `🏠 Hostel  — ₹0\n` +
-      `🏘️ PG      — ₹0\n` +
-      `🏢 Flat    — ₹0\n\n` +
-      `👉 https://hostelnode.com/login\n\n` +
-      `_No hidden charges. No commission._`,
-      [BTN.FIND, BTN.PRICES, BTN.SUPPORT]
-    );
-  },
+  listProperty: (phone) => sendButtons(
+    phone,
+    `🏡 *List on HostelNode — FREE!*\n\n` +
+    `✅ Reach 50,000+ students monthly\n` +
+    `✅ Zero setup cost\n` +
+    `✅ Get verified badge\n` +
+    `✅ Direct student enquiries\n\n` +
+    `👉 https://hostelnode.com/login`,
+    [BTN.FIND, BTN.PRICES, BTN.SUPPORT]
+  ),
  
   prices: (phone) => sendButtons(
-    phone,
-    `💰 *HostelNode Listing Prices:*\n\n` +
-    `✅ *Completely FREE to List!\n\n*` +
-    `🏠 *Hostel*  — ₹0\n` +
-    `🏘️ *PG*      — ₹0\n` +
-    `🏢 *Flat*    — ₹0\n\n` +
-    `_No hidden charges. No commission.\n` +
-    `List your property & get direct leads!_`,
-    [BTN.FIND, BTN.LIST, BTN.SUPPORT]
-  ),
+  phone,
+  `💰 *HostelNode Listing Prices:*\n\n` +
+  `✅ *Completely FREE to List!\n\n*` +
+  `🏠 *Hostel*  — ₹0\n` +
+  `🏘️ *PG*      — ₹0\n` +
+  `🏢 *Flat*    — ₹0\n\n` +
+  `_No hidden charges. No commission.\n` +
+  `List your property & get direct leads!_`,
+  [BTN.FIND, BTN.LIST, BTN.SUPPORT]
+),
+
+  
+  // prices: (phone) => sendButtons(
+  //   phone,
+  //   `💰 *HostelNode Price Range:*\n\n` +
+  //   `🏠 *PG / Hostel*\n` +
+  //   `• Budget: ₹2,000 – ₹5,000/mo\n` +
+  //   `• Standard: ₹5,000 – ₹8,000/mo\n` +
+  //   `• Premium: ₹8,000 – ₹12,000/mo\n\n` +
+  //   `🏘️ *Flat Share*\n` +
+  //   `• Starting from ₹4,000/mo\n\n` +
+  //   `_Prices vary by city & amenities_`,
+  //   [BTN.FIND, BTN.LIST, BTN.SUPPORT]
+  // ),
 
   support: (phone) => sendButtons(
     phone,
@@ -448,44 +402,6 @@ const MSG = {
     `⏰ Hours: 9 AM – 9 PM, Mon–Sun\n\n` +
     `Our team will get back to you shortly!`,
     [BTN.FIND, BTN.LIST, BTN.MENU]
-  ),
-
-  // ── NEW: CHARGES message with poster image ──────────────────────
-  charges: (phone) => sendImageWithCaption(
-    phone,
-    'https://hostelnode.com/images/WhatsApp-Bot-Images/listing_charges_poster.png',
-    `💸 *Listing Charges on HostelNode*\n\n` +
-    `✅ It's completely FREE!\n\n` +
-    `🏠 Hostel — ₹0\n` +
-    `🏘️ PG — ₹0\n` +
-    `🏢 Flat — ₹0\n\n` +
-    `No registration fee. No commission. No hidden charges.\n` +
-    `List your property and get direct student leads for free!`
-  ),
-
-  // ── NEW: HOW TO LIST message with steps image ───────────────────
-  howToList: (phone) => sendImageWithCaption(
-    phone,
-    'https://hostelnode.com/images/WhatsApp-Bot-Images/step-of-listing-poster.png',
-    `📋 *How to List on HostelNode*\n\n` +
-    `Follow these simple steps:\n\n` +
-    `1️⃣ Click "List Property" on hostelnode.com\n` +
-    `2️⃣ Create your free account\n` +
-    `3️⃣ Fill in property details & amenities\n` +
-    `4️⃣ Upload photos of your property\n` +
-    `5️⃣ Pin your location on the map\n` +
-    `6️⃣ Submit — Go live instantly! 🚀\n\n` +
-    `Students will start finding your property right away!`
-  ),
-
-  // ── NEW: WATCH VIDEO message (text only) ─────────────────────────
-  watchVideo: (phone) => sendText(
-    phone,
-    `▶️ *Watch & Learn — List in Minutes!*\n\n` +
-    `See how easy it is to list your property on HostelNode.\n\n` +
-    `🎬 Watch our step-by-step video guide:\n` +
-    `👉 https://youtu.be/your-video-link\n\n` +
-    `_Takes less than 5 minutes to go live!_ 🚀`
   ),
 
   thanks: (phone) => sendButtons(
@@ -510,7 +426,6 @@ function isButton(text) {
   return ALL_BUTTONS.includes(text);
 }
 
-// ── UPDATED: Handle Button Clicks ────────────────────────────
 async function handleButton(phone, text) {
   if (text === BTN.FIND || text === BTN.OTHER || text === BTN.AGAIN) {
     setSession(phone, 'AWAITING_CITY');
@@ -527,18 +442,6 @@ async function handleButton(phone, text) {
   } else if (text === BTN.MENU) {
     clearSession(phone);
     await MSG.welcome(phone);
-  } else if (text === BTN.CHARGES) {
-    // NEW: Handle CHARGES button
-    clearSession(phone);
-    await MSG.charges(phone);
-  } else if (text === BTN.HOW) {
-    // NEW: Handle HOW button
-    clearSession(phone);
-    await MSG.howToList(phone);
-  } else if (text === BTN.VIDEO) {
-    // NEW: Handle VIDEO button
-    clearSession(phone);
-    await MSG.watchVideo(phone);
   }
 }
 
