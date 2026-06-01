@@ -259,6 +259,7 @@ const BTN = {
 // ── Image URLs ───────────────────────────────────────────────
 const IMG = {
   CHARGES: 'https://hostelnode.com/images/WhatsApp-Bot-Images/listing_charges_poster.png',
+  LISTING: 'https://hostelnode.com/images/WhatsApp-Bot-Images/list_your_property.png',
   HOW:     'https://hostelnode.com/images/WhatsApp-Bot-Images/step-of-listing_poster.png',
 };
 
@@ -386,7 +387,8 @@ const MSG = {
   // ── UPDATED: buttons changed to CHARGES, HOW, VIDEO ──────
   listProperty: (phone) => sendButtons(
     phone,
-    `🏡 *List on HostelNode — FREE!*\n\n` +
+    IMG.
+    `🏡 *List Your Property on HostelNode — It's FREE!*\n\n` +
     `✅ Reach 50,000+ students monthly\n` +
     `✅ Zero setup cost\n` +
     `✅ Get verified badge\n` +
@@ -404,7 +406,7 @@ const MSG = {
     `🏠 Hostel — ₹0\n` +
     `🏘️ PG — ₹0\n` +
     `🏢 Flat — ₹0\n\n` +
-    `No registration fee. No commission. No hidden charges.\n` +
+    `No registration fee.\n` +
     `List your property and get direct student leads for free!`,
     `What would you like to do next?`,
     [BTN.HOW, BTN.VIDEO, BTN.MENU]
