@@ -26,7 +26,7 @@ const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
 ============================================================ */
 router.get("/:citySlug", optionalStudentAuth, async (req, res) => {
   try {
-        const student = await Student.findById(req.student.id).lean();
+       const student = req.student ? await Student.findById(req.student.id).lean() : null;
     const cityData = getCityBySlug(req.params.citySlug);
     if (!cityData) return res.status(404).render("404.ejs", { message: "City not found" });
 
