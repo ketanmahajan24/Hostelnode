@@ -385,7 +385,8 @@ const MSG = {
   ),
 
   // ── UPDATED: buttons changed to CHARGES, HOW, VIDEO ──────
-  listProperty: (phone) => sendButtons(
+ // ✅ FIXED
+listProperty: (phone) => sendImageButtons(
     phone,
     IMG.LISTING,
     `🏡 *List Your Property on HostelNode — It's FREE!*\n\n` +
@@ -394,9 +395,9 @@ const MSG = {
     `✅ Get verified badge\n` +
     `✅ Direct student enquiries\n\n` +
     `👉 https://hostelnode.com/login`,
+    `Want to know more?`,
     [BTN.CHARGES, BTN.HOW, BTN.VIDEO]
   ),
-
   // ── NEW: Listing Charges — image + caption + buttons ─────
   charges: (phone) => sendImageButtons(
     phone,
