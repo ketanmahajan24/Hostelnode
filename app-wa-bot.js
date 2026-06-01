@@ -454,7 +454,8 @@ const MSG = {
     phone,
     `🤝 *HostelNode Support*\n\n` +
     `We're here to help! 😊\n\n` +
-    `📧 Email: support@hostelnode.com\n` +
+    `📞 Call: +918828397001\n` +
+    `📧 Email: hostelnodehelp@gmail.com\n` +
     `🌐 Website: https://hostelnode.com\n` +
     `⏰ Hours: 9 AM – 9 PM, Mon–Sun\n\n` +
     `Our team will get back to you shortly!`,
