@@ -387,7 +387,7 @@ const MSG = {
   // ── UPDATED: buttons changed to CHARGES, HOW, VIDEO ──────
   listProperty: (phone) => sendButtons(
     phone,
-    IMG.
+    IMG.LISTING
     `🏡 *List Your Property on HostelNode — It's FREE!*\n\n` +
     `✅ Reach 50,000+ students monthly\n` +
     `✅ Zero setup cost\n` +
