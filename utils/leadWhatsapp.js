@@ -1,5 +1,6 @@
 /* ============================================================
    utils/leadWhatsapp.js  —  HostelNode WA Lead Alerts
+   UPDATED: Uses WhatsApp Templates for Listing View
 ============================================================ */
 
 const WaCooldown = require("../models/waCooldown");
@@ -11,7 +12,53 @@ const WA_PHONE_ID = process.env.WA_PHONE_ID;
 const BASE_URL    = `https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`;
 
 /* ============================================================
-   LOW-LEVEL: Send raw WA message
+   1️⃣ SEND TEMPLATE MESSAGE (New - For approved templates)
+============================================================ */
+async function sendTemplateMessage(phone, templateName, variables) {
+  console.log("🔵 sendTemplateMessage called — phone:", phone, "template:", templateName);
+
+  try {
+    const cleanPhone = phone.toString().replace(/[^0-9]/g, "");
+    const fullPhone  = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+
+    console.log("🔵 Sending template to:", fullPhone);
+    console.log("🔵 Variables:", variables);
+
+    const res = await axios.post(BASE_URL, {
+      messaging_product: "whatsapp",
+      to: fullPhone,
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: "en"
+        },
+        components: [
+          {
+            type: "body",
+            parameters: variables.map(v => ({ type: "text", text: String(v || "") }))
+          }
+        ]
+      }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${WA_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000
+    });
+
+    console.log(`🟢 Template sent to ${fullPhone}`);
+    return { success: true, data: res.data };
+
+  } catch (err) {
+    console.error("🔴 Template send error:", err.response?.data || err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/* ============================================================
+   2️⃣ SEND PLAIN TEXT MESSAGE (Existing - For non-template messages)
 ============================================================ */
 async function sendWAMessage(phone, message) {
   console.log("🔵 sendWAMessage called — phone:", phone);
@@ -95,7 +142,7 @@ async function markGuestCooldown(ownerId, listingId) {
 }
 
 /* ============================================================
-   TRIGGER 1: Student searches an area
+   TRIGGER 1: Student searches an area (Plain text - no template)
 ============================================================ */
 async function notifyOwnersOnSearch({ student, area, city, maxOwners = 10 }) {
   console.log("🔵 notifyOwnersOnSearch called — area:", area, "city:", city);
@@ -192,7 +239,7 @@ async function notifyOwnerOnView({ student, listing, isGuest = false }) {
       return;
     }
 
-    // ── GUEST VIEW ──
+    // ── GUEST VIEW (Plain text) ──
     if (isGuest) {
       const ok = await shouldSendGuest(owner._id, listing._id);
       if (!ok) {
@@ -224,7 +271,7 @@ Ek *Guest User* ne abhi aapki listing dekhi!
       return;
     }
 
-    // ── LOGGED IN STUDENT VIEW ──
+    // ── LOGGED IN STUDENT VIEW (Using Template) ✅ ──
     if (!student) {
       console.log("❌ notifyOwnerOnView — student missing aur isGuest false hai");
       return;
@@ -238,26 +285,31 @@ Ek *Guest User* ne abhi aapki listing dekhi!
 
     const area = listing.location?.nearCollege || listing.location?.city || "";
 
-    const message =
-`👀 *Your Listing Was Viewed — HostelNode*
+    // ✅ TEMPLATE VARIABLES (in order — must match Meta template)
+    const templateVariables = [
+      owner.name || "Owner",                          // {{1}}
+      student.firstName || "Student",                 // {{2}}
+      student.phone || "Not provided",                // {{3}}
+      student.collegeName || "Not mentioned",         // {{4}}
+      area || "Not mentioned",                        // {{5}}
+      listing.title || "Listing"                      // {{6}}
+    ];
 
-A student just viewed *"${listing.title}"*!
+    console.log("🔵 Template variables being sent:", templateVariables);
 
-👤 *Student:* ${student.firstName} ${student.lastName || ""}
-📱 *Phone:* ${student.phone || "Not provided"}
-🎓 *College:* ${student.collegeName || "Not mentioned"}
-📍 *Looking in:* ${area}
-
-🔥 This is a hot lead — reach out now!
-🔗 https://hostelnode.com/hostel/${listing.slug}
-
-— HostelNode Team`;
-
-    const result = await sendWAMessage(owner.phone, message);
+    // ✅ SEND TEMPLATE MESSAGE (not plain text)
+    const result = await sendTemplateMessage(
+      owner.phone,
+      "hostelnode_listing_view",  // Template name (must be approved on Meta)
+      templateVariables
+    );
 
     if (result.success) {
       await markCooldown(owner._id, student._id);
-      console.log(`🟢 View-lead sent to owner: ${owner.name} for: ${listing.title}`);
+      console.log(`🟢 ✅ TEMPLATE MESSAGE sent to owner: ${owner.name} for: ${listing.title}`);
+      console.log(`   Variables: ${templateVariables.join(" | ")}`);
+    } else {
+      console.log(`🔴 Template send failed — will retry with plain text next time`);
     }
 
   } catch (err) {
