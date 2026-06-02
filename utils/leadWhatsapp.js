@@ -288,7 +288,7 @@ Ek *Guest User* ne abhi aapki listing dekhi!
     // ✅ TEMPLATE VARIABLES (in order — must match Meta template)
     const templateVariables = [
       owner.name || "Owner",                          // {{1}}
-      student.firstName || "Student",                 // {{2}}
+      student.firstName + " " + student.lastName || "Student",                 // {{2}}
       student.phone || "Not provided",                // {{3}}
       student.collegeName || "Not mentioned",         // {{4}}
       area || "Not mentioned",                        // {{5}}
