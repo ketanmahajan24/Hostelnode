@@ -18,6 +18,8 @@ const {
   notifyOwnersOnSearch,
   notifyOwnerOnView
 } = require("../utils/leadWhatsapp");
+
+
 // ─────────────────────────────────────────────
 // HOME / FIND PAGE  →  GET /findHostels
 // ─────────────────────────────────────────────
@@ -25,7 +27,7 @@ router.get("/", optionalStudentAuth, async (req, res) => {
   try {
     
     
-     const student = await Student.findById(req.student.id)
+     const student = req.student ? await Student.findById(req.student.id) : null;
     const listings = await Listing.find({ status: "Approved"})
       .limit(24)
       .sort({ createdAt: -1 });
@@ -45,7 +47,7 @@ router.get("/", optionalStudentAuth, async (req, res) => {
 // ─────────────────────────────────────────────
 router.get("/results", optionalStudentAuth, async (req, res) => {
   try {
-     const student = await Student.findById(req.student.id)
+     const student = req.student ? await Student.findById(req.student.id) : null;
     const {
       college  = "",
       budget,

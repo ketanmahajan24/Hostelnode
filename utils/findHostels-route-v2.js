@@ -246,6 +246,7 @@ router.get("/hostel/:slug", async (req, res) => {
       similar,
       studentReview,
       breadcrumb: true,
+      student: res.locals.student || null,  // ✅ yeh add kar
     });
   } catch (err) {
     console.error("❌ Hostel view error:", err);
