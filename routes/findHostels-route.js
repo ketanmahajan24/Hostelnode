@@ -26,7 +26,6 @@ const {
 router.get("/", optionalStudentAuth, async (req, res) => {
   try {
     
-    
      const student = req.student ? await Student.findById(req.student.id) : null;
     const listings = await Listing.find({ status: "Approved"})
       .limit(24)

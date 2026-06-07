@@ -1,3 +1,4 @@
+ <!-- Find Hostels & PG Near Your College | HostelNode home page  -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -268,7 +269,7 @@
         </button>
       </div>
     <!-- Search Card -->
-    <div class="search-card">
+    <div class="search-card" id="search-card">
       <div class="search-tabs">
         <button class="search-tab active" onclick="switchTab(this)">All</button>
         <button class="search-tab" onclick="switchTab(this)">Hostel</button>
@@ -1149,60 +1150,7 @@ function buildNearbyCard(l) {
 <!-- ═══════════════════════════════════════
      SIGNUP NUDGE OVERLAY (Guest Only)
 ═══════════════════════════════════════ -->
-<% if (!student) { %>
-<div class="hn-nudge-overlay" id="hnNudgeOverlay" onclick="hnNudgeOutsideClick(event)">
-  <div class="hn-nudge-box">
-
-    <button class="hn-nudge-close" onclick="closeHnNudge()" aria-label="Close">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-
-    <div class="hn-nudge-header">
-      <span class="hn-nudge-emoji">🏠</span>
-      <h3>Find your perfect hostel, faster</h3>
-      <p>Join thousands of students discovering verified hostels near their college</p>
-    </div>
-
-    <div class="hn-nudge-perks">
-      <div class="hn-perk">
-        <div class="hn-perk-icon">❤️</div>
-        <div>
-          <div class="hn-perk-title">Save hostels to wishlist</div>
-          <div class="hn-perk-sub">Bookmark & compare later</div>
-        </div>
-      </div>
-      <div class="hn-perk">
-        <div class="hn-perk-icon">📩</div>
-        <div>
-          <div class="hn-perk-title">Send enquiries instantly</div>
-          <div class="hn-perk-sub">Direct to owner, zero broker fee</div>
-        </div>
-      </div>
-      <div class="hn-perk">
-        <div class="hn-perk-icon">🔔</div>
-        <div>
-          <div class="hn-perk-title">Get availability alerts</div>
-          <div class="hn-perk-sub">Be first when rooms open up</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="hn-nudge-cta">
-      <button class="hn-nudge-btn-primary" onclick="hnNudgeSignup()">
-        🚀 Sign up free — takes 30 seconds
-      </button>
-      <button class="hn-nudge-btn-later" onclick="closeHnNudge()">
-        Maybe later
-      </button>
-    </div>
-
-    <div class="hn-nudge-footer">
-      No spam. No broker fees. <strong>100% free</strong> for students.
-    </div>
-
-  </div>
-</div>
-<% } %>
+ 
 <% if (!student) { %>
 
 <!-- ══ ENQUIRY/SIGNUP MODAL (same as hostel-view) ══ -->
@@ -1335,7 +1283,9 @@ function buildNearbyCard(l) {
         <div class="enq-success-icon">🎉</div>
         <h3>Welcome to HostelNode!</h3>
         <p>You're all set. Explore verified hostels near your college.</p>
-        <button class="enq-btn-primary" onclick="closeNudgeModal()">Start Exploring →</button>
+         <!--btn for starting exploration after login+ -->
+        <button class="enq-btn-primary" onclick="closeNudgeModal(true)">Start Exploring →</button> 
+
       </div>
     </div>
 
@@ -1363,11 +1313,11 @@ function openNudgeModal() {
   sessionStorage.setItem('hn_nudge_shown', 'true');
 }
 
-function closeNudgeModal() {
+function closeNudgeModal(isLogin = false) {
   document.getElementById('enqOverlay').classList.remove('open');
   document.body.style.overflow = '';
+  if (isLogin) location.reload();
 }
-
 // Close on overlay background click
 document.getElementById('enqOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeNudgeModal();
@@ -1515,6 +1465,7 @@ async function nudgeLoginSendOtp() {
       document.getElementById('nudgeLoginBtn').disabled = false;
       showNudgeAlert('Verified! Click Login ✅', 'success');
     } else {
+
       showNudgeAlert(d.error || 'Wrong OTP');
     }
   });
@@ -1542,5 +1493,10 @@ async function nudgeLogin() {
 
 <% } %>
 
+
+
+<script>
+  
+</script>
 </body>
 </html> 

@@ -553,24 +553,31 @@
                     <% }) %>
                   <% } %>
                 </div>
-                <div class="card-footer-row">
-                  <div class="card-price">
-                    <div class="price-val">₹<%= l.startingPrice %> <span>/mo</span></div>
-                    
+               <div class="card-footer-row">
+  <div class="card-price">
+    <div class="price-val">₹<%= l.startingPrice %> <span>/mo</span></div>
+    <div class="price-label"><%= l.rooms?.[0]?.type || 'Room' %></div>
+  </div>
+  <div class="card-rating">
+    <i class="fa-solid fa-star"></i>
+    <%= l.rating || 4.2 %>
+  </div>
+</div>
 
-                  </div>
-                  <button class="btn-view" onclick="event.stopPropagation();viewHostel('<%= l.slug %>')">
-                    View <i class="fa-solid fa-arrow-right"></i>
-                  </button>
-                </div>
-                <div class="card-contact-row">
-                  <button class="btn-wa" onclick="event.stopPropagation();waHostel('<%= l.contact?.whatsapp %>')">
-                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
-                  </button>
-                  <button class="btn-call" onclick="event.stopPropagation();callHostel('<%= l.contact?.phone %>')">
-                    <i class="fa-solid fa-phone"></i> Call
-                  </button>
-                </div>
+<div class="btn-see-more-wrap" style="margin-top:12px;">
+  <span class="pulse-ring"></span>
+  <span class="pulse-ring-2"></span>
+  <button class="btn-see-more"
+    onclick="event.stopPropagation(); viewHostel('<%= l.slug %>')">
+    <span class="btn-inner">
+      <span class="btn-dot"></span>
+      <span class="btn-label">See More Details</span>
+      <span class="btn-arrow">
+        <i class="fa-solid fa-arrow-right" style="font-size:13px"></i>
+      </span>
+    </span>
+  </button>
+</div>
               </div>
             </div>
           <% }) %>

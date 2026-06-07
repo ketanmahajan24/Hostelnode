@@ -1177,4 +1177,166 @@ button { font-family: var(--font-b); cursor: pointer; }
       font-size: 11px; font-weight: 700;
       padding: 3px 9px; border-radius: 20px; margin-left: 6px;
     }
- 
+ /* ══════════════════════════════════════
+   ULTRA PREMIUM BTN — HostelNode
+   No blur · Solid #09b850 base · Clean
+══════════════════════════════════════ */
+.btn-wrap {
+  position: relative;
+}
+
+/* dual whisper rings */
+.btn-wrap::before,
+.btn-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.btn-wrap::before {
+  border: 1.5px solid rgba(9,184,80,0.38);
+  animation: hn-ringA 2.8s cubic-bezier(0.22,1,0.36,1) infinite;
+}
+.btn-wrap::after {
+  border: 1px solid rgba(9,184,80,0.18);
+  animation: hn-ringA 2.8s cubic-bezier(0.22,1,0.36,1) 1.4s infinite;
+}
+
+.btn-see-more {
+  position: relative;
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 13px;
+  cursor: pointer;
+  font-family: var(--font-d);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #fff;
+  overflow: hidden;
+  background: #09b850;
+  box-shadow:
+    0  2px 0 rgba(255,255,255,0.18) inset,
+    0 -2px 0 rgba(0,0,0,0.18) inset,
+    0  1px 2px rgba(0,0,0,0.10),
+    0  4px 14px rgba(9,184,80,0.28),
+    0  12px 28px rgba(9,184,80,0.12);
+  transition:
+    transform 0.26s cubic-bezier(0.34,1.6,0.64,1),
+    box-shadow 0.26s cubic-bezier(0.34,1.6,0.64,1);
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* glass cap */
+.btn-see-more .btn-gloss {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  border-radius: 13px 13px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.17) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* precision shimmer */
+.btn-see-more .btn-sheen {
+  position: absolute;
+  top: 0; left: -80%;
+  width: 45%; height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.16) 40%,
+    rgba(255,255,255,0.28) 50%,
+    rgba(255,255,255,0.16) 60%,
+    transparent 100%
+  );
+  transform: skewX(-12deg);
+  animation: hn-sheen 3.6s cubic-bezier(0.4,0,0.6,1) infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* hover */
+.btn-see-more:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0  2px 0 rgba(255,255,255,0.20) inset,
+    0 -2px 0 rgba(0,0,0,0.20) inset,
+    0  1px 2px rgba(0,0,0,0.10),
+    0  8px 22px rgba(9,184,80,0.42),
+    0  20px 40px rgba(9,184,80,0.14);
+}
+
+/* press */
+.btn-see-more:active {
+  transform: translateY(1px) scale(0.985);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.14) inset,
+    0 -1px 0 rgba(0,0,0,0.12) inset,
+    0 2px 8px rgba(9,184,80,0.22);
+  transition-duration: 0.06s;
+}
+
+/* inner */
+.btn-see-more .btn-inner {
+  position: relative; z-index: 2;
+  display: flex; align-items: center;
+  justify-content: center;
+  gap: 10px; height: 100%;
+}
+
+/* live dot */
+.btn-see-more .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.75);
+  flex-shrink: 0;
+  animation: hn-dotPop 2.2s ease-in-out infinite;
+}
+
+.btn-see-more .btn-label {
+  font-size: 13.5px; font-weight: 700; letter-spacing: 0.25px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.12);
+}
+
+/* circle arrow */
+.btn-see-more .btn-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.22);
+  flex-shrink: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.34,1.6,0.64,1),
+    background 0.2s ease;
+}
+.btn-see-more:hover .btn-arrow {
+  transform: translateX(4px);
+  background: rgba(255,255,255,0.28);
+}
+.btn-see-more:active .btn-arrow {
+  transform: translateX(2px);
+}
+
+@keyframes hn-sheen {
+  0%        { left: -80%; opacity: 0; }
+  8%        { opacity: 1; }
+  60%       { opacity: 1; }
+  75%, 100% { left: 130%; opacity: 0; }
+}
+@keyframes hn-ringA {
+  0%   { transform: scale(1);    opacity: 0.75; }
+  60%  { transform: scale(1.07); opacity: 0; }
+  100% { transform: scale(1.07); opacity: 0; }
+}
+@keyframes hn-dotPop {
+  0%,100% { transform: scale(1);   opacity: 0.70; }
+  50%     { transform: scale(1.6); opacity: 1; }
+}
