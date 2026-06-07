@@ -608,13 +608,19 @@ button { font-family: var(--font-b); cursor: pointer; }
 
 /* Distance badge */
 .card-dist {
+  max-height: 3.5rem;
   position: absolute; bottom: 10px; left: 10px;
   font-size: 0.7rem; font-weight: 600;
-  padding: 4px 10px; border-radius: var(--radius-full);
+  padding: 4px 10px; 
+  border-radius: var(--radius-full);
   background: rgba(255,255,255,0.9);
   border: 1px solid var(--border);
   color: var(--ink-mid);
   display: flex; align-items: center; gap: 4px; z-index: 4;
+   max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .card-dist i { color: var(--green); font-size: 0.68rem; }
 

@@ -1578,18 +1578,27 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
 
 /* Near college */
 .sc2-near {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  /* display: inline-flex; */
+  /* align-items: center; */
+  /* gap: 5px; */
   font-size: 11.5px;
-  font-weight: 600;
+  /* font-weight: 600; */
   color: #09b850;
   background: rgba(9,184,80,0.08);
   border-radius: 20px;
   padding: 3px 10px;
   width: fit-content;
+  
+
+   display: flex; align-items: center; gap: 4px; z-index: 4;
+   max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.sc2-near .fa-graduation-cap { font-size: 10px; }
+.sc2-near .fa-graduation-cap { 
+  
+  font-size: 10px; }
 
 /* Amenities */
 .sc2-amenities {
@@ -1685,7 +1694,7 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
       <div class="enq-header enq-header-auth">
         <div class="enq-header-icon">🔑</div>
         <h3>Quick login to enquire</h3>
-        <p>30 seconds — no password needed</p>
+        <p>30 seconds — no password needed </p>
       </div>
       <div class="enq-body">
         <div class="enq-alert" id="authAlert"></div>

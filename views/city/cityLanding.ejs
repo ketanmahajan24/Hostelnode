@@ -54,216 +54,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/findhostel.css">
   <link rel="stylesheet" href="/css/style.css">  <!-- ADD THIS LINE -->
-
+<link rel="stylesheet" href="/css/cityLanding.css">
   <link rel="stylesheet" href="/css/navbar.css">  <!-- ADD THIS LINE -->
-  <style>
-
-    /* ── CITY PAGE SPECIFIC ── */
-    .city-hero {
-      background: #fff;
-      border-bottom: 1px solid var(--border);
-      padding: 48px clamp(16px,5vw,60px) 0;
-      position: relative; overflow: hidden;
-      text-align: center;
-    }
-    .city-hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background-image: radial-gradient(var(--green-mid) 1.2px, transparent 1.2px);
-      background-size: 28px 28px; opacity: 0.4; pointer-events: none;
-    }
-    .city-hero::after {
-      content: '';
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 700px; height: 200px;
-      background: radial-gradient(ellipse at 50% 0%, rgba(9,184,80,0.10) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .city-hero-inner { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
-    .city-breadcrumb {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; flex-wrap: wrap;
-    }
-    .city-breadcrumb a { color: var(--green); font-weight: 600; }
-    .city-breadcrumb i { font-size: 0.6rem; opacity: 0.5; }
-    .city-emoji { font-size: 3rem; margin-bottom: 10px; display: block; }
-    .city-hero h1 {
-      font-family: var(--font-d);
-      font-size: clamp(1.8rem, 4vw, 3rem);
-      font-weight: 700; color: var(--ink);
-      line-height: 1.15; letter-spacing: -0.02em;
-      margin-bottom: 12px;
-    }
-    .city-hero h1 span { color: var(--green); }
-    .city-hero-sub {
-      font-size: 1rem; color: var(--muted); max-width: 540px; margin: 0 auto 24px; line-height: 1.7;
-    }
-    .city-stats-row {
-      display: flex; justify-content: center; gap: 28px; flex-wrap: wrap;
-      padding: 20px 0; border-top: 1px solid var(--border); margin-top: 28px;
-    }
-    .city-stat { text-align: center; }
-    .city-stat-num {
-      font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink);
-    }
-    .city-stat-num span { color: var(--green); }
-    .city-stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
-
-    /* ── SEARCH BAR (inline on city page) ── */
-    .city-search-wrap {
-      max-width: 600px; margin: 0 auto 24px;
-    }
-    .city-search-form {
-      display: flex; gap: 8px;
-      background: #fff;
-      border: 1.5px solid var(--border);
-      border-radius: 50px;
-      padding: 6px 6px 6px 18px;
-      box-shadow: var(--shadow-md);
-    }
-    .city-search-form input {
-      flex: 1; border: none; outline: none; background: transparent;
-      font-family: var(--font-b); font-size: 0.9rem; color: var(--ink);
-    }
-    .city-search-form input::placeholder { color: var(--muted-light); }
-    .city-search-form button {
-      padding: 9px 22px; background: var(--green); color: #fff; border: none;
-      border-radius: 50px; font-weight: 700; font-size: 0.88rem; cursor: pointer;
-      transition: background 0.18s;
-    }
-    .city-search-form button:hover { background: var(--green-dark); }
-
-    /* ── AREAS SECTION ── */
-    .areas-section {
-      padding: clamp(32px,5vw,56px) clamp(16px,5vw,60px);
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-    }
-    .areas-inner { max-width: 1280px; margin: 0 auto; }
-    .areas-title {
-      font-family: var(--font-d); font-size: 1.3rem; font-weight: 700;
-      color: var(--ink); margin-bottom: 6px;
-    }
-    .areas-sub { font-size: 0.88rem; color: var(--muted); margin-bottom: 22px; }
-
-    .areas-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-      gap: 10px;
-    }
-    .area-chip {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 14px;
-      background: var(--bg); border: 1.5px solid var(--border);
-      border-radius: var(--radius-md); cursor: pointer;
-      transition: all 0.18s; text-decoration: none; color: inherit;
-    }
-    .area-chip:hover {
-      border-color: var(--green); background: var(--green-light);
-      transform: translateY(-2px); box-shadow: var(--shadow-xs);
-      color: inherit;
-    }
-    .area-chip-left { display: flex; flex-direction: column; gap: 2px; }
-    .area-chip-name { font-size: 0.88rem; font-weight: 700; color: var(--ink); }
-    .area-chip-count { font-size: 0.72rem; color: var(--green); font-weight: 600; }
-    .area-chip-arrow { color: var(--muted-light); font-size: 0.75rem; transition: color 0.18s, transform 0.18s; }
-    .area-chip:hover .area-chip-arrow { color: var(--green); transform: translateX(3px); }
-
-    /* See more toggle */
-    .areas-hidden { display: none; }
-    .areas-hidden.open { display: contents; }
-    .see-more-areas-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      margin-top: 14px; font-size: 0.84rem; font-weight: 700;
-      color: var(--green); background: var(--green-light);
-      border: 1.5px solid var(--green-border);
-      padding: 8px 18px; border-radius: 50px; cursor: pointer;
-      transition: all 0.18s;
-    }
-    .see-more-areas-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
-
-    /* ── LISTINGS SECTION ── */
-    .city-listings-section {
-      padding: clamp(40px,6vw,64px) clamp(16px,5vw,60px);
-      background: var(--bg);
-    }
-    .city-listings-inner { max-width: 1280px; margin: 0 auto; }
-    .city-listings-header {
-      display: flex; align-items: flex-end; justify-content: space-between;
-      flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
-    }
-    .city-listings-title {
-      font-family: var(--font-d); font-size: 1.3rem; font-weight: 700; color: var(--ink);
-    }
-    .see-all-btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 0.84rem; font-weight: 700; color: var(--green);
-      padding: 8px 18px; border-radius: 50px;
-      border: 1.5px solid var(--green-border); background: var(--green-light);
-      text-decoration: none; transition: all 0.18s;
-    }
-    .see-all-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
-
-    /* ── WHY HOSTELNODE BAND ── */
-    .why-band {
-      background: var(--green); padding: 40px clamp(16px,5vw,60px);
-      text-align: center;
-    }
-    .why-band h2 {
-      font-family: var(--font-d); font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 24px;
-    }
-    .why-items {
-      display: flex; justify-content: center; gap: 32px; flex-wrap: wrap;
-    }
-    .why-item { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.9); font-size: 0.9rem; font-weight: 600; }
-    .why-item i { font-size: 1.1rem; color: #fff; }
-
-    /* ── FAQ SECTION ── */
-    .faq-section {
-      padding: clamp(40px,6vw,64px) clamp(16px,5vw,60px);
-      background: var(--white); border-top: 1px solid var(--border);
-    }
-    .faq-inner { max-width: 760px; margin: 0 auto; }
-    .faq-section h2 {
-      font-family: var(--font-d); font-size: 1.4rem; font-weight: 700; color: var(--ink); margin-bottom: 24px;
-    }
-    .faq-item {
-      border: 1.5px solid var(--border); border-radius: var(--radius-md);
-      margin-bottom: 10px; overflow: hidden;
-    }
-    .faq-q {
-      width: 100%; text-align: left; background: var(--bg);
-      padding: 14px 18px; font-size: 0.93rem; font-weight: 600; color: var(--ink);
-      border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; transition: background 0.18s;
-    }
-    .faq-q:hover, .faq-item.open .faq-q { background: var(--green-light); color: var(--green-dark); }
-    .faq-q i { transition: transform 0.25s; color: var(--green); flex-shrink: 0; }
-    .faq-item.open .faq-q i { transform: rotate(180deg); }
-    .faq-a {
-      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
-      font-size: 0.88rem; color: var(--muted); line-height: 1.75;
-    }
-    .faq-item.open .faq-a { max-height: 400px; }
-    .faq-a-inner { padding: 14px 18px; }
-
-    /* ── NO LISTINGS ── */
-    .no-listings { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .no-listings i { font-size: 2.5rem; margin-bottom: 14px; color: var(--muted-light); display: block; }
-
-    @media (max-width: 600px) {
-      .areas-grid { grid-template-columns: 1fr 1fr; }
-      .city-stats-row { gap: 16px; }
-      .why-items { gap: 16px; }
-    }
-  </style>
+ 
 </head>
 <body>
 
 <%- include("../includes/navbar-user.ejs") %>
-
 <!-- ═══════════════════════════════════════════
-     CITY HERO
+     CITY HERO & QUICK SEARCH 
 ════════════════════════════════════════════ -->
 <section class="city-hero">
   <div class="city-hero-inner">
@@ -456,19 +255,28 @@
               <div class="card-footer-row">
                 <div class="card-price">
                   <div class="price-val">₹<%= l.startingPrice %> <span>/mo</span></div>
+                  <div class="price-label"><%= l.rooms?.[0]?.type || 'Room' %></div>
                 </div>
-                <button class="btn-view" onclick="event.stopPropagation();window.location.href='/hostel/<%= l.slug %>'">
-                  View <i class="fa-solid fa-arrow-right"></i>
-                </button>
-              </div>
-              <div class="card-contact-row">
-                <button class="btn-wa" onclick="event.stopPropagation();waHostel('<%= l.contact?.whatsapp %>')">
-                  <i class="fa-brands fa-whatsapp"></i> WhatsApp
-                </button>
-                <button class="btn-call" onclick="event.stopPropagation();callHostel('<%= l.contact?.phone %>')">
-                  <i class="fa-solid fa-phone"></i> Call
-                </button>
-              </div>
+                <div class="card-rating">
+                  <i class="fa-solid fa-star"></i>
+                  <%= l.rating || 4.2 %>
+                </div>
+               </div>
+
+            <div class="btn-see-more-wrap" style="margin-top:12px;">
+              <span class="pulse-ring"></span>
+              <span class="pulse-ring-2"></span>
+              <button class="btn-see-more"
+                onclick="event.stopPropagation(); viewHostel('<%= l.slug %>')">
+                <span class="btn-inner">
+                  <span class="btn-dot"></span>
+                  <span class="btn-label">See More Details</span>
+                  <span class="btn-arrow">
+                    <i class="fa-solid fa-arrow-right" style="font-size:13px"></i>
+                  </span>
+                </span>
+              </button>
+            </div>
             </div>
           </div>
         <% }) %>
