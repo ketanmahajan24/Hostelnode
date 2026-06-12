@@ -1,0 +1,220 @@
+<% locals.pageTitle = 'Enquiries'; locals.activePage = 'enquiries'; %>
+<%
+  var newCount       = enquiries.filter(function(e){ return e.status==='New'; }).length;
+  var contactedCount = enquiries.filter(function(e){ return e.status==='Contacted'; }).length;
+  var closedCount    = enquiries.filter(function(e){ return e.status==='Closed'; }).length;
+%>
+
+<%- include('layout', { body: `
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Enquiries</h1>
+    <p>All student enquiries across listings — <strong>` + total + `</strong> total</p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <a href="/admin/enquiries?status=New"       class="btn ` + (filters.status==='New'       ? 'btn-blue'  : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-circle-dot"></i> New</a>
+    <a href="/admin/enquiries?status=Contacted" class="btn ` + (filters.status==='Contacted' ? 'btn-amber' : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-phone"></i> Contacted</a>
+    <a href="/admin/enquiries?status=Closed"    class="btn ` + (filters.status==='Closed'    ? 'btn-ghost' : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-check"></i> Closed</a>
+    <a href="/admin/enquiries"                  class="btn ` + (!filters.status ? 'btn-outline btn-active' : 'btn-outline') + ` btn-sm">All</a>
+  </div>
+</div>
+
+<div class="stats-grid" style="margin-bottom:20px">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><i class="fa-solid fa-circle-dot"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">New</div>
+      <div class="stat-value">` + newCount + `</div>
+      <div class="stat-sub">Awaiting action</div>
+    </div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><i class="fa-solid fa-phone"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Contacted</div>
+      <div class="stat-value">` + contactedCount + `</div>
+      <div class="stat-sub">In progress</div>
+    </div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fa-solid fa-check-circle"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Closed</div>
+      <div class="stat-value">` + closedCount + `</div>
+      <div class="stat-sub">Resolved</div>
+    </div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon purple"><i class="fa-solid fa-inbox"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Total (this page)</div>
+      <div class="stat-value">` + enquiries.length + `</div>
+      <div class="stat-sub">of ` + total + ` total</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="fa-solid fa-inbox"></i> Enquiry List</div>
+  </div>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Listing</th>
+          <th>Room Type</th>
+          <th>Contact via</th>
+          <th>Move-in</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ` + (enquiries.length === 0 ? `
+          <tr>
+            <td colspan="8" style="text-align:center;padding:40px;color:#888">
+              <i class="fa-solid fa-inbox" style="font-size:2rem;margin-bottom:10px;display:block;opacity:0.3"></i>
+              No enquiries found
+            </td>
+          </tr>
+        ` : enquiries.map(function(e) {
+          var studentName  = ((e.student && e.student.firstName) || '') + ' ' + ((e.student && e.student.lastName) || '');
+          var studentSub   = (e.student && (e.student.phone || e.student.email)) || '\u2014';
+          var studentInit  = (e.student && e.student.firstName) ? e.student.firstName.charAt(0) : '?';
+          var listingTitle = (e.listing && e.listing.title) || e.hostelName || '\u2014';
+          var listingPrice = ((e.listing && e.listing.startingPrice) || 0).toLocaleString('en-IN');
+          var listingCity  = (e.listing && e.listing.location && e.listing.location.city) || '\u2014';
+          var contactBadge = e.contactMethod === 'whatsapp' ? '<span class="badge badge-green"><div class="dot"></div>WhatsApp</span>'
+                           : e.contactMethod === 'call'     ? '<span class="badge badge-blue"><div class="dot"></div>Call</span>'
+                           : e.contactMethod === 'visit'    ? '<span class="badge badge-amber"><div class="dot"></div>Visit</span>'
+                           : '<span class="cell-sub">\u2014</span>';
+          var statusBadge  = e.status === 'New' ? 'badge-blue' : e.status === 'Contacted' ? 'badge-green' : 'badge-gray';
+          var safeMsg      = (e.message || '').replace(/'/g, "&#39;").replace(/\n/g, ' ');
+          var safeTitle    = listingTitle.replace(/'/g, "&#39;");
+          var safeRoom     = (e.roomType || '').replace(/'/g, "&#39;");
+          var safeName     = studentName.trim().replace(/'/g, "&#39;");
+          var dateFmt      = new Date(e.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+          return `
+          <tr>
+            <td>
+              <div class="cell-avatar">
+                <div class="cell-avatar-img">` + studentInit + `</div>
+                <div>
+                  <div class="cell-name">` + studentName.trim() + `</div>
+                  <div class="cell-sub">` + studentSub + `</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-name">` + listingTitle + `</div>
+              <div class="cell-sub">&#8377;` + listingPrice + ` &middot; ` + listingCity + `</div>
+            </td>
+            <td><div class="cell-sub">` + (e.roomType || '\u2014') + `</div></td>
+            <td>` + contactBadge + `</td>
+            <td><div class="cell-sub">` + (e.moveIn || '\u2014') + `</div></td>
+            <td><div class="cell-sub">` + dateFmt + `</div></td>
+            <td><span class="badge ` + statusBadge + `"><div class="dot"></div>` + e.status + `</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button onclick="openEnquiry('` + e._id + `','` + safeName + `','` + safeTitle + `','` + safeRoom + `','` + (e.contactMethod||'') + `','` + (e.moveIn||'') + `','` + safeMsg + `','` + e.status + `')" class="btn btn-ghost btn-sm" title="View details">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                ` + (e.status !== 'Contacted' ? `<button onclick="updateEnquiryStatus('` + e._id + `','Contacted')" class="btn btn-outline btn-sm" title="Mark Contacted"><i class="fa-solid fa-phone"></i></button>` : '') + `
+                ` + (e.status !== 'Closed'    ? `<button onclick="updateEnquiryStatus('` + e._id + `','Closed')" class="btn btn-ghost btn-sm" title="Close"><i class="fa-solid fa-check"></i></button>` : '') + `
+              </div>
+            </td>
+          </tr>`;
+        }).join('')) + `
+      </tbody>
+    </table>
+  </div>
+
+  ` + (totalPages > 1 ? `
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border)">
+    <div class="cell-sub">Page ` + currentPage + ` of ` + totalPages + `</div>
+    <div style="display:flex;gap:6px">
+      ` + (currentPage > 1 ? `<a href="?page=` + (currentPage-1) + (filters.status ? '&status='+filters.status : '') + `" class="btn btn-outline btn-sm"><i class="fa-solid fa-chevron-left"></i> Prev</a>` : '') + `
+      ` + (currentPage < totalPages ? `<a href="?page=` + (currentPage+1) + (filters.status ? '&status='+filters.status : '') + `" class="btn btn-outline btn-sm">Next <i class="fa-solid fa-chevron-right"></i></a>` : '') + `
+    </div>
+  </div>` : '') + `
+</div>
+
+<!-- DETAIL MODAL -->
+<div id="enquiryModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:520px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.2);overflow:hidden">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-weight:700;font-size:1rem"><i class="fa-solid fa-inbox" style="color:var(--b);margin-right:8px"></i>Enquiry Details</div>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#888"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div style="padding:24px;display:grid;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div><div class="cell-sub" style="margin-bottom:2px">Student</div><div class="cell-name" id="m-student"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Listing</div><div class="cell-name" id="m-listing"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Room Type</div><div id="m-room"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Contact via</div><div id="m-contact"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Move-in</div><div id="m-movein"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Status</div><div id="m-status"></div></div>
+      </div>
+      <div>
+        <div class="cell-sub" style="margin-bottom:4px">Message</div>
+        <div id="m-message" style="background:#f9fafb;border-radius:8px;padding:12px;font-size:0.88rem;color:#444;min-height:50px;line-height:1.6"></div>
+      </div>
+      <div id="m-actions" style="display:flex;gap:8px;margin-top:4px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEnquiry(id, student, listing, room, contact, movein, message, status) {
+  document.getElementById('m-student').textContent = student  || '—';
+  document.getElementById('m-listing').textContent = listing  || '—';
+  document.getElementById('m-room').textContent    = room     || '—';
+  document.getElementById('m-contact').textContent = contact  || '—';
+  document.getElementById('m-movein').textContent  = movein   || '—';
+  document.getElementById('m-message').textContent = message  || 'No message provided.';
+
+  var badgeMap = { New:'badge-blue', Contacted:'badge-green', Closed:'badge-gray' };
+  document.getElementById('m-status').innerHTML =
+    '<span class="badge ' + (badgeMap[status]||'badge-gray') + '"><div class="dot"></div>' + status + '</span>';
+
+  var actions = document.getElementById('m-actions');
+  actions.innerHTML = '';
+  if (status !== 'Contacted') {
+    var b1 = document.createElement('button');
+    b1.className = 'btn btn-outline btn-sm';
+    b1.innerHTML = '<i class="fa-solid fa-phone"></i> Mark Contacted';
+    b1.onclick = function() { updateEnquiryStatus(id, 'Contacted'); };
+    actions.appendChild(b1);
+  }
+  if (status !== 'Closed') {
+    var b2 = document.createElement('button');
+    b2.className = 'btn btn-ghost btn-sm';
+    b2.innerHTML = '<i class="fa-solid fa-check"></i> Close Enquiry';
+    b2.onclick = function() { updateEnquiryStatus(id, 'Closed'); };
+    actions.appendChild(b2);
+  }
+
+  document.getElementById('enquiryModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('enquiryModal').style.display = 'none';
+}
+
+document.getElementById('enquiryModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+async function updateEnquiryStatus(id, status) {
+  try {
+    var res = await fetch('/admin/enquiries/' + id + '/status/' + status, { method: 'PATCH' });
+    if (res.ok) { closeModal(); window.location.reload(); }
+    else alert('Failed to update status');
+  } catch(err) { alert('Network error'); }
+}
+</script>
+` }) %>

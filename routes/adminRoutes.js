@@ -570,6 +570,14 @@ router.get("/enquiries", jwtAdminAuth, async (req, res) => {
   }
 });
 
+router.patch("/enquiries/:id/status/:status", jwtAdminAuth, async (req, res) => {
+  const { id, status } = req.params;
+  if (!["New", "Contacted", "Closed"].includes(status))
+    return res.status(400).json({ error: "Invalid status" });
+  await Enquiry.findByIdAndUpdate(id, { status });
+  res.json({ ok: true });
+});
+
 /* ============================================================
    ANALYTICS
 ============================================================ */
