@@ -728,8 +728,11 @@ router.get("/nearby", async (req, res) => {
 // LOG NEARBY SEARCH
 // ─────────────────────────────────────────────
 
+const student = req.student ? await Student.findById(req.student.id).lean() : null; // ← add
+
 await logSearch({
   req,
+  student,                        // ← add
   searchType: "nearby_click",
   searchQuery: "Near Me",
   resolvedCity: "",

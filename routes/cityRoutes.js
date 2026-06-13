@@ -71,6 +71,7 @@ router.get("/:citySlug", optionalStudentAuth, async (req, res) => {
     // Log this city page visit
     await logSearch({
       req,
+        student,
       searchType:   "city_page",
       searchQuery:  cityData.name,
       resolvedCity: cityData.name,
@@ -100,23 +101,23 @@ router.get("/:citySlug/:areaSlug", optionalStudentAuth, async (req, res) => {
   try {
     const cityData = getCityBySlug(req.params.citySlug);
     if (!cityData) return res.status(404).render("404.ejs", { message: "City not found" });
+// REPLACE:
+const areaData = getAreaBySlug(req.params.citySlug, req.params.areaSlug);
+if (!areaData) {
+  return res.redirect(`/city/${req.params.citySlug}`);
+}
 
-    const areaData = getAreaBySlug(req.params.citySlug, req.params.areaSlug);
-    if (!areaData) {
-      // If area not found, redirect to city page
-      return res.redirect(`/city/${req.params.citySlug}`);
-    }
+const student = req.student ? await Student.findById(req.student.id).lean() : null; // ← add this
 
-    // Log area page visit
-    await logSearch({
-      req,
-      searchType:   "area_page",
-      searchQuery:  areaData.searchKey,
-      resolvedCity: cityData.name,
-      resolvedArea: areaData.name,
-      resultsCount: 0,
-    });
-
+await logSearch({
+  req,
+  student,                        // ← add this
+  searchType:   "area_page",
+  searchQuery:  areaData.searchKey,
+  resolvedCity: cityData.name,
+  resolvedArea: areaData.name,
+  resultsCount: 0,
+});
     // Redirect to existing results page with pre-filled filters
     res.redirect(`/findHostels/results?college=${encodeURIComponent(areaData.searchKey)}&city=${encodeURIComponent(cityData.name)}`);
 

@@ -26,7 +26,7 @@ const {
 router.get("/", optionalStudentAuth, async (req, res) => {
   try {
     
-     const student = req.student ? await Student.findById(req.student.id) : null;
+    const student = req.student ? await Student.findById(req.student.id) : null;
     const listings = await Listing.find({ status: "Approved"})
       .limit(24)
       .sort({ createdAt: -1 });
@@ -212,6 +212,7 @@ const cityQuery    = parsed.cityOrArea || "";
 
 await logSearch({
   req,
+  student,                        // ← add
   searchType: "text_search",
   searchQuery: collegeQuery,
   resolvedCity: cityQuery,
@@ -264,62 +265,65 @@ if (req.student && collegeQuery && collegeQuery.length > 2) {
 // ─────────────────────────────────────────────
 // HOSTEL DETAIL  →  GET /hostel/:slug
 // ─────────────────────────────────────────────
-// router.get("/hostel/:slug", async (req, res) => {
-//   try {
-//     const { slug } = req.params;
+router.get("/hostel/:slug",optionalStudentAuth, async (req, res) => {
+  try {
+    const student = req.student ? await Student.findById(req.student.id) : null;
+    const { slug } = req.params;
 
-//     const listing = await Listing.findOneAndUpdate(
-//         { slug, status: "Approved" },   // 🔥 ADD THIS
-//       { $inc: { views: 2 } },
-//       { new: true }
-//     ).populate("owner");
+    const listing = await Listing.findOneAndUpdate(
+        { slug, status: "Approved" },   // 🔥 ADD THIS
+      { $inc: { views: 2 } },
+      { new: true }
+    ).populate("owner");
 
-//     if (!listing) return res.status(404).send("Hostel not found");
+    if (!listing) return res.status(404).send("Hostel not found");
 
-//     // ─────────────────────────────────────────────
-// // LOG LISTING VIEW
-// // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────
+// LOG LISTING VIEW
+// ─────────────────────────────────────────────
 
-// await logSearch({
-//   req,
-//   searchType: "listing_view",
-//   searchQuery: listing.title,
-//   resolvedCity: listing.location?.city || "",
-//   resolvedArea: listing.location?.nearCollege || "",
-//   resultsCount: 1,
-// });
+await logSearch({
+  req,
+  student,                        // ← add this
+  searchType: "listing_view",
+  searchQuery: listing.title,
+  resolvedCity: listing.location?.city || "",
+  resolvedArea: listing.location?.nearCollege || "",
+  resultsCount: 1,
+});
 
-// // Send WhatsApp lead to owner
-// if (req.student) {
-//   notifyOwnerOnView({
-//     student: req.student,
-//     listing: listing,
-//   }).catch(err => console.error("WA view notify error:", err));
-// }
+// Send WhatsApp lead to owner
+if (req.student) {
+  notifyOwnerOnView({
+    student: req.student,
+    listing: listing,
+  }).catch(err => console.error("WA view notify error:", err));
+}
 
-//     let studentReview = null;
-//     if (req.student) {
-//       studentReview = listing.reviews.find(
-//         rv => rv.student?.toString() === req.student.id
-//       ) || null;
-//     }
+    let studentReview = null;
+    if (req.student) {
+      studentReview = listing.reviews.find(
+        rv => rv.student?.toString() === req.student.id
+      ) || null;
+    }
 
-//     const similar = await Listing.find({
-//         status: "Approved",   // 🔥 ADD
-//       "location.city": listing.location.city,
-//       _id: { $ne: listing._id },
-//     }).limit(4);
+    const similar = await Listing.find({
+        status: "Approved",   // 🔥 ADD
+      "location.city": listing.location.city,
+      _id: { $ne: listing._id },
+    }).limit(4);
 
-//     res.render("listings/hostel-view.ejs", {
-//       hostel: listing,
-//       similar,
-//       studentReview,
-//       breadcrumb: true,
-//     });
-//   } catch (err) {
-//     // console.error("❌ Hostel view error:", err);
-//     res.status(500).send("Server Error");
-//   }
-// });
+    res.render("listings/hostel-view.ejs", {
+      hostel: listing,
+      similar,
+      studentReview,
+      breadcrumb: true,
+      student: student || null,
+    });
+  } catch (err) {
+    console.error("❌ Hostel view error:", err);
+    res.status(500).send("Server Error");
+  }
+});
 
 module.exports = router;
