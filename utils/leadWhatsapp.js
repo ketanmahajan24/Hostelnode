@@ -152,6 +152,7 @@ async function notifyOwnersOnSearch({ student, area, city, maxOwners = 10 }) {
     return;
   }
 
+  
   try {
     const searchTerm = area || city;
     const listings   = await Listing.find({
