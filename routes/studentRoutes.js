@@ -811,6 +811,42 @@ router.post("/contact-owner", jwtStudentAuth, async (req, res) => {
           console.error("WA template notify failed (non-critical):", e.message);
         }
       });
+      // ── Notify STUDENT via WhatsApp confirmation ──────────────
+    setImmediate(async () => {
+      try {
+        const { sendTemplateMessage } = require("../utils/leadWhatsapp");
+
+        const actionLabelMap = {
+          request_callback:  "Callback Request",
+          whatsapp_callback: "WhatsApp Callback",
+          schedule_visit:    "Physical Visit",
+          virtual_tour:      "Virtual Tour"
+        };
+
+        const hostelLink = `https://hostelnode.com/hostel/${listing.slug}`;
+
+        const result = await sendTemplateMessage(
+          student.phone,
+          "hostelnode_student_confirmation",
+          [
+            student.firstName,                         // {{1}} name
+            resolvedHostelName,                        // {{2}} hostel name
+            actionLabelMap[actionType] || actionType,  // {{3}} action
+            moveIn || "Not specified",                 // {{4}} move-in
+            hostelLink                                 // {{5}} hostel link
+          ]
+        );
+
+        if (result.success) {
+          console.log(`✅ Student confirmation WA sent → ${student.phone}`);
+        } else {
+          console.error(`🔴 Student WA failed:`, result.error);
+        }
+
+      } catch (e) {
+        console.error("Student WA notify failed (non-critical):", e.message);
+      }
+    });
     } else {
       console.warn("⚠️ No owner phone found for listing:", hostelId);
     }
