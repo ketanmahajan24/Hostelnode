@@ -545,24 +545,40 @@ router.get("/hostels", jwtAdminAuth, async (req, res) => {
 /* ============================================================
    ENQUIRIES
 ============================================================ */
+/* ============================================================
+   ENQUIRIES
+============================================================ */
 router.get("/enquiries", jwtAdminAuth, async (req, res) => {
   try {
-    const { status, page = 1 } = req.query;
+    const { status, category, page = 1 } = req.query;
     const limit = 20, skip = (page - 1) * limit;
+
     const filter = {};
-    if (status && status !== "all") filter.status = status;
-    const [enquiries, total] = await Promise.all([
+    if (status   && status   !== "all") filter.status       = status;
+    if (category && category !== "all") filter.leadCategory = category;
+
+    const [enquiries, total, categoryBreakdown] = await Promise.all([
       Enquiry.find(filter)
         .populate("student", "firstName lastName phone email")
         .populate("listing", "title location startingPrice")
         .sort({ createdAt: -1 }).skip(skip).limit(limit),
-      Enquiry.countDocuments(filter)
+      Enquiry.countDocuments(filter),
+
+      // Hot/Warm/Cold breakdown (across all enquiries, not just this page)
+      Enquiry.aggregate([
+        { $group: { _id: "$leadCategory", count: { $sum: 1 } } }
+      ])
     ]);
+
+    const catMap = { Hot: 0, Warm: 0, Cold: 0 };
+    categoryBreakdown.forEach(c => { if (c._id) catMap[c._id] = c.count; });
+
     const admin = await Admin.findById(req.admin.id).select("-password");
     res.render("admin/enquiries.ejs", {
       admin, enquiries, total,
       currentPage: +page, totalPages: Math.ceil(total / limit),
-      filters: { status }
+      filters: { status, category },
+      catMap
     });
   } catch (err) {
     //console.error(err);
@@ -577,6 +593,8 @@ router.patch("/enquiries/:id/status/:status", jwtAdminAuth, async (req, res) => 
   await Enquiry.findByIdAndUpdate(id, { status });
   res.json({ ok: true });
 });
+
+
 
 /* ============================================================
    ANALYTICS

@@ -4,7 +4,7 @@
    - GET /findHostels         → Search page + recent listings
    - GET /findHostels/results → Search results with filters + pagination
    - GET /hostel/:slug        → Individual hostel detail page
-   Integrates smart search parsing, search logging, and WA lead alerts.
+   Integrates smart search parsing and search logging (analytics only).
 ============================================================ */
 
 const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
@@ -12,12 +12,8 @@ const express = require("express");
 const router  = express.Router();
 const Student       = require("../models/studentSchema");
 const Listing = require("../models/listingProperty");
-const { parseSearchQuery } = require("../utils/smartSearch"); // ← new
-const { logSearch }            = require("../utils/searchLogger");
-const {
-  notifyOwnersOnSearch,
-  notifyOwnerOnView
-} = require("../utils/leadWhatsapp");
+const { parseSearchQuery } = require("../utils/smartSearch");
+const { logSearch }        = require("../utils/searchLogger");
 
 
 // ─────────────────────────────────────────────
@@ -25,9 +21,8 @@ const {
 // ─────────────────────────────────────────────
 router.get("/", optionalStudentAuth, async (req, res) => {
   try {
-    
     const student = req.student ? await Student.findById(req.student.id) : null;
-    const listings = await Listing.find({ status: "Approved"})
+    const listings = await Listing.find({ status: "Approved" })
       .limit(24)
       .sort({ createdAt: -1 });
 
@@ -36,7 +31,6 @@ router.get("/", optionalStudentAuth, async (req, res) => {
       student: student || null,
     });
   } catch (err) {
-    // console.error("❌ findHostels error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -46,7 +40,7 @@ router.get("/", optionalStudentAuth, async (req, res) => {
 // ─────────────────────────────────────────────
 router.get("/results", optionalStudentAuth, async (req, res) => {
   try {
-     const student = req.student ? await Student.findById(req.student.id) : null;
+    const student = req.student ? await Student.findById(req.student.id) : null;
     const {
       college  = "",
       budget,
@@ -65,16 +59,13 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
     const parsed = parseSearchQuery(college);
 
     // ── 2. Build Mongo filter ────────────────────────────────────
-   const filter = {
-      status: "Approved"   // 🔥 ADD THIS
-    };
+    const filter = { status: "Approved" };
     const orClauses = [];
 
     // ── Location / college text search ───────────────────────────
     if (college.trim()) {
       const rawRegex = new RegExp(college.trim(), "i");
 
-      // Always try raw query against all text fields
       orClauses.push(
         { title:                  rawRegex },
         { description:            rawRegex },
@@ -83,7 +74,6 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
         { "location.nearCollege": rawRegex },
       );
 
-      // If parser extracted a specific city/area, add that too
       if (parsed.cityOrArea) {
         const cityRegex = new RegExp(parsed.cityOrArea, "i");
         orClauses.push(
@@ -93,7 +83,6 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
         );
       }
 
-      // If parser extracted a college name
       if (parsed.college) {
         const collegeRegex = new RegExp(parsed.college, "i");
         orClauses.push(
@@ -107,7 +96,6 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
     }
 
     // ── Gender ────────────────────────────────────────────────────
-    // URL param takes priority; fallback to NL parsed
     const resolvedGender = gender || (parsed.gender ? {
       'Boys':'boys','Girls':'girls','Co-ed':'coed'
     }[parsed.gender] : '');
@@ -144,7 +132,6 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
     }
 
     // ── Amenities ─────────────────────────────────────────────────
-    // Merge URL amenities + NL parsed amenities
     const urlAmenities = amenities
       ? amenities.split(",").map(a => a.trim()).filter(Boolean)
       : [];
@@ -170,11 +157,9 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
       Listing.countDocuments(filter),
     ]);
 
-    // ── Fallback: if zero results and we had a location, try city-only ──
+    // ── Fallback: zero results → try city-only ────────────────────
     if (total === 0 && (parsed.cityOrArea || parsed.college)) {
-      const fallbackFilter = {
-        status: "Approved"
-      };
+      const fallbackFilter = { status: "Approved" };
 
       if (parsed.cityOrArea) {
         const cr = new RegExp(parsed.cityOrArea, "i");
@@ -191,7 +176,6 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
         ];
       }
 
-      // Keep gender/type filters in fallback
       if (filter.gender)        fallbackFilter.gender        = filter.gender;
       if (filter.propertyType)  fallbackFilter.propertyType  = filter.propertyType;
       if (filter.startingPrice) fallbackFilter.startingPrice = filter.startingPrice;
@@ -203,61 +187,48 @@ router.get("/results", optionalStudentAuth, async (req, res) => {
     }
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
-// ─────────────────────────────────────────────
-// LOG SEARCH + SEND OWNER LEADS
-// ─────────────────────────────────────────────
 
-const collegeQuery = req.query.college || "";
-const cityQuery    = parsed.cityOrArea || "";
+    // ── Analytics only — no WhatsApp ─────────────────────────────
+    const collegeQuery = req.query.college || "";
+    const cityQuery    = parsed.cityOrArea || "";
 
-await logSearch({
-  req,
-  student,                        // ← add
-  searchType: "text_search",
-  searchQuery: collegeQuery,
-  resolvedCity: cityQuery,
-  resolvedArea: parsed.college || cityQuery,
-  resultsCount: listings.length,
-});
+    await logSearch({
+      req,
+      student,
+      searchType:   "text_search",
+      searchQuery:  collegeQuery,
+      resolvedCity: cityQuery,
+      resolvedArea: parsed.college || cityQuery,
+      resultsCount: listings.length,
+    });
 
-// Send WhatsApp leads to owners
-if (req.student && collegeQuery && collegeQuery.length > 2) {
-  notifyOwnersOnSearch({
-    student: student || null,
-    area: parsed.college || collegeQuery,
-    city: cityQuery,
-  }).catch(err => console.error("WA notify error:", err));
-}
-    // Pass parsed info to template for displaying smart hints
     res.render("listings/findHostels-results", {
       listings,
       total,
       totalPages,
-      currentPage : parseInt(page),
+      currentPage: parseInt(page),
       query: {
         college,
-        budget   : resolvedBudget ? String(resolvedBudget) : (budget || ''),
-        gender   : resolvedGender,
-        type     : resolvedType,
+        budget:    resolvedBudget ? String(resolvedBudget) : (budget || ''),
+        gender:    resolvedGender,
+        type:      resolvedType,
         sort,
         amenities: allAmenities.join(','),
-        roomType : resolvedRoomType || '',
+        roomType:  resolvedRoomType || '',
       },
-      // Smart hints for UI display
       parsedHints: {
-        city     : parsed.cityOrArea,
-        college  : parsed.college,
-        gender   : parsed.gender,
-        type     : parsed.propertyType,
-        roomType : parsed.roomType,
+        city:      parsed.cityOrArea,
+        college:   parsed.college,
+        gender:    parsed.gender,
+        type:      parsed.propertyType,
+        roomType:  parsed.roomType,
         amenities: parsed.amenities,
-        budget   : parsed.budget,
+        budget:    parsed.budget,
       },
-      student:  student || null,
+      student: student || null,
     });
 
   } catch (err) {
-    // console.error("❌ Search results error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -265,40 +236,29 @@ if (req.student && collegeQuery && collegeQuery.length > 2) {
 // ─────────────────────────────────────────────
 // HOSTEL DETAIL  →  GET /hostel/:slug
 // ─────────────────────────────────────────────
-router.get("/hostel/:slug",optionalStudentAuth, async (req, res) => {
+router.get("/hostel/:slug", optionalStudentAuth, async (req, res) => {
   try {
     const student = req.student ? await Student.findById(req.student.id) : null;
     const { slug } = req.params;
 
     const listing = await Listing.findOneAndUpdate(
-        { slug, status: "Approved" },   // 🔥 ADD THIS
+      { slug, status: "Approved" },
       { $inc: { views: 2 } },
       { new: true }
     ).populate("owner");
 
     if (!listing) return res.status(404).send("Hostel not found");
 
-    // ─────────────────────────────────────────────
-// LOG LISTING VIEW
-// ─────────────────────────────────────────────
-
-await logSearch({
-  req,
-  student,                        // ← add this
-  searchType: "listing_view",
-  searchQuery: listing.title,
-  resolvedCity: listing.location?.city || "",
-  resolvedArea: listing.location?.nearCollege || "",
-  resultsCount: 1,
-});
-
-// Send WhatsApp lead to owner
-if (req.student) {
-  notifyOwnerOnView({
-    student: req.student,
-    listing: listing,
-  }).catch(err => console.error("WA view notify error:", err));
-}
+    // ── Analytics only — no WhatsApp ─────────────────────────────
+    await logSearch({
+      req,
+      student,
+      searchType:   "listing_view",
+      searchQuery:  listing.title,
+      resolvedCity: listing.location?.city || "",
+      resolvedArea: listing.location?.nearCollege || "",
+      resultsCount: 1,
+    });
 
     let studentReview = null;
     if (req.student) {
@@ -308,7 +268,7 @@ if (req.student) {
     }
 
     const similar = await Listing.find({
-        status: "Approved",   // 🔥 ADD
+      status: "Approved",
       "location.city": listing.location.city,
       _id: { $ne: listing._id },
     }).limit(4);
@@ -320,6 +280,7 @@ if (req.student) {
       breadcrumb: true,
       student: student || null,
     });
+
   } catch (err) {
     console.error("❌ Hostel view error:", err);
     res.status(500).send("Server Error");

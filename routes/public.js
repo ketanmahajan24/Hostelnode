@@ -7,7 +7,7 @@ const Listing = require("../models/listingProperty");
 const Student = require("../models/studentSchema");
 const { optionalStudentAuth } = require("../Middlewares/jwtAuth");
 const { logSearch } = require("../utils/searchLogger");
-const { notifyOwnerOnView } = require("../utils/leadWhatsapp");
+const { sendWAMessage, sendTemplateMessage } = require("../utils/leadWhatsapp");
 
 async function getFullStudent(req) {
   if (!req.student?.id) return null;
@@ -68,9 +68,7 @@ router.get("/hostel/:slug", optionalStudentAuth, async (req, res) => {
         resultsCount: 1,
       });
 
-      notifyOwnerOnView({ student, listing }).catch(err =>
-        console.error("WA view notify error:", err)
-      );
+    
     }
 
     // ── WA LEAD — guest ne dekha (requireLogin mode) ──
@@ -82,9 +80,7 @@ router.get("/hostel/:slug", optionalStudentAuth, async (req, res) => {
         phone: "Unknown",
         city: req.headers['x-forwarded-for'] || "Unknown location",
       };
-      notifyOwnerOnView({ student: guestInfo, listing, isGuest: true }).catch(err =>
-        console.error("WA guest view notify error:", err)
-      );
+       
     }
 
     let studentReview = null;

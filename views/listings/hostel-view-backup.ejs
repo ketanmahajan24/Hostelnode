@@ -1156,30 +1156,17 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
       </div>
 
       <!-- CTA buttons -->
-<!-- CTA buttons -->
-<div class="bc-actions">
-  <button class="cta-primary" id="contactOwnerBtn" onclick="openContactModal()">
-    <i class="fa-solid fa-paper-plane"></i>
-    <span>Contact Owner</span>
-  </button>
-
-<div class="cta-secondary-row">
-  <button class="cta-secondary" onclick="scrollToRooms()">
-    <i class="fa-solid fa-bed"></i>
-    <span>View Rooms</span>
-  </button>
-  <button class="cta-secondary" onclick="openContactModal('schedule_visit')">
-    <i class="fa-solid fa-calendar-check"></i>
-    <span>Book Visit</span>
-  </button>
-  <button class="cta-secondary" onclick="openContactModal('virtual_tour')">
-    <i class="fa-solid fa-laptop"></i>
-    <span>Virtual Tour </span>
-  </button>
-</div>
-
-
-</div>
+      <div class="bc-actions">
+        <button class="bc-btn-primary" onclick="scrollToRooms()">
+          <i class="fa-solid fa-bed"></i> View Rooms & Enquire
+        </button>
+        <button class="bc-btn-call"   onclick="callHostel('<%= hostel.contact?.phone %>')">
+          <i class="fa-solid fa-phone"></i> Call Owner
+        </button>
+        <button class="bc-btn-whatsapp" onclick="whatsappHostel( '<%= hostel.contact?.phone %>' )">
+          <i class="fa-brands fa-whatsapp"></i> WhatsApp
+        </button>
+      </div>
 
       <!-- Trust signals -->
       <!-- <div class="bc-shortlist">
@@ -1862,159 +1849,6 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
   </div>
 </div>
 <!-- /enq-overlay -->
-<!-- ═══════════════════════════════════════════════════════════
-     CONTACT OWNER MODAL
-═══════════════════════════════════════════════════════════ -->
-<div class="co-overlay" id="coOverlay" onclick="coOverlayClick(event)">
-  <div class="co-box">
-
-    <button class="co-close" onclick="closeContactModal()">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-
-    <!-- ══ STEP 1: Choose connection type ══ -->
-    <div id="coStepChoose">
-      <div class="co-header">
-        <div class="co-header-icon">
-          <i class="fa-solid fa-paper-plane"></i>
-        </div>
-        <h3>How would you like to connect?</h3>
-        <p id="coHostelLabel"></p>
-      </div>
-      <div class="co-body">
-        <div class="co-options">
-  <button class="co-opt" onclick="selectAction('request_callback')">
-    <div class="co-opt-icon co-icon-call"><i class="fa-solid fa-phone"></i></div>
-    <div class="co-opt-text">
-      <div class="co-opt-title">Request Callback</div>
-      <div class="co-opt-sub">Owner calls you directly</div>
-    </div>
-    <i class="fa-solid fa-chevron-right co-opt-arrow"></i>
-  </button>
-
-  <button class="co-opt" onclick="selectAction('whatsapp_callback')">
-    <div class="co-opt-icon co-icon-wa"><i class="fa-brands fa-whatsapp"></i></div>
-    <div class="co-opt-text">
-      <div class="co-opt-title">WhatsApp Callback Request</div>
-      <div class="co-opt-sub">Get a reply on WhatsApp</div>
-    </div>
-    <i class="fa-solid fa-chevron-right co-opt-arrow"></i>
-  </button>
-
-  <button class="co-opt" onclick="selectAction('schedule_visit')">
-    <div class="co-opt-icon co-icon-visit"><i class="fa-solid fa-house"></i></div>
-    <div class="co-opt-text">
-      <div class="co-opt-title">Schedule Physical Visit</div>
-      <div class="co-opt-sub">Tour the property in person</div>
-    </div>
-    <i class="fa-solid fa-chevron-right co-opt-arrow"></i>
-  </button>
-
-  <button class="co-opt" onclick="selectAction('virtual_tour')">
-    <div class="co-opt-icon co-icon-virtual"><i class="fa-solid fa-laptop"></i></div>
-    <div class="co-opt-text">
-      <div class="co-opt-title">Book Virtual Tour</div>
-      <div class="co-opt-sub">Live video walkthrough</div>
-    </div>
-    <i class="fa-solid fa-chevron-right co-opt-arrow"></i>
-  </button>
-</div>
-        <div class="co-trust">
-          <div class="co-trust-item"><i class="fa-solid fa-shield-halved"></i> Verified Property</div>
-          <div class="co-trust-item"><i class="fa-solid fa-ban"></i> No Broker Fee</div>
-          <div class="co-trust-item"><i class="fa-solid fa-lock"></i> Secure Contact</div>
-          <div class="co-trust-item"><i class="fa-solid fa-bolt"></i> Fast Response</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ STEP 2: Details form ══ -->
-    <div id="coStepForm" style="display:none">
-      <div class="co-header co-header-form">
-        <div class="co-selected-pill" id="coSelectedPill"></div>
-        <h3>Almost there!</h3>
-        <p>We'll share this with the property owner</p>
-      </div>
-      <div class="co-body">
-        <div class="co-alert" id="coAlert"></div>
-
-        <div class="co-row-2">
-          <div class="co-field">
-            <label>Your Name</label>
-            <input type="text" id="coName" class="co-input" readonly>
-          </div>
-          <div class="co-field">
-            <label>Mobile Number</label>
-            <input type="text" id="coPhone" class="co-input" readonly>
-          </div>
-        </div>
-
-        <div class="co-field">
-          <label>Preferred Move-in Date</label>
-          <select id="coMoveIn" class="co-input">
-            <option value="">Select…</option>
-            <option>Immediately</option>
-            <option>Within 1 week</option>
-            <option>Within 1 month</option>
-            <option>1–3 months</option>
-            <option>Just exploring</option>
-          </select>
-        </div>
-
-        <div class="co-field">
-          <label>Budget Range <span class="co-optional">(optional)</span></label>
-          <select id="coBudget" class="co-input">
-            <option value="">Select…</option>
-            <option>Under ₹5,000</option>
-            <option>₹5,000 – ₹8,000</option>
-            <option>₹8,000 – ₹12,000</option>
-            <option>₹12,000 – ₹18,000</option>
-            <option>Above ₹18,000</option>
-          </select>
-        </div>
-
-        <div class="co-field">
-          <label>Message <span class="co-optional">(optional)</span></label>
-          <textarea id="coMessage" class="co-input" rows="3"
-            placeholder="Any specific requirements?" maxlength="300"></textarea>
-        </div>
-
-        <button class="co-btn-primary" id="coSubmitBtn" onclick="submitContactOwner()">
-          <i class="fa-solid fa-paper-plane"></i> Send Request
-        </button>
-
-        <button class="co-btn-back" onclick="backToChoose()">
-          <i class="fa-solid fa-arrow-left"></i> Back
-        </button>
-      </div>
-    </div>
-
-    <!-- ══ STEP 3: Success ══ -->
-    <div id="coStepSuccess" style="display:none">
-      <div class="co-success">
-        <div class="co-success-icon">
-          <i class="fa-solid fa-circle-check"></i>
-        </div>
-        <h3>Request Sent Successfully</h3>
-        <p>Your enquiry has been shared with the property owner.</p>
-        <div class="co-eta">
-          <i class="fa-solid fa-clock"></i>
-           The owner will contact you <strong> shortly. </strong>
-        </div>
-        <div class="co-trust" style="margin-top:20px">
-          <div class="co-trust-item"><i class="fa-solid fa-shield-halved"></i> Verified Property</div>
-          <div class="co-trust-item"><i class="fa-solid fa-ban"></i> No Broker Fee</div>
-          <div class="co-trust-item"><i class="fa-solid fa-lock"></i> Secure Contact</div>
-          <div class="co-trust-item"><i class="fa-solid fa-bolt"></i> Fast Response</div>
-        </div>
-        <button class="co-btn-primary" style="margin-top:20px" onclick="closeContactModal()">Done</button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-
 
 <!-- ============================================================
      SHARE TOAST
@@ -2032,20 +1866,20 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
     <div class="mbb-val">₹<%= hostel.startingPrice ? hostel.startingPrice.toLocaleString('en-IN') : '4,000' %>/mo</div>
   </div>
   <div class="mbb-actions">
-    <button class="mbb-call" onclick="openContactModal()">
-      <i class="fa-solid fa-paper-plane"></i> Contact
+    <button class="mbb-call" onclick="callHostel('<%= hostel.contact?.phone %>')">
+      <i class="fa-solid fa-phone"></i> Call
     </button>
     <button class="mbb-book" onclick="scrollToRooms()">
       View Rooms
     </button>
   </div>
 </div>
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 <script>
   // Pass EJS data to JS
   const HOSTEL_DATA = {
-    id:       "<%= hostel._id %>",
     name:     "<%= hostel.name %>",
     phone:    "<%= hostel.contact.phone || '+917879884375' %>",
     whatsapp: "<%= hostel.contact.whatsapp || hostel.contact.phone || '+917879884375' %>",
@@ -2209,134 +2043,14 @@ function clearFilters() {
 function viewHostel(slug) { window.location.href = '/hostel/' + slug; }
 
 /* ===== CALL / WHATSAPP ===== */
-/* ══════════════════════════════════════
-   CONTACT OWNER MODAL
-══════════════════════════════════════ */
-let coSelectedAction = null;
-
-const STUDENT_DATA = {
-  name:  "<%= student ? student.firstName + ' ' + (student.lastName || '') : '' %>",
-  phone: "<%= student ? student.phone : '' %>",
-  isLoggedIn: <%= student ? 'true' : 'false' %>
-};
-
-function openContactModal(presetAction = null) {
-  if (!STUDENT_DATA.isLoggedIn) {
-    window.location.href = "/student/login?next=" + encodeURIComponent(window.location.pathname);
-    return;
-  }
-
-  document.getElementById('coHostelLabel').textContent = HOSTEL_DATA.name || '';
-
-  if (presetAction) {
-    selectAction(presetAction);
-  } else {
-    showCoStep('choose');
-  }
-
-  document.getElementById('coOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+function callHostel(phone) { window.location.href = 'tel:' + phone; }
+function waHostel(phone) {
+  const num = (phone || '').replace(/[^0-9]/g, '');
+  if (!num) return;
+  window.open('https://wa.me/' + num + '?text=' +
+    encodeURIComponent('Hi! I found your hostel on HostelNode. I am interested in a room. Can you share details?'),
+    '_blank');
 }
-
-
-function closeContactModal() {
-  document.getElementById('coOverlay').classList.remove('open');
-  document.body.style.overflow = '';
-  // reset to step 1 for next open
-  setTimeout(() => {
-    showCoStep('choose');
-    document.getElementById('coAlert').classList.remove('show');
-  }, 250);
-}
-
-function coOverlayClick(e) {
-  if (e.target.id === 'coOverlay') closeContactModal();
-}
-
-function showCoStep(step) {
-  ['choose', 'form', 'success'].forEach(s => {
-    const el = document.getElementById('coStep' + s.charAt(0).toUpperCase() + s.slice(1));
-    if (el) el.style.display = (s === step) ? 'block' : 'none';
-  });
-}
-
-function backToChoose() {
-  showCoStep('choose');
-}
-
-const actionLabels = {
-  request_callback:  { icon: 'fa-phone',              text: 'Request Callback' },
-  whatsapp_callback: { icon: 'fa-brands fa-whatsapp', text: 'WhatsApp Callback' },
-  schedule_visit:    { icon: 'fa-house',              text: 'Physical Visit' },
-  virtual_tour:      { icon: 'fa-laptop',             text: 'Virtual Tour' }
-};
-
-function selectAction(action) {
-  coSelectedAction = action;
-
-  const label = actionLabels[action];
-  const pill = document.getElementById('coSelectedPill');
-  pill.innerHTML = `<i class="${label.icon.includes('fa-brands') ? label.icon : 'fa-solid ' + label.icon}"></i> ${label.text}`;
-
-  document.getElementById('coName').value  = STUDENT_DATA.name.trim();
-  document.getElementById('coPhone').value = STUDENT_DATA.phone;
-
-  showCoStep('form');
-}
-let coIsVirtualTour = false;
-
-function showCoAlert(msg, type = 'error') {
-  const el = document.getElementById('coAlert');
-  el.textContent = msg;
-  el.className = 'co-alert show ' + type;
-  setTimeout(() => el.classList.remove('show'), 4000);
-}
-
-async function submitContactOwner() {
-  const moveIn      = document.getElementById('coMoveIn').value;
-  const budgetRange = document.getElementById('coBudget').value;
-  const message     = document.getElementById('coMessage').value.trim();
-
-  const btn = document.getElementById('coSubmitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
-
-  try {
-    const res = await fetch('/student/contact-owner', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        hostelId:   HOSTEL_DATA.id,
-        hostelName: HOSTEL_DATA.name,
-        actionType: coSelectedAction,
-        moveIn,
-        budgetRange,
-        message
-      })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      showCoStep('success');
-    } else {
-      showCoAlert(data.error || 'Could not send. Try again.');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Request';
-    }
-  } catch (err) {
-    showCoAlert('Network error. Please try again.');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Request';
-  }
-}
-
-
-
-
-
-
-
 
 /* ===== COLLEGE CHIP ===== */
 function searchCollege(name) {

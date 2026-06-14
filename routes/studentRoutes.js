@@ -13,7 +13,7 @@ const Student       = require("../models/studentSchema");    // adjust path
 const { generateToken, jwtStudentAuth } = require("../Middlewares/jwtAuth"); // adjust path
 
 const Listing = require("../models/listingProperty");    // adjust path
-
+const { scoreLead } = require("../utils/leadScoring");
 const { logSearch } = require("../utils/searchLogger");
 
 const otpStore = new Map();
@@ -585,8 +585,6 @@ router.delete("/review/:listingId", jwtStudentAuth, async (req, res) => {
    POST /student/enquiry
    Send an enquiry to hostel owner (via WhatsApp)
 ============================================================ */
-
-
 const Enquiry = require("../models/enquiry");
 router.post("/enquiry", jwtStudentAuth, async (req, res) => {
   try {
@@ -652,6 +650,188 @@ router.post("/enquiry", jwtStudentAuth, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+
+/* ============================================================
+   POST /student/contact-owner
+   New unified Contact Owner modal — creates a scored lead
+============================================================ */
+/* ============================================================
+   POST /student/contact-owner
+   Unified Contact Owner modal — creates scored lead + WA notify
+============================================================ */
+router.post("/contact-owner", jwtStudentAuth, async (req, res) => {
+  try {
+    const student = await Student.findById(req.student.id);
+    if (!student) return res.status(401).json({ success: false, error: "Not logged in" });
+
+    const {
+      hostelId,
+      hostelName,
+      actionType,
+      moveIn,
+      budgetRange,
+      message,
+      visitDate,
+      preferredDate,
+    } = req.body;
+
+    if (!hostelId || !actionType) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+
+    // ── Validate actionType ──────────────────────────────────
+    const validActions = ["request_callback", "whatsapp_callback", "schedule_visit", "virtual_tour"];
+    if (!validActions.includes(actionType)) {
+      return res.status(400).json({ success: false, error: "Invalid action type" });
+    }
+
+    const listing = await Listing.findById(hostelId).populate("owner", "name phone");
+    const resolvedHostelName = hostelName || listing.title || "This Hostel"; // ✅ fallback
+    if (!listing) return res.status(404).json({ success: false, error: "Hostel not found" });
+
+    // ── Map actionType → contactMethod ───────────────────────
+    const contactMethodMap = {
+      request_callback:  "call",
+      whatsapp_callback: "whatsapp",
+      schedule_visit:    "visit",
+      virtual_tour:      "visit"
+    };
+
+    // ── Score the lead ────────────────────────────────────────
+    const { score, category } = scoreLead({ actionType, moveIn, budgetRange, message });
+
+    // ── Save enquiry ──────────────────────────────────────────
+    const newEnquiry = new Enquiry({
+      student:       student._id,
+      listing:       hostelId,
+      hostelName,
+      contactMethod: contactMethodMap[actionType] || "call",
+      actionType,
+      moveIn,
+      budgetRange,
+      message,
+      leadScore:     score,
+      leadCategory:  category,
+      status:        "New"
+    });
+    await newEnquiry.save();
+
+    // ── Lead pipeline log (non-critical) ─────────────────────
+    try {
+      const { createLead } = require("../utils/leadLogger");
+      const leadTypeMap = {
+        request_callback:  "wants_to_call",
+        whatsapp_callback: "wants_whatsapp",
+        schedule_visit:    "wants_to_visit",
+        virtual_tour:      "wants_to_meet"
+      };
+      await createLead({
+        req,
+        leadType:  leadTypeMap[actionType] || "wants_to_call",
+        hostelId,
+        hostelName,
+        moveIn,
+        message
+      });
+    } catch (e) {
+      console.error("Lead pipeline log failed (non-critical):", e.message);
+    }
+
+    // ── Notify owner via WhatsApp template ───────────────────
+    const ownerPhone = listing.contact?.whatsapp
+                    || listing.contact?.phone
+                    || listing.owner?.phone;
+
+    if (ownerPhone) {
+      // ── Template map ───────────────────────────────────────
+      const templateMap = {
+        request_callback:  "hostelnode_callback_lead",
+        whatsapp_callback: "hostelnode_whatsapp_lead",
+        schedule_visit:    "hostelnode_physical_visit",
+        virtual_tour:      "hostelnode_virtual_tour"
+      };
+
+      // ── Variables per template ─────────────────────────────
+      const studentName    = `${student.firstName} ${student.lastName || ""}`.trim();
+      const studentPhone   = student.phone   || "Not provided";
+      const studentCollege = student.collegeName || "Not mentioned";
+      const budget         = budgetRange || "Not specified";
+
+      const variablesMap = {
+        request_callback: [
+          studentName,
+          studentPhone,
+          studentCollege,
+          resolvedHostelName,
+          moveIn      || "Not specified",
+          budget
+        ],
+        whatsapp_callback: [
+          studentName,
+          studentPhone,
+          studentCollege,
+          resolvedHostelName, // hostelName
+          moveIn      || "Not specified",
+          budget
+        ],
+        schedule_visit: [
+          studentName,
+          studentPhone,
+          studentCollege,
+          resolvedHostelName, // hostelName
+          visitDate   || moveIn || "Not specified",
+          budget
+        ],
+        virtual_tour: [
+          studentName,
+          studentPhone,
+          studentCollege,
+          resolvedHostelName, // hostelName
+          preferredDate || moveIn || "Not specified",
+          budget
+        ]
+      };
+
+      const templateName = templateMap[actionType];
+      const variables    = variablesMap[actionType];
+
+      // ── Send (non-critical — enquiry already saved) ────────
+      setImmediate(async () => {
+        try {
+          const { sendTemplateMessage } = require("../utils/leadWhatsapp");
+          const result = await sendTemplateMessage(ownerPhone, templateName, variables);
+          if (result.success) {
+            console.log(`✅ Owner notified [${templateName}] → ${ownerPhone}`);
+          } else {
+            console.error(`🔴 Template failed [${templateName}]:`, result.error);
+          }
+        } catch (e) {
+
+
+          console.error("WA template notify failed (non-critical):", e.message);
+        }
+      });
+    } else {
+      console.warn("⚠️ No owner phone found for listing:", hostelId);
+    }
+
+    return res.json({
+      success:  true,
+      leadId:   newEnquiry._id,
+      category,
+      message:  "Your enquiry has been sent to the property owner."
+    });
+
+  } catch (err) {
+    console.error("contact-owner error:", err);
+    return res.status(500).json({ success: false, error: "Server error. Please try again." });
+  }
+});
+
+
+
+
+
 /* ============================================================
    POST /student/logout
 ============================================================ */
@@ -728,11 +908,8 @@ router.get("/nearby", async (req, res) => {
 // LOG NEARBY SEARCH
 // ─────────────────────────────────────────────
 
-const student = req.student ? await Student.findById(req.student.id).lean() : null; // ← add
-
 await logSearch({
   req,
-  student,                        // ← add
   searchType: "nearby_click",
   searchQuery: "Near Me",
   resolvedCity: "",
@@ -749,13 +926,6 @@ await logSearch({
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
-
-
-
-
-
-
-
 
 
 module.exports = router;

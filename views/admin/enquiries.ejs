@@ -1,8 +1,23 @@
+<style>.btn-red { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+.btn-red:hover { background: #fecaca; }</style>
 <% locals.pageTitle = 'Enquiries'; locals.activePage = 'enquiries'; %>
 <%
   var newCount       = enquiries.filter(function(e){ return e.status==='New'; }).length;
   var contactedCount = enquiries.filter(function(e){ return e.status==='Contacted'; }).length;
   var closedCount    = enquiries.filter(function(e){ return e.status==='Closed'; }).length;
+
+  var actionLabelMap = {
+    request_callback:  { label: 'Callback',       icon: 'fa-phone',    cls: 'badge-blue' },
+    whatsapp_callback: { label: 'WA Callback',     icon: 'fa-brands fa-whatsapp', cls: 'badge-green' },
+    schedule_visit:    { label: 'Physical Visit',  icon: 'fa-house',    cls: 'badge-amber' },
+    virtual_tour:      { label: 'Virtual Tour',    icon: 'fa-laptop',   cls: 'badge-purple' }
+  };
+
+  var catStyle = {
+    Hot:  { bg: '#fee2e2', text: '#dc2626', icon: 'fa-fire' },
+    Warm: { bg: '#fef3c7', text: '#d97706', icon: 'fa-sun' },
+    Cold: { bg: '#e0f2fe', text: '#0369a1', icon: 'fa-snowflake' }
+  };
 %>
 
 <%- include('layout', { body: `
@@ -12,11 +27,18 @@
     <h1>Enquiries</h1>
     <p>All student enquiries across listings — <strong>` + total + `</strong> total</p>
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <a href="/admin/enquiries?status=New"       class="btn ` + (filters.status==='New'       ? 'btn-blue'  : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-circle-dot"></i> New</a>
     <a href="/admin/enquiries?status=Contacted" class="btn ` + (filters.status==='Contacted' ? 'btn-amber' : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-phone"></i> Contacted</a>
     <a href="/admin/enquiries?status=Closed"    class="btn ` + (filters.status==='Closed'    ? 'btn-ghost' : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-check"></i> Closed</a>
-    <a href="/admin/enquiries"                  class="btn ` + (!filters.status ? 'btn-outline btn-active' : 'btn-outline') + ` btn-sm">All</a>
+    <a href="/admin/enquiries"                  class="btn ` + (!filters.status ? 'btn-outline btn-active' : 'btn-outline') + ` btn-sm">All Status</a>
+
+    <span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
+
+    <a href="/admin/enquiries?category=Hot"  class="btn ` + (filters.category==='Hot'  ? 'btn-red'   : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-fire"></i> Hot</a>
+    <a href="/admin/enquiries?category=Warm" class="btn ` + (filters.category==='Warm' ? 'btn-amber' : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-sun"></i> Warm</a>
+    <a href="/admin/enquiries?category=Cold" class="btn ` + (filters.category==='Cold' ? 'btn-blue'  : 'btn-outline') + ` btn-sm"><i class="fa-solid fa-snowflake"></i> Cold</a>
+    <a href="/admin/enquiries"               class="btn ` + (!filters.category ? 'btn-outline btn-active' : 'btn-outline') + ` btn-sm">All Leads</a>
   </div>
 </div>
 
@@ -55,6 +77,33 @@
   </div>
 </div>
 
+<div class="stats-grid" style="margin-bottom:20px;grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card" style="border-left:4px solid #dc2626">
+    <div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="fa-solid fa-fire"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Hot Leads</div>
+      <div class="stat-value">` + (catMap.Hot || 0) + `</div>
+      <div class="stat-sub">High intent — respond first</div>
+    </div>
+  </div>
+  <div class="stat-card" style="border-left:4px solid #d97706">
+    <div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-sun"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Warm Leads</div>
+      <div class="stat-value">` + (catMap.Warm || 0) + `</div>
+      <div class="stat-sub">Interested, exploring</div>
+    </div>
+  </div>
+  <div class="stat-card" style="border-left:4px solid #0369a1">
+    <div class="stat-icon" style="background:#e0f2fe;color:#0369a1"><i class="fa-solid fa-snowflake"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Cold Leads</div>
+      <div class="stat-value">` + (catMap.Cold || 0) + `</div>
+      <div class="stat-sub">Just browsing</div>
+    </div>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header">
     <div class="card-title"><i class="fa-solid fa-inbox"></i> Enquiry List</div>
@@ -65,9 +114,9 @@
         <tr>
           <th>Student</th>
           <th>Listing</th>
-          <th>Room Type</th>
-          <th>Contact via</th>
-          <th>Move-in</th>
+          <th>Action Type</th>
+          <th>Lead</th>
+          <th>Move-in / Budget</th>
           <th>Date</th>
           <th>Status</th>
           <th>Action</th>
@@ -88,16 +137,29 @@
           var listingTitle = (e.listing && e.listing.title) || e.hostelName || '\u2014';
           var listingPrice = ((e.listing && e.listing.startingPrice) || 0).toLocaleString('en-IN');
           var listingCity  = (e.listing && e.listing.location && e.listing.location.city) || '\u2014';
-          var contactBadge = e.contactMethod === 'whatsapp' ? '<span class="badge badge-green"><div class="dot"></div>WhatsApp</span>'
-                           : e.contactMethod === 'call'     ? '<span class="badge badge-blue"><div class="dot"></div>Call</span>'
-                           : e.contactMethod === 'visit'    ? '<span class="badge badge-amber"><div class="dot"></div>Visit</span>'
-                           : '<span class="cell-sub">\u2014</span>';
+
+          var act = actionLabelMap[e.actionType] || null;
+          var actionBadge = act
+            ? '<span class="badge ' + act.cls + '"><div class="dot"></div><i class="fa-solid ' + act.icon + '"></i> ' + act.label + '</span>'
+            : (e.contactMethod === 'whatsapp' ? '<span class="badge badge-green"><div class="dot"></div>WhatsApp</span>'
+              : e.contactMethod === 'call'     ? '<span class="badge badge-blue"><div class="dot"></div>Call</span>'
+              : e.contactMethod === 'visit'    ? '<span class="badge badge-amber"><div class="dot"></div>Visit</span>'
+              : '<span class="cell-sub">\u2014</span>');
+
+          var cat = catStyle[e.leadCategory] || catStyle.Warm;
+          var leadBadge = '<span class="badge" style="background:' + cat.bg + ';color:' + cat.text + '">'
+            + '<i class="fa-solid ' + cat.icon + '"></i> ' + (e.leadCategory || 'Warm')
+            + ' <span style="opacity:.6;font-weight:400">(' + (e.leadScore || 0) + ')</span></span>';
+
           var statusBadge  = e.status === 'New' ? 'badge-blue' : e.status === 'Contacted' ? 'badge-green' : 'badge-gray';
           var safeMsg      = (e.message || '').replace(/'/g, "&#39;").replace(/\n/g, ' ');
           var safeTitle    = listingTitle.replace(/'/g, "&#39;");
           var safeRoom     = (e.roomType || '').replace(/'/g, "&#39;");
           var safeName     = studentName.trim().replace(/'/g, "&#39;");
+          var safeAction   = act ? act.label : (e.contactMethod || '');
+          var safeBudget   = (e.budgetRange || '').replace(/'/g, "&#39;");
           var dateFmt      = new Date(e.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
           return `
           <tr>
             <td>
@@ -113,14 +175,17 @@
               <div class="cell-name">` + listingTitle + `</div>
               <div class="cell-sub">&#8377;` + listingPrice + ` &middot; ` + listingCity + `</div>
             </td>
-            <td><div class="cell-sub">` + (e.roomType || '\u2014') + `</div></td>
-            <td>` + contactBadge + `</td>
-            <td><div class="cell-sub">` + (e.moveIn || '\u2014') + `</div></td>
+            <td>` + actionBadge + `</td>
+            <td>` + leadBadge + `</td>
+            <td>
+              <div class="cell-sub">` + (e.moveIn || '\u2014') + `</div>
+              <div class="cell-sub" style="margin-top:2px">` + (e.budgetRange || '\u2014') + `</div>
+            </td>
             <td><div class="cell-sub">` + dateFmt + `</div></td>
             <td><span class="badge ` + statusBadge + `"><div class="dot"></div>` + e.status + `</span></td>
             <td>
               <div style="display:flex;gap:6px">
-                <button onclick="openEnquiry('` + e._id + `','` + safeName + `','` + safeTitle + `','` + safeRoom + `','` + (e.contactMethod||'') + `','` + (e.moveIn||'') + `','` + safeMsg + `','` + e.status + `')" class="btn btn-ghost btn-sm" title="View details">
+                <button onclick="openEnquiry('` + e._id + `','` + safeName + `','` + safeTitle + `','` + safeRoom + `','` + safeAction + `','` + (e.moveIn||'') + `','` + safeBudget + `','` + safeMsg + `','` + e.status + `','` + (e.leadCategory||'Warm') + `',` + (e.leadScore||0) + `)" class="btn btn-ghost btn-sm" title="View details">
                   <i class="fa-solid fa-eye"></i>
                 </button>
                 ` + (e.status !== 'Contacted' ? `<button onclick="updateEnquiryStatus('` + e._id + `','Contacted')" class="btn btn-outline btn-sm" title="Mark Contacted"><i class="fa-solid fa-phone"></i></button>` : '') + `
@@ -137,8 +202,8 @@
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border)">
     <div class="cell-sub">Page ` + currentPage + ` of ` + totalPages + `</div>
     <div style="display:flex;gap:6px">
-      ` + (currentPage > 1 ? `<a href="?page=` + (currentPage-1) + (filters.status ? '&status='+filters.status : '') + `" class="btn btn-outline btn-sm"><i class="fa-solid fa-chevron-left"></i> Prev</a>` : '') + `
-      ` + (currentPage < totalPages ? `<a href="?page=` + (currentPage+1) + (filters.status ? '&status='+filters.status : '') + `" class="btn btn-outline btn-sm">Next <i class="fa-solid fa-chevron-right"></i></a>` : '') + `
+      ` + (currentPage > 1 ? `<a href="?page=` + (currentPage-1) + (filters.status ? '&status='+filters.status : '') + (filters.category ? '&category='+filters.category : '') + `" class="btn btn-outline btn-sm"><i class="fa-solid fa-chevron-left"></i> Prev</a>` : '') + `
+      ` + (currentPage < totalPages ? `<a href="?page=` + (currentPage+1) + (filters.status ? '&status='+filters.status : '') + (filters.category ? '&category='+filters.category : '') + `" class="btn btn-outline btn-sm">Next <i class="fa-solid fa-chevron-right"></i></a>` : '') + `
     </div>
   </div>` : '') + `
 </div>
@@ -151,13 +216,14 @@
       <button onclick="closeModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#888"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div style="padding:24px;display:grid;gap:14px">
+      <div id="m-leadbadge"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div><div class="cell-sub" style="margin-bottom:2px">Student</div><div class="cell-name" id="m-student"></div></div>
         <div><div class="cell-sub" style="margin-bottom:2px">Listing</div><div class="cell-name" id="m-listing"></div></div>
-        <div><div class="cell-sub" style="margin-bottom:2px">Room Type</div><div id="m-room"></div></div>
-        <div><div class="cell-sub" style="margin-bottom:2px">Contact via</div><div id="m-contact"></div></div>
-        <div><div class="cell-sub" style="margin-bottom:2px">Move-in</div><div id="m-movein"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Action Type</div><div id="m-contact"></div></div>
         <div><div class="cell-sub" style="margin-bottom:2px">Status</div><div id="m-status"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Move-in</div><div id="m-movein"></div></div>
+        <div><div class="cell-sub" style="margin-bottom:2px">Budget Range</div><div id="m-budget"></div></div>
       </div>
       <div>
         <div class="cell-sub" style="margin-bottom:4px">Message</div>
@@ -169,13 +235,24 @@
 </div>
 
 <script>
-function openEnquiry(id, student, listing, room, contact, movein, message, status) {
+var catStyleJs = {
+  Hot:  { bg: '#fee2e2', text: '#dc2626', icon: 'fa-fire' },
+  Warm: { bg: '#fef3c7', text: '#d97706', icon: 'fa-sun' },
+  Cold: { bg: '#e0f2fe', text: '#0369a1', icon: 'fa-snowflake' }
+};
+
+function openEnquiry(id, student, listing, room, contact, movein, budget, message, status, category, score) {
   document.getElementById('m-student').textContent = student  || '—';
   document.getElementById('m-listing').textContent = listing  || '—';
-  document.getElementById('m-room').textContent    = room     || '—';
   document.getElementById('m-contact').textContent = contact  || '—';
   document.getElementById('m-movein').textContent  = movein   || '—';
+  document.getElementById('m-budget').textContent  = budget   || '—';
   document.getElementById('m-message').textContent = message  || 'No message provided.';
+
+  var cat = catStyleJs[category] || catStyleJs.Warm;
+  document.getElementById('m-leadbadge').innerHTML =
+    '<span class="badge" style="background:' + cat.bg + ';color:' + cat.text + ';font-size:13px;padding:6px 14px">' +
+    '<i class="fa-solid ' + cat.icon + '"></i> ' + category + ' Lead &middot; Score ' + score + '/10</span>';
 
   var badgeMap = { New:'badge-blue', Contacted:'badge-green', Closed:'badge-gray' };
   document.getElementById('m-status').innerHTML =

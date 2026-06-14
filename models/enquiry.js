@@ -23,9 +23,19 @@ const enquirySchema = new mongoose.Schema({
     enum: ["call", "whatsapp", "visit"]
   },
 
+  // ── NEW: which option was picked in the Contact Owner modal ──
+  actionType: {
+    type: String,
+    enum: ["request_callback", "whatsapp_callback", "schedule_visit", "virtual_tour"],
+    default: "request_callback"
+  },
+
   preferredDate: Date,
 
   moveIn: String,
+
+  // ── NEW ──
+  budgetRange: String,
 
   message: String,
 
@@ -33,6 +43,17 @@ const enquirySchema = new mongoose.Schema({
     type: String,
     enum: ["New", "Contacted", "Closed"],
     default: "New"
+  },
+
+  // ── NEW: lead temperature ──
+  leadCategory: {
+    type: String,
+    enum: ["Hot", "Warm", "Cold"],
+    default: "Warm"
+  },
+  leadScore: {
+    type: Number,
+    default: 0
   }
 
 }, { timestamps: true });
