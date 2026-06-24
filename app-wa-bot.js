@@ -389,7 +389,7 @@ const MSG = {
 listProperty: (phone) => sendImageButtons(
     phone,
     IMG.LISTING,
-    `🏡 *List Your Property on HostelNode — It's FREE!*\n\n` +
+    `🏡 *List Your Property on HostelNode !*\n\n` +
     `✅ Reach 50,000+ students monthly\n` +
     `✅ Zero setup cost\n` +
     `✅ Get verified badge\n` +
@@ -403,12 +403,12 @@ listProperty: (phone) => sendImageButtons(
     phone,
     IMG.CHARGES,
     `💸 *Listing Charges on HostelNode*\n\n` +
-    `✅ It's completely FREE!\n\n` +
-    `🏠 Hostel — ₹0\n` +
-    `🏘️ PG — ₹0\n` +
-    `🏢 Flat — ₹0\n\n` +
-    `No registration fee.\n` +
-    `List your property and get direct student leads for free!`,
+    `✅ It's completely for \n\n` +
+    `🏠 Hostel \n` +
+    `🏘️ PG \n` +
+    `🏢 Flat \n\n` +
+    `Start registration .\n` +
+    `List your property and get direct student leads !`,
     `What would you like to do next?`,
     [BTN.HOW, BTN.VIDEO, BTN.MENU]
   ),
@@ -420,7 +420,7 @@ listProperty: (phone) => sendImageButtons(
     `📋 *How to List on HostelNode*\n\n` +
     `Follow these simple steps:\n\n` +
     `1️⃣ Click "List Property" on hostelnode.com\n` +
-    `2️⃣ Create your free account\n` +
+    `2️⃣ Create your  account\n` +
     `3️⃣ Fill in property details & amenities\n` +
     `4️⃣ Upload photos of your property\n` +
     `5️⃣ Pin your location on the map\n` +
@@ -444,11 +444,10 @@ listProperty: (phone) => sendImageButtons(
   prices: (phone) => sendButtons(
     phone,
     `💰 *HostelNode Listing Prices:*\n\n` +
-    `✅ *Completely FREE to List!\n\n*` +
-    `🏠 *Hostel*  — ₹0\n` +
-    `🏘️ *PG*      — ₹0\n` +
-    `🏢 *Flat*    — ₹0\n\n` +
-    `_No hidden charges. No commission.\n` +
+    `✅ *Completely List!\n\n*` +
+    `🏠 *Hostel*  \n` +
+    `🏘️ *PG*   \n` +
+    `🏢 *Flat*   \n\n` +
     `List your property & get direct leads!_`,
     [BTN.FIND, BTN.LIST, BTN.SUPPORT]
   ),
