@@ -1373,5 +1373,12 @@ button { font-family: var(--font-b); cursor: pointer; }
   .co-header { padding: 26px 18px 20px; }
   .co-body { padding: 18px; }
 }
+
+.lb-inner img {
+  /* existing styles... */
+  background: #f5f5f5; /* fallback background */
+  /* min-height: 200px; */
+}
+
 .badge-purple { background: #eeedfe; color: #534ab7; }
 .co-icon-virtual { background: #eeedfe; color: #534ab7; }

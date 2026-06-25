@@ -5,7 +5,6 @@
 "use strict";
 
 /* ── Globals ── */
-let lbIndex    = 0;
 let wishlisted = false;
 
 /* ============================================================
@@ -54,6 +53,10 @@ function updateProgressNav() {
 
 /* ============================================================
    GALLERY — swap main image
+   NOTE: lbIndex is declared in the inline lightbox <script>
+   at the bottom of the EJS page (single source of truth).
+   This function still updates it so the lightbox opens at
+   the right photo if launched right after a thumbnail swap.
 ============================================================ */
 function swapMain(thumbEl, index) {
   const main = document.getElementById('mainImage');
@@ -68,58 +71,24 @@ function swapMain(thumbEl, index) {
     main.src             = thumbEl.querySelector('img').src;
     main.style.opacity   = '1';
     main.style.transform = 'scale(1)';
-    lbIndex              = index;
+    if (typeof lbIndex !== 'undefined') lbIndex = index;
   }, 180);
 }
 
 /* ============================================================
    LIGHTBOX
+   ⚠️ REMOVED — openLightbox(), closeLightbox(), lbNav(), and the
+   keyboard-nav listener used to be duplicated here AND in the
+   inline <script> at the bottom of the EJS page. Having `let
+   lbIndex` declared in two separate <script> tags threw:
+     Uncaught SyntaxError: Identifier 'lbIndex' has already been declared
+   which silently killed the working inline lightbox script,
+   leaving this broken version (missing the "/listing-images/"
+   path prefix on lbImg.src) in control — that's why every
+   lightbox image 404'd.
+   The inline script in the EJS template is now the only place
+   these functions live. Do not re-add them here.
 ============================================================ */
-function openLightbox(index) {
-  const lb     = document.getElementById('lightbox');
-  const lbImg  = document.getElementById('lbImg');
-  const counter = document.getElementById('lbCounter');
-  if (!lb || !lbImg) return;
-
-  const images = HOSTEL_DATA.images;
-  lbIndex = Math.min(Math.max(index, 0), images.length - 1);
-
-  lbImg.src     = images[lbIndex];
-  counter.textContent = (lbIndex + 1) + ' / ' + images.length;
-  lb.classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeLightbox(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('lightbox').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-function lbNav(dir) {
-  const images  = HOSTEL_DATA.images;
-  const lbImg   = document.getElementById('lbImg');
-  const counter = document.getElementById('lbCounter');
-  if (!images || !lbImg) return;
-
-  lbIndex = (lbIndex + dir + images.length) % images.length;
-
-  lbImg.style.opacity = '0';
-  setTimeout(() => {
-    lbImg.src           = images[lbIndex];
-    counter.textContent = (lbIndex + 1) + ' / ' + images.length;
-    lbImg.style.opacity = '1';
-  }, 150);
-}
-
-// Keyboard navigation for lightbox
-document.addEventListener('keydown', (e) => {
-  const lb = document.getElementById('lightbox');
-  if (!lb || !lb.classList.contains('open')) return;
-  if (e.key === 'ArrowLeft')  lbNav(-1);
-  if (e.key === 'ArrowRight') lbNav(1);
-  if (e.key === 'Escape')     closeLightbox();
-});
 
 /* ============================================================
    AUTO SLIDER (gallery side thumbs → main)
@@ -137,7 +106,11 @@ document.addEventListener('keydown', (e) => {
     if (!main) return;
 
     current = (current + 1) % (thumbs.length + 1);
-    const src = current === 0 ? HOSTEL_DATA.images[0] : thumbs[current - 1].src;
+    // ✅ FIX: prefix with /listing-images/ — HOSTEL_DATA.images[0] is
+    // just a bare filename, not a usable src path on its own.
+    const src = current === 0
+      ? '/listing-images/' + HOSTEL_DATA.images[0]
+      : thumbs[current - 1].src;
 
     main.style.transition = 'opacity 0.3s ease';
     main.style.opacity    = '0';
