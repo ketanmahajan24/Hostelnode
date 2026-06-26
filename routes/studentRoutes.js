@@ -212,7 +212,22 @@ router.post("/signup", async (req, res) => {
     //console.log("=========== ✅ END ===========\n");
 
     // Redirect to edit profile to fill remaining details
-    res.json({ success: true, redirect: "/student/edit-profile?new=1" });
+    // ── Send Welcome WhatsApp on Signup ──
+setImmediate(async () => {
+  try {
+    const { sendTemplateMessage } = require("../utils/leadWhatsapp");
+    await sendTemplateMessage(
+      student.phone,
+      "hostelnode_welcome_signup",
+      [student.firstName]
+    );
+    console.log(`✅ Signup welcome WA sent → ${student.phone}`);
+  } catch (e) {
+    console.error("Signup WA welcome failed (non-critical):", e.message);
+  }
+});
+
+res.json({ success: true, redirect: "/student/edit-profile?new=1" });
 
   } catch (err) {
     //console.error("❌ Student signup error:", err);
@@ -265,8 +280,23 @@ router.post("/login", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
       // ── REDIRECT TO ORIGINAL PAGE IF `next` EXISTS ──
-        const redirectTo = req.body.next || req.query.next || "/";
-        res.json({ success: true, redirect: redirectTo });
+       // ── Send Welcome WhatsApp on Login ──
+setImmediate(async () => {
+  try {
+    const { sendTemplateMessage } = require("../utils/leadWhatsapp");
+    await sendTemplateMessage(
+      student.phone,
+      "hostelnode_welcome_login",
+      [student.firstName]
+    );
+    console.log(`✅ Login welcome WA sent → ${student.phone}`);
+  } catch (e) {
+    console.error("Login WA welcome failed (non-critical):", e.message);
+  }
+});
+
+const redirectTo = req.body.next || req.query.next || "/";
+res.json({ success: true, redirect: redirectTo });
           //console.log(`✅ Student login: ${student.phone}`);
           //console.log("=========== ✅ END ===========\n");
  

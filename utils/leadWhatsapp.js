@@ -65,7 +65,7 @@ async function sendWAMessage(phone, message) {
       to:   fullPhone,
       type: "text",
       text: { body: message }
-    }, {
+    },{
       headers: {
         'Authorization': `Bearer ${WA_TOKEN}`,
         'Content-Type':  'application/json'
