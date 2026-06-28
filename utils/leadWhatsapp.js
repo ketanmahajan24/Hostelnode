@@ -18,22 +18,41 @@ function formatPhone(phone) {
 // ============================================================
 //  sendTemplateMessage — Meta approved templates only
 // ============================================================
-async function sendTemplateMessage(phone, templateName, variables) {
+async function sendTemplateMessage(phone, templateName, variables, headerImageUrl = null) {
   try {
     const fullPhone = formatPhone(phone);
     console.log(`🔵 Template [${templateName}] → ${fullPhone}`, variables);
+
+    // Build components array
+    const components = [];
+
+    // ── Add header image if provided ──
+    if (headerImageUrl) {
+      components.push({
+        type: "header",
+        parameters: [{
+          type: "image",
+          image: { link: headerImageUrl }
+        }]
+      });
+    }
+
+    // ── Add body variables ──
+    if (variables && variables.length > 0) {
+      components.push({
+        type: "body",
+        parameters: variables.map(v => ({ type: "text", text: String(v || "") }))
+      });
+    }
 
     const res = await axios.post(BASE_URL, {
       messaging_product: "whatsapp",
       to:   fullPhone,
       type: "template",
       template: {
-        name:     templateName,
-        language: { code: "en" },
-        components: [{
-          type:       "body",
-          parameters: variables.map(v => ({ type: "text", text: String(v || "") }))
-        }]
+        name:       templateName,
+        language:   { code: "en" },
+        components
       }
     }, {
       headers: {

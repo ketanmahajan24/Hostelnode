@@ -219,7 +219,8 @@ setImmediate(async () => {
     await sendTemplateMessage(
       student.phone,
       "hostelnode_welcome_signup",
-      [student.firstName]
+      [student.firstName],
+      "https://hostelnode.com/images/Whatsapp_template/signup_success_msg_to student.png"
     );
     console.log(`✅ Signup welcome WA sent → ${student.phone}`);
   } catch (e) {
@@ -286,8 +287,10 @@ setImmediate(async () => {
     const { sendTemplateMessage } = require("../utils/leadWhatsapp");
     await sendTemplateMessage(
       student.phone,
-      "hostelnode_welcome_login",
-      [student.firstName]
+      "hostelnode_welcome_login1",
+      [student.firstName],
+      "https://hostelnode.com/images/Whatsapp_template/login_msg.png" 
+      
     );
     console.log(`✅ Login welcome WA sent → ${student.phone}`);
   } catch (e) {
