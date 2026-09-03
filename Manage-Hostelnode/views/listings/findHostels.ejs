@@ -1175,81 +1175,43 @@ function buildNearbyCard(l) {
 
 <!-- ══ ENQUIRY/SIGNUP MODAL (same as hostel-view) ══ -->
 <style>
-.enq-overlay{position:fixed;inset:0;background:rgba(10,22,40,.6);backdrop-filter:blur(6px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .25s ease;}
+.enq-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .22s;}
 .enq-overlay.open{opacity:1;pointer-events:all;}
-.enq-box{background:#fff;border-radius:24px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;position:relative;box-shadow:0 30px 80px rgba(10,22,40,.28),0 2px 8px rgba(10,22,40,.08);transform:translateY(24px) scale(.98);opacity:0;transition:transform .3s cubic-bezier(.2,.9,.25,1),opacity .3s;scrollbar-width:thin;font-family:'Instrument Sans',sans-serif;}
-.enq-overlay.open .enq-box{transform:translateY(0) scale(1);opacity:1;}
-.enq-close{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;border:none;background:#f2f5f3;color:#5b6b63;font-size:14px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
-.enq-close:hover{background:#e7ece8;color:#0a1628;}
-
-.enq-head{padding:28px 28px 0;}
-.enq-brand{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
-.enq-brand img{width:26px;height:26px;border-radius:7px;object-fit:cover;}
-.enq-brand span{font-size:14px;font-weight:700;color:#0a1628;letter-spacing:-.2px;}
-
-.enq-tabs{display:flex;background:#f2f5f3;border-radius:14px;padding:4px;margin:0 28px 22px;gap:4px;}
-.enq-tab{flex:1;border:none;background:transparent;padding:9px 0;font-size:13.5px;font-weight:600;color:#7c8b83;border-radius:11px;cursor:pointer;transition:background .18s,color .18s,box-shadow .18s;font-family:inherit;}
-.enq-tab.active{background:#fff;color:#0a1628;box-shadow:0 2px 8px rgba(10,22,40,.08);}
-
-.enq-body{padding:0 28px 28px;}
-
-.enq-title{font-size:21px;font-weight:700;color:#0a1628;margin:0 0 4px;letter-spacing:-.3px;}
-.enq-subtitle{font-size:13.5px;color:#7c8b83;margin:0 0 22px;line-height:1.5;}
-
-.enq-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:#5b6b63;font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:16px;font-family:inherit;}
-.enq-back:hover{color:#09B850;}
-
-.enq-alert{display:none;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;font-size:12.5px;font-weight:500;margin-bottom:16px;}
-.enq-alert.show{display:flex;}
-.enq-alert.error{background:#fef2f2;color:#c53030;border:1px solid #fecaca;}
-.enq-alert.success{background:#ecfdf3;color:#078a3c;border:1px solid #a7f3c9;}
-
-.enq-field{margin-bottom:16px;}
-.enq-field label{display:block;font-size:12px;font-weight:600;color:#3d4f63;margin-bottom:7px;letter-spacing:.2px;}
-.enq-field input[type="text"],.enq-field input[type="tel"]{width:100%;padding:13px 15px;border:1.5px solid #e4e9e5;border-radius:13px;font-size:14.5px;font-family:inherit;color:#0a1628;background:#fafbfa;outline:none;box-sizing:border-box;transition:border-color .15s,background .15s,box-shadow .15s;}
-.enq-field input:focus{border-color:#09B850;background:#fff;box-shadow:0 0 0 4px rgba(9,184,80,.10);}
+.enq-box{background:#fff;border-radius:22px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.22);transform:translateY(20px);transition:transform .25s;scrollbar-width:thin;}
+.enq-overlay.open .enq-box{transform:translateY(0);}
+.enq-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.08);color:#555;font-size:15px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;}
+.enq-header{padding:28px 24px 22px;text-align:center;}
+.enq-header-auth{background:linear-gradient(135deg,#0a1628,#1a3a5c);}
+.enq-header h3{font-family:'Instrument Sans',sans-serif;font-size:20px;font-weight:700;color:#fff;margin:0 0 4px;}
+.enq-header p{color:rgba(255,255,255,.75);font-size:13px;margin:0;}
+.enq-header-icon{font-size:32px;margin-bottom:10px;}
+.enq-body{padding:22px 24px 24px;}
+.enq-alert{display:none;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;}
+.enq-alert.show{display:block;}
+.enq-alert.error{background:#fff5f5;color:#c53030;border:1px solid #feb2b2;}
+.enq-alert.success{background:#e8faf0;color:#078a3c;border:1px solid #9ae6b4;}
+.enq-field{margin-bottom:14px;}
+.enq-field label{display:block;font-size:12px;font-weight:600;color:#3d4f63;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;}
+.enq-field input[type="text"],.enq-field input[type="tel"]{width:100%;padding:11px 13px;border:1.5px solid #d6e4d9;border-radius:12px;font-size:14.5px;font-family:inherit;color:#0a1628;background:#fff;outline:none;box-sizing:border-box;}
+.enq-field input:focus{border-color:#09B850;box-shadow:0 0 0 3px rgba(9,184,80,.12);}
+.enq-otp-row{display:flex;gap:10px;}
+.enq-btn-otp{padding:10px 14px;background:#e8faf0;color:#078a3c;border:1.5px solid #09B850;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0;}
+.enq-btn-otp:hover{background:#09B850;color:white;}
+.enq-btn-otp:disabled{opacity:.5;cursor:not-allowed;}
+.enq-countdown{font-size:12px;color:#64748b;margin-top:5px;}
+.enq-countdown span{color:#09B850;font-weight:600;}
+.enq-verified-badge{display:inline-flex;align-items:center;gap:5px;background:#e8faf0;color:#078a3c;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;}
 .enq-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-
-.enq-phone-wrap{display:flex;align-items:stretch;border:1.5px solid #e4e9e5;border-radius:13px;background:#fafbfa;overflow:hidden;transition:border-color .15s,box-shadow .15s,background .15s;}
-.enq-phone-wrap:focus-within{border-color:#09B850;background:#fff;box-shadow:0 0 0 4px rgba(9,184,80,.10);}
-.enq-phone-code{display:flex;align-items:center;gap:6px;padding:0 12px;font-size:14px;font-weight:600;color:#0a1628;border-right:1.5px solid #e4e9e5;background:#f2f5f3;white-space:nowrap;}
-.enq-phone-wrap input{border:none!important;background:transparent!important;box-shadow:none!important;flex:1;padding:13px 14px;min-width:0;}
-
-.enq-otp-boxes{display:flex;gap:10px;justify-content:center;margin:4px 0 6px;}
-.enq-otp-boxes input{width:52px;height:58px;text-align:center;font-size:22px;font-weight:700;color:#0a1628;border:1.5px solid #e4e9e5;border-radius:14px;background:#fafbfa;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;font-family:inherit;}
-.enq-otp-boxes input:focus{border-color:#09B850;background:#fff;box-shadow:0 0 0 4px rgba(9,184,80,.10);}
-.enq-otp-boxes input.filled{border-color:#bfe8cf;}
-.enq-otp-boxes input:disabled{opacity:.6;}
-
-.enq-otp-meta{text-align:center;font-size:12.5px;color:#7c8b83;}
-.enq-resend{text-align:center;font-size:12.5px;color:#7c8b83;margin-top:16px;}
-.enq-resend span{color:#0a1628;font-weight:600;}
-.enq-resend button{background:none;border:none;color:#09B850;font-weight:700;cursor:pointer;padding:0;font-size:12.5px;font-family:inherit;}
-
-.enq-verified-badge{display:none;align-items:center;gap:5px;background:#ecfdf3;color:#078a3c;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;margin:0 auto 16px;justify-content:center;width:fit-content;}
-
-.enq-btn-primary{width:100%;padding:15px;background:linear-gradient(135deg,#09B850,#00c264);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;font-family:'Instrument Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px rgba(9,184,80,.28);transition:transform .15s,box-shadow .15s,opacity .15s;}
-.enq-btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(9,184,80,.36);}
-.enq-btn-primary:active{transform:translateY(0);}
-.enq-btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
-
-.enq-switch-note{text-align:center;font-size:13px;color:#7c8b83;margin-top:18px;}
-.enq-switch-note a{color:#09B850;font-weight:700;text-decoration:none;}
-
-.enq-success{text-align:center;padding:44px 28px 36px;}
-.enq-check{width:72px;height:72px;border-radius:50%;background:#ecfdf3;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;position:relative;}
-.enq-check::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid #a7f3c9;animation:enqPulse 1.8s ease-out infinite;}
-.enq-check i{font-size:28px;color:#09B850;}
-@keyframes enqPulse{0%{transform:scale(.9);opacity:.8;}100%{transform:scale(1.35);opacity:0;}}
-.enq-success h3{font-family:'Instrument Sans',sans-serif;font-size:21px;font-weight:700;color:#0a1628;margin-bottom:8px;letter-spacing:-.3px;}
-.enq-success p{color:#7c8b83;font-size:14px;max-width:280px;margin:0 auto 26px;line-height:1.5;}
-
-@media(max-width:480px){
-  .enq-head{padding:22px 20px 0;}
-  .enq-tabs{margin:0 20px 18px;}
-  .enq-body{padding:0 20px 24px;}
-  .enq-otp-boxes input{width:44px;height:52px;font-size:19px;}
-}
+.enq-btn-primary{width:100%;padding:13px;background:#09B850;color:white;border:none;border-radius:13px;font-size:15px;font-weight:700;font-family:'Instrument Sans',sans-serif;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.enq-btn-primary:hover{background:#078a3c;}
+.enq-btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+.enq-login-note{text-align:center;font-size:13px;color:#64748b;margin-top:14px;}
+.enq-login-note a{color:#09B850;font-weight:600;text-decoration:none;}
+.enq-success{text-align:center;padding:48px 24px;}
+.enq-success-icon{font-size:56px;margin-bottom:16px;}
+.enq-success h3{font-family:'Instrument Sans',sans-serif;font-size:22px;font-weight:700;color:#0a1628;margin-bottom:8px;}
+.enq-success p{color:#64748b;font-size:15px;max-width:300px;margin:0 auto 24px;}
+@media(max-width:480px){.enq-body{padding:18px 18px 22px;}.enq-row-2{grid-template-columns:1fr;}}
 </style>
 
 <div class="enq-overlay" id="enqOverlay">
@@ -1260,141 +1222,90 @@ function buildNearbyCard(l) {
 
     <!-- AUTH STEP -->
     <div id="nudgeStepAuth">
-      <div class="enq-head">
-        <div class="enq-brand">
-          <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
-          <span>HostelNode</span>
-        </div>
-        <div class="enq-tabs">
-          <button class="enq-tab active" id="tabSignup" onclick="nudgeSwitchSignup()">Sign up</button>
-          <button class="enq-tab" id="tabLogin" onclick="nudgeSwitchLogin()">Log in</button>
-        </div>
+      <div class="enq-header enq-header-auth">
+        <div class="enq-header-icon">🔑</div>
+        <h3>Quick login to explore</h3>
+        <p>30 seconds — save hostels, send enquiries, get alerts</p>
       </div>
-
       <div class="enq-body">
         <div class="enq-alert" id="nudgeAlert"></div>
 
-        <!-- ══════ SIGN UP PANEL ══════ -->
+        <!-- Signup Panel -->
         <div id="nudgePanel1">
-
-          <!-- Step 1: details -->
-          <div id="nudgeSignupStep1">
-            <h3 class="enq-title">Create your account</h3>
-            <p class="enq-subtitle">Save hostels, send enquiries and get instant alerts — takes 30 seconds.</p>
-
-            <div class="enq-row-2">
-              <div class="enq-field">
-                <label>First name</label>
-                <input type="text" id="nudgeFirst" placeholder="Rahul">
-              </div>
-              <div class="enq-field">
-                <label>Last name</label>
-                <input type="text" id="nudgeLast" placeholder="Sharma">
-              </div>
-            </div>
-
+          <div class="enq-row-2">
             <div class="enq-field">
-              <label>Mobile number</label>
-              <div class="enq-phone-wrap">
-                <span class="enq-phone-code"><i class="fa-brands fa-whatsapp" style="color:#25D366"></i> +91</span>
-                <input type="tel" id="nudgePhone" placeholder="10-digit number" maxlength="10" inputmode="numeric">
-              </div>
+              <label>First Name *</label>
+              <input type="text" id="nudgeFirst" placeholder="Rahul">
             </div>
-
-            <button class="enq-btn-primary" id="nudgeSendBtn" onclick="nudgeSendOtp()">
-              Continue <i class="fa-solid fa-arrow-right" style="font-size:12px"></i>
-            </button>
-
-            <p class="enq-switch-note">Already have an account? <a href="#" onclick="nudgeSwitchLogin();return false;">Log in</a></p>
-          </div>
-
-          <!-- Step 2: OTP -->
-          <div id="nudgeSignupStep2" style="display:none">
-            <button class="enq-back" onclick="nudgeBackToPhone('signup')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-            <h3 class="enq-title">Verify your number</h3>
-            <p class="enq-subtitle">We've sent a 4-digit code to <span style="color:#0a1628;font-weight:700" id="nudgeSentTo1">+91</span> on WhatsApp</p>
-
-            <div class="enq-otp-boxes" data-group="signup">
-              <input type="text" maxlength="1" inputmode="numeric" autocomplete="one-time-code">
-              <input type="text" maxlength="1" inputmode="numeric">
-              <input type="text" maxlength="1" inputmode="numeric">
-              <input type="text" maxlength="1" inputmode="numeric">
-            </div>
-
-            <div class="enq-verified-badge" id="nudgeVerifiedBadge"><i class="fa-solid fa-check"></i> Verified</div>
-
-            <button class="enq-btn-primary" id="nudgeSignupBtn" onclick="nudgeSignup()" disabled style="margin-top:6px">
-              Create account <i class="fa-solid fa-arrow-right" style="font-size:12px"></i>
-            </button>
-
-            <div class="enq-resend" id="nudgeCountdown">Resend code in <span id="nudgeTimer">60</span>s</div>
-            <div class="enq-resend" id="nudgeResendRow" style="display:none">
-              Didn't get it? <button id="nudgeSendBtnResend" onclick="nudgeSendOtp()">Resend code</button>
+            <div class="enq-field">
+              <label>Last Name *</label>
+              <input type="text" id="nudgeLast" placeholder="Sharma">
             </div>
           </div>
+          <div class="enq-field">
+            <label>WhatsApp Mobile *</label>
+            <div class="enq-otp-row">
+              <input type="tel" id="nudgePhone" placeholder="10-digit number" maxlength="10" inputmode="numeric" style="flex:1">
+              <button class="enq-btn-otp" id="nudgeSendBtn" onclick="nudgeSendOtp()">Send OTP</button>
+            </div>
+            <div class="enq-countdown" id="nudgeCountdown" style="display:none">
+              Resend in <span id="nudgeTimer">60</span>s
+            </div>
+          </div>
+          <div class="enq-field" id="nudgeOtpField" style="display:none">
+            <label>OTP (WhatsApp) *</label>
+            <div class="enq-otp-row">
+              <input type="text" id="nudgeOtp" placeholder="————" maxlength="4" inputmode="numeric"
+                style="flex:1;letter-spacing:5px;font-size:20px;font-weight:700;text-align:center">
+              <button class="enq-btn-otp" id="nudgeVerifyBtn" onclick="nudgeVerifyOtp()">Verify</button>
+            </div>
+            <div id="nudgeVerifiedBadge" style="display:none;margin-top:6px">
+              <span class="enq-verified-badge">✅ Verified</span>
+            </div>
+          </div>
+          <button class="enq-btn-primary" id="nudgeSignupBtn" onclick="nudgeSignup()" disabled>
+            🚀 Create Account & Explore →
+          </button>
+          <p class="enq-login-note">Already have an account? <a href="#" onclick="nudgeSwitchLogin()">Login instead</a></p>
         </div>
 
-        <!-- ══════ LOG IN PANEL ══════ -->
+        <!-- Login Panel -->
         <div id="nudgePanel2" style="display:none">
-
-          <!-- Step 1: phone -->
-          <div id="nudgeLoginStep1">
-            <h3 class="enq-title">Welcome back</h3>
-            <p class="enq-subtitle">Log in with your WhatsApp number to continue.</p>
-
-            <div class="enq-field">
-              <label>Mobile number</label>
-              <div class="enq-phone-wrap">
-                <span class="enq-phone-code"><i class="fa-brands fa-whatsapp" style="color:#25D366"></i> +91</span>
-                <input type="tel" id="nudgeLoginPhone" placeholder="10-digit number" maxlength="10" inputmode="numeric">
-              </div>
+          <div class="enq-field">
+            <label>Your Mobile *</label>
+            <div class="enq-otp-row">
+              <input type="tel" id="nudgeLoginPhone" placeholder="10-digit number" maxlength="10" inputmode="numeric" style="flex:1">
+              <button class="enq-btn-otp" id="nudgeLoginSendBtn" onclick="nudgeLoginSendOtp()">Send OTP</button>
             </div>
-
-            <button class="enq-btn-primary" id="nudgeLoginSendBtn" onclick="nudgeLoginSendOtp()">
-              Continue <i class="fa-solid fa-arrow-right" style="font-size:12px"></i>
-            </button>
-
-            <p class="enq-switch-note">New here? <a href="#" onclick="nudgeSwitchSignup();return false;">Sign up</a></p>
-          </div>
-
-          <!-- Step 2: OTP -->
-          <div id="nudgeLoginStep2" style="display:none">
-            <button class="enq-back" onclick="nudgeBackToPhone('login')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-            <h3 class="enq-title">Verify your number</h3>
-            <p class="enq-subtitle">We've sent a 4-digit code to <span style="color:#0a1628;font-weight:700" id="nudgeSentTo2">+91</span> on WhatsApp</p>
-
-            <div class="enq-otp-boxes" data-group="login">
-              <input type="text" maxlength="1" inputmode="numeric" autocomplete="one-time-code">
-              <input type="text" maxlength="1" inputmode="numeric">
-              <input type="text" maxlength="1" inputmode="numeric">
-              <input type="text" maxlength="1" inputmode="numeric">
-            </div>
-
-            <div class="enq-verified-badge" id="nudgeLoginVerifiedBadge"><i class="fa-solid fa-check"></i> Verified</div>
-
-            <button class="enq-btn-primary" id="nudgeLoginBtn" onclick="nudgeLogin()" disabled style="margin-top:6px">
-              Log in <i class="fa-solid fa-arrow-right" style="font-size:12px"></i>
-            </button>
-
-            <div class="enq-resend" id="nudgeLoginCountdown">Resend code in <span id="nudgeLoginTimer">60</span>s</div>
-            <div class="enq-resend" id="nudgeLoginResendRow" style="display:none">
-              Didn't get it? <button id="nudgeLoginSendBtnResend" onclick="nudgeLoginSendOtp()">Resend code</button>
+            <div class="enq-countdown" id="nudgeLoginCountdown" style="display:none">
+              Resend in <span id="nudgeLoginTimer">60</span>s
             </div>
           </div>
+          <div class="enq-field" id="nudgeLoginOtpField" style="display:none">
+            <label>OTP (WhatsApp) *</label>
+            <input type="text" id="nudgeLoginOtp" placeholder="————" maxlength="4" inputmode="numeric"
+              style="letter-spacing:5px;font-size:20px;font-weight:700;text-align:center;width:100%;padding:11px 13px;border:1.5px solid #d6e4d9;border-radius:12px;outline:none">
+            <div id="nudgeLoginVerifiedBadge" style="display:none;margin-top:6px">
+              <span class="enq-verified-badge">✅ Verified</span>
+            </div>
+          </div>
+          <button class="enq-btn-primary" id="nudgeLoginBtn" onclick="nudgeLogin()" disabled>
+            Login & Continue →
+          </button>
+          <p class="enq-login-note">New here? <a href="#" onclick="nudgeSwitchSignup()">Sign up instead</a></p>
         </div>
-
       </div>
     </div>
 
     <!-- SUCCESS STEP -->
     <div id="nudgeStepSuccess" style="display:none">
       <div class="enq-success">
-        <div class="enq-check"><i class="fa-solid fa-check"></i></div>
+        <div class="enq-success-icon">🎉</div>
         <h3>Welcome to HostelNode!</h3>
         <p>You're all set. Explore verified hostels near your college.</p>
-        <button class="enq-btn-primary" onclick="closeNudgeModal(true)">
-          Start exploring <i class="fa-solid fa-arrow-right" style="font-size:12px"></i>
-        </button>
+         <!--btn for starting exploration after login+ -->
+        <button class="enq-btn-primary" onclick="closeNudgeModal(true)">Start Exploring →</button> 
+
       </div>
     </div>
 
@@ -1416,9 +1327,7 @@ function buildNearbyCard(l) {
   });
 })();
 
-function openNudgeModal(mode) {
-  if (mode === 'login') nudgeSwitchLogin();
-  else if (mode === 'signup') nudgeSwitchSignup();
+function openNudgeModal() {
   document.getElementById('enqOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   sessionStorage.setItem('hn_nudge_shown', 'true');
@@ -1441,129 +1350,79 @@ function showNudgeAlert(msg, type) {
   setTimeout(function(){ el.classList.remove('show'); }, 4000);
 }
 
-/* ── TABS / PANEL SWITCH ── */
 function nudgeSwitchLogin() {
-  document.getElementById('tabSignup').classList.remove('active');
-  document.getElementById('tabLogin').classList.add('active');
   document.getElementById('nudgePanel1').style.display = 'none';
   document.getElementById('nudgePanel2').style.display = 'block';
 }
 function nudgeSwitchSignup() {
-  document.getElementById('tabLogin').classList.remove('active');
-  document.getElementById('tabSignup').classList.add('active');
   document.getElementById('nudgePanel1').style.display = 'block';
   document.getElementById('nudgePanel2').style.display = 'none';
 }
-function nudgeBackToPhone(kind) {
-  if (kind === 'signup') {
-    document.getElementById('nudgeSignupStep2').style.display = 'none';
-    document.getElementById('nudgeSignupStep1').style.display = 'block';
-  } else {
-    document.getElementById('nudgeLoginStep2').style.display = 'none';
-    document.getElementById('nudgeLoginStep1').style.display = 'block';
-  }
-}
 
-/* ── COUNTDOWN ── */
-function startNudgeCountdown(timerId, countdownId, resendRowId) {
+function startNudgeCountdown(timerId, countdownId, btnId) {
   var s = 60;
   var cd = document.getElementById(countdownId);
   var t  = document.getElementById(timerId);
-  var rr = document.getElementById(resendRowId);
+  var b  = document.getElementById(btnId);
   cd.style.display = 'block';
-  rr.style.display  = 'none';
+  b.disabled = true;
   var iv = setInterval(function() {
     t.textContent = --s;
     if (s <= 0) {
       clearInterval(iv);
       cd.style.display = 'none';
-      rr.style.display  = 'block';
+      b.disabled = false;
+      b.textContent = 'Resend';
     }
   }, 1000);
 }
 
-/* ── OTP BOXES: auto-advance, backspace, paste, auto-submit ── */
-function setupOtpGroup(groupEl, onComplete) {
-  var boxes = Array.prototype.slice.call(groupEl.querySelectorAll('input'));
-  boxes.forEach(function(box, i) {
-    box.addEventListener('input', function() {
-      this.value = this.value.replace(/[^0-9]/g, '').slice(0, 1);
-      this.classList.toggle('filled', !!this.value);
-      if (this.value && boxes[i + 1]) boxes[i + 1].focus();
-      var val = boxes.map(function(b){ return b.value; }).join('');
-      if (val.length === 4) onComplete(val);
-    });
-    box.addEventListener('keydown', function(e) {
-      if (e.key === 'Backspace' && !this.value && boxes[i - 1]) boxes[i - 1].focus();
-    });
-    box.addEventListener('paste', function(e) {
-      e.preventDefault();
-      var text = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').slice(0, 4);
-      text.split('').forEach(function(ch, j) { if (boxes[j]) { boxes[j].value = ch; boxes[j].classList.add('filled'); } });
-      var last = boxes[Math.min(text.length, 4) - 1];
-      if (last) last.focus();
-      if (text.length === 4) onComplete(text);
-    });
-  });
-}
-function resetOtpGroup(groupEl) {
-  groupEl.querySelectorAll('input').forEach(function(b) { b.value = ''; b.classList.remove('filled'); b.disabled = false; });
-  var first = groupEl.querySelector('input');
-  if (first) first.focus();
-}
-
 var nudgeOtpVerified = false;
 var nudgeLoginOtpVerified = false;
-var nudgeSignupOtpGroupEl = document.querySelector('.enq-otp-boxes[data-group="signup"]');
-var nudgeLoginOtpGroupEl  = document.querySelector('.enq-otp-boxes[data-group="login"]');
 
-/* ── SIGNUP: send OTP ── */
+/* ── SIGNUP OTP ── */
 async function nudgeSendOtp() {
   var phone = document.getElementById('nudgePhone').value.trim();
   if (!/^[6-9]\d{9}$/.test(phone)) return showNudgeAlert('Enter a valid 10-digit number');
   var btn = document.getElementById('nudgeSendBtn');
-  var original = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = 'Sending…';
+  btn.disabled = true; btn.textContent = 'Sending…';
   var res = await fetch('/student/send-otp', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ phone })
   }).catch(function(){ return null; });
-  btn.disabled = false; btn.innerHTML = original;
-  if (!res) return showNudgeAlert('Network error');
+  if (!res) { btn.disabled=false; btn.textContent='Send OTP'; return showNudgeAlert('Network error'); }
   var data = await res.json();
   if (!data.success) {
+    btn.disabled=false; btn.textContent='Send OTP';
     if (data.error?.toLowerCase().includes('registered')) {
       showNudgeAlert('Already registered — switching to login', 'success');
-      return setTimeout(nudgeSwitchLogin, 1000);
+      return setTimeout(nudgeSwitchLogin, 1200);
     }
     return showNudgeAlert(data.error || 'Failed to send OTP');
   }
-  document.getElementById('nudgeSentTo1').textContent = '+91 ' + phone;
-  document.getElementById('nudgeSignupStep1').style.display = 'none';
-  document.getElementById('nudgeSignupStep2').style.display = 'block';
-  resetOtpGroup(nudgeSignupOtpGroupEl);
-  startNudgeCountdown('nudgeTimer', 'nudgeCountdown', 'nudgeResendRow');
+  document.getElementById('nudgeOtpField').style.display = 'block';
+  showNudgeAlert('OTP sent to WhatsApp ✅', 'success');
+  startNudgeCountdown('nudgeTimer', 'nudgeCountdown', 'nudgeSendBtn');
 }
 
-async function nudgeVerifySignupOtp(otp) {
+async function nudgeVerifyOtp() {
   var phone = document.getElementById('nudgePhone').value.trim();
+  var otp   = document.getElementById('nudgeOtp').value.trim();
+  if (otp.length !== 4) return;
   var res = await fetch('/student/verify-otp', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ phone, otp })
   }).catch(function(){ return null; });
   if (!res) return showNudgeAlert('Network error');
   var data = await res.json();
-  if (!data.success) {
-    resetOtpGroup(nudgeSignupOtpGroupEl);
-    return showNudgeAlert(data.error || 'Wrong OTP, try again');
-  }
+  if (!data.success) return showNudgeAlert(data.error || 'Wrong OTP');
   nudgeOtpVerified = true;
-  document.getElementById('nudgeVerifiedBadge').style.display = 'inline-flex';
-  nudgeSignupOtpGroupEl.querySelectorAll('input').forEach(function(b){ b.disabled = true; });
+  document.getElementById('nudgeVerifiedBadge').style.display = 'block';
+  document.getElementById('nudgeOtp').disabled = true;
+  document.getElementById('nudgeVerifyBtn').disabled = true;
   document.getElementById('nudgeSignupBtn').disabled = false;
-  showNudgeAlert('Number verified ✅', 'success');
+  showNudgeAlert('Verified! Click Create Account ✅', 'success');
 }
-if (nudgeSignupOtpGroupEl) setupOtpGroup(nudgeSignupOtpGroupEl, nudgeVerifySignupOtp);
 
 async function nudgeSignup() {
   if (!nudgeOtpVerified) return showNudgeAlert('Verify your mobile first');
@@ -1573,85 +1432,78 @@ async function nudgeSignup() {
   if (firstName.length < 2) return showNudgeAlert('Enter your first name');
   if (lastName.length  < 2) return showNudgeAlert('Enter your last name');
   var btn = document.getElementById('nudgeSignupBtn');
-  var original = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = 'Creating account…';
+  btn.disabled = true; btn.textContent = 'Creating account…';
   var res = await fetch('/student/signup', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ firstName, lastName, phone })
   }).catch(function(){ return null; });
-  if (!res) { btn.disabled=false; btn.innerHTML=original; return showNudgeAlert('Network error'); }
+  if (!res) { btn.disabled=false; btn.textContent='Create Account →'; return showNudgeAlert('Network error'); }
   var data = await res.json();
   if (!data.success) {
-    btn.disabled=false; btn.innerHTML=original;
+    btn.disabled=false; btn.textContent='Create Account →';
     return showNudgeAlert(data.error || 'Signup failed');
   }
   document.getElementById('nudgeStepAuth').style.display = 'none';
   document.getElementById('nudgeStepSuccess').style.display = 'block';
 }
 
-/* ── LOGIN: send OTP ── */
+/* ── LOGIN OTP ── */
 async function nudgeLoginSendOtp() {
   var phone = document.getElementById('nudgeLoginPhone').value.trim();
   if (!/^[6-9]\d{9}$/.test(phone)) return showNudgeAlert('Enter a valid 10-digit number');
   var btn = document.getElementById('nudgeLoginSendBtn');
-  var original = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = 'Sending…';
+  btn.disabled = true; btn.textContent = 'Sending…';
   var res = await fetch('/student/send-otp', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ phone })
   }).catch(function(){ return null; });
-  btn.disabled = false; btn.innerHTML = original;
-  if (!res) return showNudgeAlert('Network error');
+  if (!res) { btn.disabled=false; btn.textContent='Send OTP'; return showNudgeAlert('Network error'); }
   var data = await res.json();
   if (!data.success) {
+    btn.disabled=false; btn.textContent='Send OTP';
     if (data.error?.toLowerCase().includes('no account')) {
       showNudgeAlert('No account found — switching to signup', 'success');
-      return setTimeout(nudgeSwitchSignup, 1000);
+      return setTimeout(nudgeSwitchSignup, 1200);
     }
     return showNudgeAlert(data.error || 'Failed to send OTP');
   }
-  document.getElementById('nudgeSentTo2').textContent = '+91 ' + phone;
-  document.getElementById('nudgeLoginStep1').style.display = 'none';
-  document.getElementById('nudgeLoginStep2').style.display = 'block';
-  resetOtpGroup(nudgeLoginOtpGroupEl);
-  startNudgeCountdown('nudgeLoginTimer', 'nudgeLoginCountdown', 'nudgeLoginResendRow');
-}
+  document.getElementById('nudgeLoginOtpField').style.display = 'block';
+  showNudgeAlert('OTP sent ✅', 'success');
+  startNudgeCountdown('nudgeLoginTimer', 'nudgeLoginCountdown', 'nudgeLoginSendBtn');
+  document.getElementById('nudgeLoginOtp').addEventListener('input', async function() {
+    if (this.value.length !== 4 || nudgeLoginOtpVerified) return;
+    var r = await fetch('/student/verify-otp', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phone, otp: this.value })
+    }).catch(function(){ return null; });
+    if (!r) return;
+    var d = await r.json();
+    if (d.success) {
+      nudgeLoginOtpVerified = true;
+      this.disabled = true;
+      document.getElementById('nudgeLoginVerifiedBadge').style.display = 'block';
+      document.getElementById('nudgeLoginBtn').disabled = false;
+      showNudgeAlert('Verified! Click Login ✅', 'success');
+    } else {
 
-async function nudgeVerifyLoginOtp(otp) {
-  if (nudgeLoginOtpVerified) return;
-  var phone = document.getElementById('nudgeLoginPhone').value.trim();
-  var res = await fetch('/student/verify-otp', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ phone, otp })
-  }).catch(function(){ return null; });
-  if (!res) return showNudgeAlert('Network error');
-  var data = await res.json();
-  if (!data.success) {
-    resetOtpGroup(nudgeLoginOtpGroupEl);
-    return showNudgeAlert(data.error || 'Wrong OTP, try again');
-  }
-  nudgeLoginOtpVerified = true;
-  document.getElementById('nudgeLoginVerifiedBadge').style.display = 'inline-flex';
-  nudgeLoginOtpGroupEl.querySelectorAll('input').forEach(function(b){ b.disabled = true; });
-  document.getElementById('nudgeLoginBtn').disabled = false;
-  showNudgeAlert('Number verified ✅', 'success');
+      showNudgeAlert(d.error || 'Wrong OTP');
+    }
+  });
 }
-if (nudgeLoginOtpGroupEl) setupOtpGroup(nudgeLoginOtpGroupEl, nudgeVerifyLoginOtp);
 
 async function nudgeLogin() {
   if (!nudgeLoginOtpVerified) return showNudgeAlert('Verify OTP first');
   var phone = document.getElementById('nudgeLoginPhone').value.trim();
   var btn   = document.getElementById('nudgeLoginBtn');
-  var original = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = 'Logging in…';
+  btn.disabled = true; btn.textContent = 'Logging in…';
   var res = await fetch('/student/login', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ phone })
   }).catch(function(){ return null; });
-  if (!res) { btn.disabled=false; btn.innerHTML=original; return showNudgeAlert('Network error'); }
+  if (!res) { btn.disabled=false; btn.textContent='Login →'; return showNudgeAlert('Network error'); }
   var data = await res.json();
   if (!data.success) {
-    btn.disabled=false; btn.innerHTML=original;
+    btn.disabled=false; btn.textContent='Login →';
     return showNudgeAlert(data.error || 'Login failed');
   }
   document.getElementById('nudgeStepAuth').style.display = 'none';

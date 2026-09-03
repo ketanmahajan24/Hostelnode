@@ -80,7 +80,8 @@ const listingSchema = new mongoose.Schema({
   location: {
     address: String,
     city: {
-      type: String
+      type: String,
+      index: true
     },
     state: String,
     country: {
@@ -115,7 +116,8 @@ const listingSchema = new mongoose.Schema({
   /* 💰 PRICING */
   startingPrice: {
     type: Number,
-    required: true
+    required: true,
+    index: true
   },
 
   deposit: Number,
