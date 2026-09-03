@@ -42,6 +42,7 @@ const findHostelsRouter = require("./routes/findHostels-route");
 const studentRouter     = require("./routes/studentRoutes");
 const adminRouter       = require("./routes/adminRoutes");
 const cityRouter        = require("./routes/cityRoutes");
+const flatmateRouter    = require("./routes/flatmateRoutes");
 const sitemapRouter     = require("./routes/sitemapRoute");
 const waBot             = require("./app-wa-bot");
 
@@ -113,6 +114,7 @@ app.use("/admin",       adminRouter);
 app.use("/student",     studentRouter);
 app.use("/findHostels", findHostelsRouter);
 app.use("/city",        cityRouter);
+app.use("/flatmate",    flatmateRouter);
 app.use("/",            sitemapRouter);
 app.use("/",            publicRoutes);
 
