@@ -4,10 +4,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Find a Flatmate | HostelNode</title>
+  <title>Find a Flatmate in India | Flats & Flatmates | HostelNode</title>
   <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
-  <meta name="description" content="Find a flatmate or a flat to share near you. No brokerage — post a requirement or list your spare room and connect directly.">
-  <meta name="robots" content="index, follow">
+  <meta name="description" content="Find flats, rooms and flatmates near you on HostelNode. Search shared accommodation, connect directly and find your next flatmate without brokers.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://www.hostelnode.com/flatmate">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Find a Flatmate in India | Flats & Flatmates | HostelNode">
+  <meta property="og:description" content="Find flats, rooms and flatmates near you on HostelNode. Search shared accommodation, connect directly and find your next flatmate without brokers.">
+  <meta property="og:url" content="https://www.hostelnode.com/flatmate">
+  <meta property="og:site_name" content="HostelNode">
+  <meta property="og:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Find a Flatmate in India | HostelNode">
+  <meta name="twitter:description" content="Find flats, rooms and flatmates near you on HostelNode.">
+  <meta name="twitter:image" content="https://www.hostelnode.com/images/hostelnode-logo-cutout.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "HostelNode",
+    "url": "https://www.hostelnode.com/",
+    "logo": "https://www.hostelnode.com/images/hostelnode-logo-cutout.png"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "HostelNode",
+    "url": "https://www.hostelnode.com/"
+  }
+  </script>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
@@ -19,118 +50,197 @@
 
   <style>
     /* ══════════════════════════════════════════════════════════
-       HN-FLATMATE — scoped styles, does not touch global .card/.btn
-       Reuses design tokens from findhostel.css (--green, --ink, etc.)
+       HN-FLATMATE — scoped styles, reuses tokens from findhostel.css
+       Does not touch global .card/.btn/.container/.navbar/.row
     ══════════════════════════════════════════════════════════ */
 
-    .hn-flatmate-page { background: var(--bg); }
+    .hn-flatmate-page { background: var(--bg); overflow-x: hidden; max-width: 100vw; }
 
-    /* ---- HERO ---- */
-    .hn-flatmate-hero { padding: 56px 24px 40px; text-align: center; max-width: 720px; margin: 0 auto; }
+    /* ---- reduced motion (mandatory, overrides everything below) ---- */
+    @media (prefers-reduced-motion: reduce) {
+      .hn-flatmate-page *, .hn-flatmate-page *::before, .hn-flatmate-page *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* ---- scroll-reveal (subtle, one-time, opacity+transform only) ---- */
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .55s ease, transform .55s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* ---- HERO — staggered entrance on load ---- */
+    .hn-flatmate-hero { padding: 52px 24px 8px; text-align: center; max-width: 700px; margin: 0 auto; }
+    @keyframes hnFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .hn-hero-anim { opacity: 0; animation: hnFadeUp 650ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .hn-hero-eyebrow-a  { animation-delay: 0ms; }
+    .hn-hero-h1-a       { animation-delay: 100ms; }
+    .hn-hero-tagline-a  { animation-delay: 200ms; }
+    .hn-hero-sub-a      { animation-delay: 300ms; }
+    .hn-hero-stats-a    { animation-delay: 350ms; }
+    .hn-hero-cta-a      { animation-delay: 400ms; }
+    .hn-hero-cta-a.need { animation-delay: 400ms; }
+    .hn-hero-cta-a.have { animation-delay: 500ms; }
+
     .hn-flatmate-eyebrow {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 6px 16px; border-radius: 999px;
       background: var(--green-light); border: 1px solid var(--green-border);
-      color: var(--green-dark); font-size: 12.5px; font-weight: 700;
-      letter-spacing: .2px; margin-bottom: 18px;
+      color: var(--green-dark); font-size: 12px; font-weight: 800;
+      letter-spacing: .6px; text-transform: uppercase; margin-bottom: 16px;
     }
+    .hn-flatmate-eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: hnDotPulse 1.8s ease infinite; }
+    @keyframes hnDotPulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
     .hn-flatmate-h1 {
-      font-family: var(--font-d); font-size: clamp(2rem, 5vw, 2.9rem);
-      font-weight: 700; letter-spacing: -0.02em; color: var(--ink); line-height: 1.1;
+      font-family: var(--font-d); font-size: clamp(1.9rem, 5vw, 2.7rem);
+      font-weight: 700; letter-spacing: -0.02em; color: var(--ink); line-height: 1.12;
     }
     .hn-flatmate-h1 span { color: var(--green); }
-    .hn-flatmate-tagline { font-size: 1.15rem; font-weight: 600; color: var(--ink-mid); margin-top: 6px; }
-    .hn-flatmate-sub { font-size: 1rem; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+    .hn-flatmate-tagline { font-size: 1.1rem; font-weight: 600; color: var(--ink-mid); margin-top: 6px; }
+    .hn-flatmate-sub { font-size: .95rem; color: var(--muted); margin-top: 10px; line-height: 1.6; }
 
-    /* ---- CTA CARDS ---- */
+    /* ---- floating decorative shapes (subtle, transform/opacity only) ---- */
+    .hn-flatmate-hero { position: relative; }
+    .hn-hero-blob { position: absolute; font-size: 22px; opacity: .18; color: var(--green); pointer-events: none; user-select: none; }
+    .hn-hero-blob.b1 { top: 6px; left: 4%; animation: hnFloat1 16s ease-in-out infinite; }
+    .hn-hero-blob.b2 { top: 60px; right: 5%; animation: hnFloat2 20s ease-in-out infinite; }
+    .hn-hero-blob.b3 { bottom: 0; left: 12%; animation: hnFloat1 18s ease-in-out infinite reverse; }
+    @keyframes hnFloat1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(6px,-14px); } }
+    @keyframes hnFloat2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-8px,10px); } }
+
+    /* ---- TRUST STATS (real numbers, not fabricated) ---- */
+    .hn-flatmate-stats { display: flex; justify-content: center; gap: 34px; margin: 26px auto 0; flex-wrap: wrap; }
+    .hn-flatmate-stat { text-align: center; }
+    .hn-flatmate-stat b { display: block; font-family: var(--font-d); font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-stat span { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+
+    /* ---- CTA CARDS (posting options) ---- */
     .hn-flatmate-ctas {
       max-width: 900px; margin: 34px auto 0; padding: 0 24px;
       display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
     }
     .hn-flatmate-cta-card {
       background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      padding: 28px 24px; text-align: left; box-shadow: var(--shadow-sm);
-      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      padding: 26px 22px; text-align: left; box-shadow: var(--shadow-sm); position: relative;
+      transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, border-color .2s ease;
     }
-    .hn-flatmate-cta-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--green-border); }
+    .hn-flatmate-cta-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--green-border); }
     .hn-flatmate-cta-icon {
-      width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
-      font-size: 22px; margin-bottom: 16px;
+      width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center;
+      font-size: 21px; margin-bottom: 15px; transition: transform .2s ease;
     }
+    .hn-flatmate-cta-card:hover .hn-flatmate-cta-icon { transform: scale(1.06) rotate(-3deg); }
     .hn-flatmate-cta-card.need .hn-flatmate-cta-icon { background: var(--green-light); color: var(--green-dark); }
     .hn-flatmate-cta-card.have .hn-flatmate-cta-icon { background: #eaf1ff; color: #2563eb; }
-    .hn-flatmate-cta-card h3 { font-family: var(--font-d); font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-    .hn-flatmate-cta-card p { font-size: 13.5px; color: var(--muted); line-height: 1.55; margin-bottom: 18px; min-height: 40px; }
+    .hn-flatmate-cta-card h3 { font-family: var(--font-d); font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .hn-flatmate-cta-card p { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 16px; min-height: 38px; }
     .hn-flatmate-cta-btn {
       display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px;
       border-radius: 999px; font-size: 13.5px; font-weight: 700; border: none; cursor: pointer;
       transition: transform .15s, box-shadow .15s;
     }
-    .hn-flatmate-cta-card.need .hn-flatmate-cta-btn { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; box-shadow: var(--shadow-green); }
-    .hn-flatmate-cta-card.have .hn-flatmate-cta-btn { background: #2563eb; color: #fff; box-shadow: 0 4px 18px rgba(37,99,235,.28); }
-    .hn-flatmate-cta-btn:hover { transform: translateY(-1px); }
+    .hn-flatmate-cta-card.need .hn-flatmate-cta-btn { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; box-shadow: 0 6px 20px rgba(9,184,80,.32); }
+    .hn-flatmate-cta-card.have .hn-flatmate-cta-btn { background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff; box-shadow: 0 6px 20px rgba(37,99,235,.32); }
+    .hn-flatmate-cta-btn:hover { transform: translateY(-2px); }
+    .hn-flatmate-cta-btn i { transition: transform .15s ease; }
+    .hn-flatmate-cta-btn:hover i { transform: translateX(3px); }
 
-    /* ---- SEARCH BAR ---- */
-    .hn-flatmate-search-wrap { max-width: 900px; margin: 30px auto 0; padding: 0 24px; }
+    /* ---- SEARCH: "Looking for Flatmates" ---- */
+    .hn-flatmate-search-wrap { max-width: 860px; margin: 30px auto 0; padding: 0 24px; }
+    .hn-flatmate-search-heading { text-align: center; font-family: var(--font-d); font-size: 1.05rem; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
     .hn-flatmate-search {
       background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm); padding: 14px; display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap;
+      box-shadow: var(--shadow-sm); padding: 8px; display: flex; align-items: stretch; gap: 4px; flex-wrap: wrap;
+      transition: box-shadow .2s ease;
     }
-    .hn-flatmate-field { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: var(--radius-md); }
+    .hn-flatmate-search:focus-within { box-shadow: var(--shadow-md), 0 0 0 4px var(--green-glow); }
+    .hn-flatmate-field { flex: 1; min-width: 130px; display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-radius: var(--radius-md); transition: background .15s; }
+    .hn-flatmate-field:focus-within { background: var(--green-light); }
     .hn-flatmate-field:not(:last-child) { border-right: 1px solid var(--border); }
-    .hn-flatmate-field i { color: var(--green); font-size: 14px; flex-shrink: 0; }
+    .hn-flatmate-field i { color: var(--green); font-size: 14px; flex-shrink: 0; transition: transform .15s; }
+    .hn-flatmate-field:focus-within i { transform: scale(1.1); }
     .hn-flatmate-field .fld-wrap { display: flex; flex-direction: column; width: 100%; }
     .hn-flatmate-field label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--muted-light); }
     .hn-flatmate-field select, .hn-flatmate-field input {
       border: none; outline: none; background: transparent; font-size: 14px; font-weight: 600; color: var(--ink);
       font-family: var(--font-b); padding: 2px 0; width: 100%;
     }
+    .hn-flatmate-field select { cursor: pointer; }
     .hn-flatmate-search-btn {
       background: linear-gradient(135deg, var(--green), #00c264); color: #fff; border: none;
       border-radius: var(--radius-md); padding: 0 26px; font-size: 14px; font-weight: 700;
       display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-green); cursor: pointer; flex-shrink: 0;
+      transition: transform .15s, box-shadow .15s;
     }
-    .hn-flatmate-search-btn:hover { filter: brightness(1.05); }
+    .hn-flatmate-search-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(9,184,80,.32); }
     .hn-flatmate-filter-btn {
       display: none; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border);
       border-radius: var(--radius-md); padding: 12px 16px; font-size: 13.5px; font-weight: 700; color: var(--ink);
+      cursor: pointer; flex-shrink: 0;
     }
-
-    /* ---- TYPE TABS ---- */
-    .hn-flatmate-tabs { max-width: 900px; margin: 26px auto 0; padding: 0 24px; display: flex; gap: 10px; }
-    .hn-flatmate-tab {
-      padding: 9px 18px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--card-bg);
-      font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer; transition: all .15s;
+    .hn-flatmate-more-filters { text-align: center; margin-top: 10px; }
+    .hn-flatmate-more-filters button {
+      background: none; border: none; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
     }
-    .hn-flatmate-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
-    .hn-flatmate-tab .cnt { opacity: .65; font-weight: 500; margin-left: 4px; }
+    .hn-flatmate-more-filters button:hover { color: var(--green-dark); }
+    .hn-flatmate-extra-filters {
+      max-width: 860px; margin: 10px auto 0; padding: 0 24px; display: none; gap: 10px; flex-wrap: wrap;
+    }
+    .hn-flatmate-extra-filters.open { display: flex; }
+    .hn-flatmate-extra-filters select {
+      border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+      color: var(--ink); background: #fff;
+    }
+    .hn-flatmate-active-filter-note { max-width: 860px; margin: 12px auto 0; padding: 0 24px; text-align: center; font-size: 13px; color: var(--muted); }
+    .hn-flatmate-active-filter-note a { color: var(--green-dark); font-weight: 700; }
 
-    /* ---- FEED ---- */
-    .hn-flatmate-feed { max-width: 1180px; margin: 40px auto 0; padding: 0 24px 60px; }
-    .hn-flatmate-feed-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-    .hn-flatmate-feed-head h2 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); }
-    .hn-flatmate-feed-head .cnt { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
-    .hn-flatmate-sort { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-    .hn-flatmate-sort select { border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--ink); background: #fff; }
+    /* ---- ACROSS INDIA (compact horizontal-scroll strip) ---- */
+    .hn-flatmate-across { max-width: 1180px; margin: 40px auto 0; padding: 0 24px; }
+    .hn-flatmate-across-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+    .hn-flatmate-across-head h2 { font-family: var(--font-d); font-size: 1.25rem; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+    .hn-flatmate-across-head h2 i { color: var(--green); font-size: 15px; }
+    .hn-flatmate-row-scroll-btns { display: flex; gap: 6px; }
+    .hn-flatmate-row-scroll-btns button {
+      width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border); background: #fff;
+      color: var(--ink-mid); font-size: 12px; display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .hn-flatmate-row-scroll-btns button:hover { border-color: var(--green); color: var(--green-dark); }
 
-    .hn-flatmate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .hn-flatmate-across-pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
+    .hn-flatmate-across-pills::-webkit-scrollbar { display: none; }
+    .hn-flatmate-across-pills a {
+      flex: 0 0 auto; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--card-bg);
+      font-size: 12.5px; font-weight: 700; color: var(--ink-mid); transition: all .15s; white-space: nowrap;
+    }
+    .hn-flatmate-across-pills a:hover, .hn-flatmate-across-pills a.active { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
 
-    /* ---- CARD (shared shape for both listing types) ---- */
+    .hn-flatmate-row-track {
+      display: flex; gap: 16px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x proximity;
+      scroll-behavior: smooth; scrollbar-width: none;
+    }
+    .hn-flatmate-row-track::-webkit-scrollbar { display: none; }
+    .hn-flatmate-row-card-wrap { flex: 0 0 250px; scroll-snap-align: start; }
+
+    /* ---- CARD (shared shape for both listing types & rows) ---- */
     .hn-flatmate-card {
       background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      overflow: hidden; box-shadow: var(--shadow-xs); transition: transform .18s, box-shadow .18s; cursor: pointer;
-      display: flex; flex-direction: column;
+      overflow: hidden; box-shadow: var(--shadow-xs); transition: transform .2s ease, box-shadow .2s ease; cursor: pointer;
+      display: flex; flex-direction: column; height: 100%;
     }
-    .hn-flatmate-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+    .hn-flatmate-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
 
     .hn-flatmate-card-img { position: relative; aspect-ratio: 4/3; background: var(--bg2); overflow: hidden; }
-    .hn-flatmate-card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .hn-flatmate-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+    .hn-flatmate-card:hover .hn-flatmate-card-img img { transform: scale(1.03); }
     .hn-flatmate-card-img.placeholder-need {
       display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
       background: linear-gradient(135deg,#eaf1ff,#f5f8ff); color: #2563eb;
     }
-    .hn-flatmate-card-img.placeholder-need i { font-size: 30px; }
-    .hn-flatmate-card-img.placeholder-need span { font-size: 12px; font-weight: 700; }
+    .hn-flatmate-card-img.placeholder-need i { font-size: 28px; }
+    .hn-flatmate-card-img.placeholder-need span { font-size: 11.5px; font-weight: 700; }
 
     .hn-flatmate-badge {
       position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 6px;
@@ -139,88 +249,210 @@
     }
     .hn-flatmate-badge.have { background: rgba(9,184,80,.92); color: #fff; }
     .hn-flatmate-badge.need { background: rgba(37,99,235,.92); color: #fff; }
-    .hn-flatmate-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
 
     .hn-flatmate-wish {
-      position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(255,255,255,.92); display: flex; align-items: center; justify-content: center;
-      color: #94a3a8; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255,255,255,.92); border: none; display: flex; align-items: center; justify-content: center;
+      color: #94a3a8; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.12); transition: transform .2s cubic-bezier(.34,1.56,.64,1);
     }
+    .hn-flatmate-wish.pop { transform: scale(1.2); }
     .hn-flatmate-wish.saved { color: #e53e3e; }
 
-    .hn-flatmate-card-body { padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-    .hn-flatmate-card-title { font-family: var(--font-d); font-size: 15px; font-weight: 700; color: var(--ink); }
-    .hn-flatmate-card-loc { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .hn-flatmate-card-body { padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+    .hn-flatmate-card-title { font-family: var(--font-d); font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-card-loc { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
     .hn-flatmate-card-loc i { color: var(--green); font-size: 11px; }
-
-    .hn-flatmate-card-price { font-family: var(--font-d); font-size: 16.5px; font-weight: 700; color: var(--ink); }
-    .hn-flatmate-card-price span { font-size: 12px; font-weight: 500; color: var(--muted-light); }
-    .hn-flatmate-card-meta { font-size: 12px; color: var(--muted); }
-
-    .hn-flatmate-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border); }
-    .hn-flatmate-poster { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink-mid); }
-    .hn-flatmate-poster i { color: var(--green); font-size: 12px; }
-    .hn-flatmate-talk-btn {
-      background: var(--ink); color: #fff; border: none; border-radius: 999px; padding: 8px 16px;
-      font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: background .15s;
+    .hn-flatmate-card-gender {
+      display: inline-flex; align-self: flex-start; font-size: 10.5px; font-weight: 700; color: var(--muted);
+      background: var(--bg2); padding: 3px 9px; border-radius: 999px;
     }
-    .hn-flatmate-talk-btn:hover { background: var(--green-dark); }
+
+    .hn-flatmate-card-price { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-card-price span { font-size: 11.5px; font-weight: 500; color: var(--muted-light); }
+    .hn-flatmate-card-meta { font-size: 11.5px; color: var(--muted); }
+
+    .hn-flatmate-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 11px; border-top: 1px solid var(--border); }
+    .hn-flatmate-poster { font-size: 12px; font-weight: 700; color: var(--ink-mid); }
+    .hn-flatmate-talk-btn {
+      background: var(--ink); color: #fff; border: none; border-radius: 999px; padding: 8px 14px;
+      font-size: 11.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: background .15s, transform .15s;
+    }
+    .hn-flatmate-talk-btn:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .hn-flatmate-talk-btn:active { transform: scale(.96); }
+
+    /* ---- RESULT TABS (All / Need a Flat / Have a Flat) ---- */
+    .hn-flatmate-tabs-wrap { max-width: 1180px; margin: 44px auto 0; padding: 0 24px; }
+    .hn-flatmate-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    .hn-flatmate-tabs::-webkit-scrollbar { display: none; }
+    .hn-flatmate-tab {
+      flex: 0 0 auto; padding: 9px 18px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--card-bg);
+      font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer; transition: background .2s ease, color .2s ease, border-color .2s ease;
+    }
+    .hn-flatmate-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .hn-flatmate-tab .cnt { opacity: .65; font-weight: 500; margin-left: 4px; transition: opacity .2s ease; }
+
+    /* ---- FLATS & FLATMATES (main feed) ---- */
+    .hn-flatmate-feed { max-width: 1180px; margin: 20px auto 0; padding: 0 24px 60px; }
+    .hn-flatmate-feed-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .hn-flatmate-feed-head h2 { font-family: var(--font-d); font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-feed-head .cnt { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .hn-flatmate-sort { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+    .hn-flatmate-sort select { border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--ink); background: #fff; }
+
+    .hn-flatmate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .hn-flatmate-grid .hn-flatmate-card { animation: hnCardIn .5s ease both; }
+    @keyframes hnCardIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
     /* ---- EMPTY STATE ---- */
-    .hn-flatmate-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted); }
+    .hn-flatmate-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted); transition: opacity .25s ease; }
     .hn-flatmate-empty i { font-size: 2rem; color: var(--border-dark); display: block; margin-bottom: 14px; }
     .hn-flatmate-empty h3 { font-family: var(--font-d); font-size: 1.1rem; color: var(--ink); margin-bottom: 6px; }
     .hn-flatmate-empty a { color: var(--green); font-weight: 700; }
 
-    /* ---- HOW IT WORKS ---- */
-    .hn-flatmate-steps { background: var(--bg2); padding: 56px 24px; }
+    /* ---- SEO CONTENT SECTION ---- */
+    .hn-flatmate-seo { max-width: 900px; margin: 0 auto; padding: 10px 24px 50px; }
+    .hn-flatmate-seo h2 { font-family: var(--font-d); font-size: 1.25rem; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+    .hn-flatmate-seo p { font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+
+    /* ---- FEEDBACK / TESTIMONIALS ---- */
+    .hn-flatmate-feedback { background: var(--bg2); padding: 56px 24px; }
+    .hn-flatmate-feedback-inner { max-width: 980px; margin: 0 auto; }
+    .hn-flatmate-feedback-tag { text-align: center; font-size: 12px; font-weight: 800; letter-spacing: .8px; color: var(--green-dark); text-transform: uppercase; margin-bottom: 8px; }
+    .hn-flatmate-feedback h2 { text-align: center; font-family: var(--font-d); font-size: 1.6rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+    .hn-flatmate-feedback > .hn-flatmate-feedback-inner > p.sub { text-align: center; font-size: 13.5px; color: var(--muted); margin-bottom: 30px; }
+    .hn-flatmate-feedback-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+    .hn-flatmate-feedback-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: transform .2s ease, box-shadow .2s ease; }
+    .hn-flatmate-feedback-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-sm); }
+    .hn-flatmate-feedback-stars { color: #f5a623; font-size: 13px; margin-bottom: 10px; letter-spacing: 2px; }
+    .hn-flatmate-feedback-quote { font-size: 13.5px; color: var(--ink-mid); line-height: 1.6; font-style: italic; margin-bottom: 16px; }
+    .hn-flatmate-feedback-person { display: flex; align-items: center; gap: 10px; }
+    .hn-flatmate-feedback-avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--green), #00c264);
+      color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;
+    }
+    .hn-flatmate-feedback-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-feedback-role { font-size: 11.5px; color: var(--muted); }
+    .hn-flatmate-feedback-cta { text-align: center; }
+    .hn-flatmate-feedback-cta button {
+      background: linear-gradient(135deg, var(--green), #00c264); color: #fff; border: none; border-radius: 999px;
+      padding: 12px 26px; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: var(--shadow-green); cursor: pointer; transition: transform .15s, box-shadow .15s;
+    }
+    .hn-flatmate-feedback-cta button:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(9,184,80,.36); }
+
+    /* ---- FEEDBACK MODAL ---- */
+    .hn-fb-overlay { position: fixed; inset: 0; background: rgba(10,22,40,.55); backdrop-filter: blur(4px); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity .22s; }
+    .hn-fb-overlay.open { opacity: 1; pointer-events: all; }
+    .hn-fb-box { background: #fff; border-radius: 22px; width: 100%; max-width: 420px; padding: 26px; position: relative; box-shadow: 0 24px 70px rgba(10,22,40,.28); transform: translateY(16px) scale(.96); opacity: 0; transition: transform .22s cubic-bezier(.22,1,.36,1), opacity .22s ease; }
+    .hn-fb-overlay.open .hn-fb-box { transform: translateY(0) scale(1); opacity: 1; }
+    .hn-fb-close { position: absolute; top: 16px; right: 16px; width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--bg2); color: var(--muted); cursor: pointer; }
+    .hn-fb-box h3 { font-family: var(--font-d); font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .hn-fb-box p.hint { font-size: 12.5px; color: var(--muted); margin-bottom: 18px; }
+    .hn-fb-stars { display: flex; gap: 6px; margin-bottom: 16px; }
+    .hn-fb-stars button { background: none; border: none; padding: 0; cursor: pointer; }
+    .hn-fb-stars i { font-size: 22px; color: var(--border-dark); transition: color .15s, transform .1s; }
+    .hn-fb-stars i.active { color: #f5a623; transform: scale(1.08); }
+    .hn-fb-field { margin-bottom: 14px; }
+    .hn-fb-field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-mid); margin-bottom: 6px; }
+    .hn-fb-field input, .hn-fb-field textarea {
+      width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 14px;
+      font-family: inherit; color: var(--ink); outline: none; box-sizing: border-box; resize: vertical;
+    }
+    .hn-fb-field input:focus, .hn-fb-field textarea:focus { border-color: var(--green); box-shadow: 0 0 0 4px var(--green-glow); }
+    .hn-fb-submit {
+      width: 100%; padding: 13px; background: linear-gradient(135deg, var(--green), #00c264); color: #fff; border: none;
+      border-radius: 13px; font-size: 14.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 8px; box-shadow: var(--shadow-green);
+    }
+    .hn-fb-success { text-align: center; padding: 20px 0; }
+    .hn-fb-success i { font-size: 40px; color: var(--green); margin-bottom: 12px; }
+    .hn-fb-success h4 { font-family: var(--font-d); font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .hn-fb-success p { font-size: 13px; color: var(--muted); }
+
+    /* ---- HOW IT WORKS (3 steps) ---- */
+    .hn-flatmate-steps { padding: 56px 24px; }
     .hn-flatmate-steps-inner { max-width: 900px; margin: 0 auto; }
     .hn-flatmate-steps-tag { text-align: center; font-size: 12px; font-weight: 800; letter-spacing: .8px; color: var(--green-dark); text-transform: uppercase; margin-bottom: 8px; }
-    .hn-flatmate-steps h2 { text-align: center; font-family: var(--font-d); font-size: 1.7rem; font-weight: 700; color: var(--ink); margin-bottom: 36px; }
-    .hn-flatmate-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-    .hn-flatmate-step { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; }
+    .hn-flatmate-steps h2 { text-align: center; font-family: var(--font-d); font-size: 1.6rem; font-weight: 700; color: var(--ink); margin-bottom: 36px; }
+    .hn-flatmate-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .hn-flatmate-step { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; transition: transform .2s ease, box-shadow .2s ease; }
+    .hn-flatmate-step:hover { transform: translateY(-4px); box-shadow: var(--shadow-sm); }
     .hn-flatmate-step .num { font-family: var(--font-m); font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 10px; }
     .hn-flatmate-step h4 { font-family: var(--font-d); font-size: 1rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
     .hn-flatmate-step p { font-size: 13px; color: var(--muted); line-height: 1.55; }
 
     /* ---- BOTTOM CTA ---- */
-    .hn-flatmate-bottom-cta {
-      max-width: 900px; margin: 0 auto; padding: 50px 24px; text-align: center;
+    .hn-flatmate-bottom-cta { max-width: 900px; margin: 0 auto; padding: 20px 24px 60px; text-align: center; }
+    .hn-flatmate-bottom-cta h2 { font-family: var(--font-d); font-size: 1.45rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+    .hn-flatmate-bottom-cta p { font-size: 13.5px; color: var(--muted); margin-bottom: 20px; }
+    .hn-flatmate-bottom-cta-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 999px;
+      background: linear-gradient(135deg, var(--green), #00c264); color: #fff; font-size: 14.5px; font-weight: 700;
+      box-shadow: 0 8px 26px rgba(9,184,80,.34); transition: transform .15s, box-shadow .15s;
     }
-    .hn-flatmate-bottom-cta h2 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
-    .hn-flatmate-bottom-cta p { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+    .hn-flatmate-bottom-cta-btn:hover { transform: translateY(-2px); color: #fff; box-shadow: 0 10px 30px rgba(9,184,80,.4); }
 
-    /* ---- SKELETON ---- */
-    .hn-flatmate-skel { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); background: var(--card-bg); }
-    .hn-flatmate-skel-img { aspect-ratio: 4/3; background: linear-gradient(90deg,#eef3ef 25%,#e4ece6 37%,#eef3ef 63%); background-size: 400% 100%; animation: hnShimmer 1.3s ease infinite; }
-    .hn-flatmate-skel-line { height: 12px; margin: 14px 16px; border-radius: 6px; background: linear-gradient(90deg,#eef3ef 25%,#e4ece6 37%,#eef3ef 63%); background-size: 400% 100%; animation: hnShimmer 1.3s ease infinite; }
-    .hn-flatmate-skel-line.w60 { width: 60%; }
-    .hn-flatmate-skel-line.w40 { width: 40%; }
-    @keyframes hnShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    /* ---- FOOTER (city links + policies + support) ---- */
+    .hn-flatmate-footer { background: #0a1628; color: rgba(255,255,255,.75); padding: 50px 24px 24px; }
+    .hn-flatmate-footer-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 30px; }
+    .hn-flatmate-footer-brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-d); font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 14px; }
+    .hn-flatmate-footer-brand img { width: 26px; height: 26px; border-radius: 7px; }
+    .hn-flatmate-footer-addr { font-size: 12.5px; line-height: 1.7; margin-bottom: 14px; }
+    .hn-flatmate-footer-contact a { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: rgba(255,255,255,.75); text-decoration: none; margin-bottom: 8px; transition: color .15s; }
+    .hn-flatmate-footer-contact a:hover { color: var(--green); }
+    .hn-flatmate-footer-contact i { width: 14px; color: var(--green); }
+    .hn-flatmate-footer h4 { color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 14px; text-transform: uppercase; letter-spacing: .4px; }
+    .hn-flatmate-footer ul { list-style: none; padding: 0; margin: 0; }
+    .hn-flatmate-footer ul li { margin-bottom: 9px; }
+    .hn-flatmate-footer ul li a { font-size: 12.5px; color: rgba(255,255,255,.65); text-decoration: none; transition: color .15s; }
+    .hn-flatmate-footer ul li a:hover { color: var(--green); }
+    .hn-flatmate-footer-bottom { max-width: 1180px; margin: 34px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12px; color: rgba(255,255,255,.45); text-align: center; }
 
     /* ---- MOBILE FILTER DRAWER ---- */
     .hn-flatmate-drawer-overlay { position: fixed; inset: 0; background: rgba(10,22,40,.5); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity .2s; }
     .hn-flatmate-drawer-overlay.open { opacity: 1; pointer-events: all; }
     .hn-flatmate-drawer {
       position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 20px 20px 0 0;
-      z-index: 9999; padding: 20px; transform: translateY(100%); transition: transform .25s ease; max-height: 80vh; overflow-y: auto;
+      z-index: 9999; padding: 20px; transform: translateY(100%); transition: transform .28s cubic-bezier(0.22,1,0.36,1); max-height: 80vh; overflow-y: auto;
     }
     .hn-flatmate-drawer.open { transform: translateY(0); }
     .hn-flatmate-drawer h3 { font-family: var(--font-d); font-weight: 700; margin-bottom: 16px; }
     .hn-flatmate-drawer-close { position: absolute; top: 18px; right: 18px; width: 30px; height: 30px; border-radius: 50%; background: var(--bg2); border: none; }
+    .hn-flatmate-drawer-field { margin-bottom: 16px; }
+    .hn-flatmate-drawer-field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-mid); margin-bottom: 8px; }
+    .hn-flatmate-drawer-field select { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 14px; color: var(--ink); background: #fff; }
+    .hn-flatmate-drawer-apply { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--green), #00c264); color: #fff; border: none; border-radius: 13px; font-size: 14.5px; font-weight: 700; }
 
     /* ---- RESPONSIVE ---- */
+    @media (max-width: 1000px) {
+      .hn-flatmate-footer-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
     @media (max-width: 900px) {
       .hn-flatmate-grid { grid-template-columns: repeat(2, 1fr); }
       .hn-flatmate-steps-grid { grid-template-columns: 1fr; }
+      .hn-flatmate-feedback-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
       .hn-flatmate-ctas { grid-template-columns: 1fr; }
-      .hn-flatmate-grid { grid-template-columns: 1fr; }
-      .hn-flatmate-search { flex-direction: column; }
+      .hn-flatmate-search { flex-direction: column; padding: 12px; }
       .hn-flatmate-field:not(:last-child) { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-      .hn-flatmate-search-btn { width: 100%; justify-content: center; padding: 13px; }
-      .hn-flatmate-h1 { font-size: 1.8rem; }
+      .hn-flatmate-search-btn { width: 100%; justify-content: center; padding: 13px; margin-top: 4px; }
+      .hn-flatmate-filter-btn { display: flex; width: 100%; justify-content: center; margin-top: 8px; }
+      .hn-flatmate-h1 { font-size: 1.7rem; }
+      .hn-flatmate-row-card-wrap { flex-basis: 210px; }
+      .hn-flatmate-row-scroll-btns { display: none; }
+      .hn-flatmate-stats { gap: 22px; }
+      .hn-flatmate-footer-grid { grid-template-columns: 1fr 1fr; }
+
+      /* mandatory mobile horizontal listing carousel — main feed only */
+      .hn-flatmate-grid {
+        display: flex; grid-template-columns: none; overflow-x: auto; overflow-y: hidden;
+        gap: 14px; scroll-snap-type: x mandatory; padding-bottom: 8px; scrollbar-width: none;
+        margin: 0 -24px; padding-left: 24px; padding-right: 24px;
+      }
+      .hn-flatmate-grid::-webkit-scrollbar { display: none; }
+      .hn-flatmate-grid .hn-flatmate-card { flex: 0 0 84%; scroll-snap-align: start; }
+      .hn-flatmate-empty { flex: 0 0 100%; }
     }
   </style>
 </head>
@@ -236,98 +468,202 @@
   </div>
 </div>
 
-<%- include("../includes/navbar-user.ejs") %>
+<header>
+  <%- include("../includes/navbar-user.ejs") %>
+</header>
+
+<main>
 
 <!-- ===== HERO ===== -->
 <section class="hn-flatmate-hero">
-  <div class="hn-flatmate-eyebrow"><i class="fa-solid fa-people-arrows"></i> Zero brokerage · Verified students</div>
-  <h1 class="hn-flatmate-h1">Find a <span>Flatmate</span></h1>
-  <p class="hn-flatmate-tagline">Find a flat. Share rent.</p>
-  <p class="hn-flatmate-sub">Connect with students and renters looking for flats and flatmates near you — no brokers, no middlemen.</p>
+  <div class="hn-hero-blob b1" aria-hidden="true"><i class="fa-solid fa-house"></i></div>
+  <div class="hn-hero-blob b2" aria-hidden="true"><i class="fa-solid fa-location-dot"></i></div>
+  <div class="hn-hero-blob b3" aria-hidden="true"><i class="fa-solid fa-user"></i></div>
+
+  <div class="hn-flatmate-eyebrow hn-hero-anim hn-hero-eyebrow-a"><span class="dot"></span> Flat Share</div>
+  <h1 class="hn-flatmate-h1 hn-hero-anim hn-hero-h1-a">Find a <span>Flatmate</span></h1>
+  <p class="hn-flatmate-tagline hn-hero-anim hn-hero-tagline-a">Find a flat. Share the rent.</p>
+  <p class="hn-flatmate-sub hn-hero-anim hn-hero-sub-a">Find flats, rooms and flatmates near you. Connect directly and find the right place to live — without brokers.</p>
+
+  <div class="hn-flatmate-stats hn-hero-anim hn-hero-stats-a">
+    <div class="hn-flatmate-stat"><b><%= totalListingsCount %></b><span>Live Listings</span></div>
+    <div class="hn-flatmate-stat"><b>6</b><span>Cities</span></div>
+    <div class="hn-flatmate-stat"><b>₹0</b><span>Brokerage</span></div>
+  </div>
 </section>
 
-<!-- ===== CTA CARDS ===== -->
-<section class="hn-flatmate-ctas">
-  <div class="hn-flatmate-cta-card need">
-    <div class="hn-flatmate-cta-icon"><i class="fa-solid fa-house-user"></i></div>
+<!-- ===== POSTING OPTIONS ===== -->
+<section class="hn-flatmate-ctas" aria-label="Posting options">
+  <div class="hn-flatmate-cta-card need hn-hero-anim hn-hero-cta-a need">
+    <div class="hn-flatmate-cta-icon"><i class="fa-solid fa-house-user" aria-hidden="true"></i></div>
     <h3>I Need a Flat</h3>
-    <p>Looking for a flat or a room? Post what you need and let flat owners and flatmates find you.</p>
+    <p>Looking for a flat or room? Post your requirement.</p>
     <a href="/flatmate/create?type=need" class="hn-flatmate-cta-btn">
-      Post Requirement <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
+      Post Requirement <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px"></i>
     </a>
   </div>
-  <div class="hn-flatmate-cta-card have">
-    <div class="hn-flatmate-cta-icon"><i class="fa-solid fa-people-roof"></i></div>
+  <div class="hn-flatmate-cta-card have hn-hero-anim hn-hero-cta-a have">
+    <div class="hn-flatmate-cta-icon"><i class="fa-solid fa-people-roof" aria-hidden="true"></i></div>
     <h3>I Have a Flat</h3>
-    <p>Have an extra room or bed? List it free and find a genuine flatmate in minutes.</p>
+    <p>Have a spare room or bed? Find a flatmate.</p>
     <a href="/flatmate/create?type=have" class="hn-flatmate-cta-btn">
-      List My Flat <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
+      Find a Flatmate <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px"></i>
     </a>
   </div>
 </section>
 
-<!-- ===== SEARCH BAR ===== -->
-<section class="hn-flatmate-search-wrap">
+<!-- ===== SEARCH: Looking for Flatmates ===== -->
+<section class="hn-flatmate-search-wrap reveal" aria-label="Search flats and flatmates">
+  <p class="hn-flatmate-search-heading">Looking for Flatmates</p>
   <form class="hn-flatmate-search" id="flatmateSearchForm" action="/flatmate" method="GET">
     <div class="hn-flatmate-field">
-      <i class="fa-solid fa-location-dot"></i>
+      <i class="fa-solid fa-people-group" aria-hidden="true"></i>
       <div class="fld-wrap">
-        <label>Location</label>
-        <input type="text" name="location" id="fmLocation" placeholder="Kharghar, Powai…" value="<%= filters && filters.location ? filters.location : '' %>">
-      </div>
-    </div>
-    <div class="hn-flatmate-field">
-      <i class="fa-solid fa-indian-rupee-sign"></i>
-      <div class="fld-wrap">
-        <label>Budget</label>
-        <select name="budget">
-          <option value="">Any budget</option>
-          <option value="8000" <%= filters && filters.budget === '8000' ? 'selected' : '' %>>Under ₹8,000</option>
-          <option value="15000" <%= filters && filters.budget === '15000' ? 'selected' : '' %>>Under ₹15,000</option>
-          <option value="25000" <%= filters && filters.budget === '25000' ? 'selected' : '' %>>Under ₹25,000</option>
+        <label for="fmType">Looking for</label>
+        <!-- UI labels are Flat / Flatmates. Internal values stay have/need — unchanged. -->
+        <select name="type" id="fmType">
+          <option value="have" <%= (!filters || filters.type !== 'need') ? 'selected' : '' %>>Flatmates</option>
+          <option value="need" <%= filters && filters.type === 'need' ? 'selected' : '' %>>Flat</option>
         </select>
       </div>
     </div>
-    <div class="hn-flatmate-field">
-      <i class="fa-solid fa-door-open"></i>
+    <div class="hn-flatmate-field" style="flex:1.4">
+      <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
       <div class="fld-wrap">
-        <label>BHK</label>
-        <select name="bhk">
-          <option value="">Any</option>
-          <option value="1" <%= filters && filters.bhk === '1' ? 'selected' : '' %>>1 BHK</option>
-          <option value="2" <%= filters && filters.bhk === '2' ? 'selected' : '' %>>2 BHK</option>
-          <option value="3" <%= filters && filters.bhk === '3' ? 'selected' : '' %>>3 BHK</option>
-          <option value="4" <%= filters && filters.bhk === '4' ? 'selected' : '' %>>4+ BHK</option>
+        <label for="fmLocation">Where to?</label>
+        <input type="text" name="location" id="fmLocation" placeholder="City, area…" value="<%= filters && filters.location ? filters.location : '' %>">
+      </div>
+    </div>
+    <div class="hn-flatmate-field">
+      <i class="fa-solid fa-venus-mars" aria-hidden="true"></i>
+      <div class="fld-wrap">
+        <label for="fmGender">Gender</label>
+        <select name="gender" id="fmGender">
+          <option value="any" <%= (!filters || !filters.gender || filters.gender === 'any') ? 'selected' : '' %>>Any</option>
+          <option value="male" <%= filters && filters.gender === 'male' ? 'selected' : '' %>>Male</option>
+          <option value="female" <%= filters && filters.gender === 'female' ? 'selected' : '' %>>Female</option>
         </select>
       </div>
     </div>
-    <input type="hidden" name="type" id="fmTypeInput" value="<%= filters && filters.type ? filters.type : '' %>">
-    <button type="submit" class="hn-flatmate-search-btn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
-    <button type="button" class="hn-flatmate-filter-btn" onclick="openFilterDrawer()"><i class="fa-solid fa-sliders"></i> Filters</button>
+    <button type="submit" class="hn-flatmate-search-btn"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search</button>
+    <button type="button" class="hn-flatmate-filter-btn" onclick="openFilterDrawer()" aria-haspopup="dialog">
+      <i class="fa-solid fa-sliders" aria-hidden="true"></i> Filters
+    </button>
   </form>
+
+  <div class="hn-flatmate-more-filters">
+    <button type="button" onclick="toggleExtraFilters()" aria-expanded="false" aria-controls="fmExtraFilters">
+      <i class="fa-solid fa-sliders" aria-hidden="true"></i> More filters (budget, BHK)
+    </button>
+  </div>
+  <div class="hn-flatmate-extra-filters" id="fmExtraFilters">
+    <label for="fmBudget" class="visually-hidden">Budget</label>
+    <select id="fmBudget" onchange="submitWithExtra()">
+      <option value="">Any budget</option>
+      <option value="8000"  <%= filters && filters.budget === '8000'  ? 'selected' : '' %>>Under ₹8,000</option>
+      <option value="15000" <%= filters && filters.budget === '15000' ? 'selected' : '' %>>Under ₹15,000</option>
+      <option value="25000" <%= filters && filters.budget === '25000' ? 'selected' : '' %>>Under ₹25,000</option>
+    </select>
+    <label for="fmBhk" class="visually-hidden">BHK</label>
+    <select id="fmBhk" onchange="submitWithExtra()">
+      <option value="">Any BHK</option>
+      <option value="1" <%= filters && filters.bhk === '1' ? 'selected' : '' %>>1 BHK</option>
+      <option value="2" <%= filters && filters.bhk === '2' ? 'selected' : '' %>>2 BHK</option>
+      <option value="3" <%= filters && filters.bhk === '3' ? 'selected' : '' %>>3 BHK</option>
+    </select>
+  </div>
+
+  <% if (filters && (filters.location || (filters.gender && filters.gender !== 'any') || filters.budget || filters.bhk)) { %>
+    <div class="hn-flatmate-active-filter-note">
+      Showing <strong><%= listings.length %></strong> result<%= listings.length === 1 ? '' : 's' %> for your filters &middot; <a href="/flatmate">Clear all</a>
+    </div>
+  <% } %>
 </section>
 
-<!-- ===== TYPE TABS ===== -->
-<section class="hn-flatmate-tabs">
-  <button class="hn-flatmate-tab <%= (!filters || !filters.type) ? 'active' : '' %>" onclick="setFeedType('', this)">
-    All <span class="cnt">(<%= listings.length %>)</span>
-  </button>
-  <button class="hn-flatmate-tab <%= filters && filters.type === 'need' ? 'active' : '' %>" onclick="setFeedType('need', this)">
-    Need a Flat <span class="cnt">(<%= listings.filter(function(l){return l.type==='need'}).length %>)</span>
-  </button>
-  <button class="hn-flatmate-tab <%= filters && filters.type === 'have' ? 'active' : '' %>" onclick="setFeedType('have', this)">
-    Have a Flat <span class="cnt">(<%= listings.filter(function(l){return l.type==='have'}).length %>)</span>
-  </button>
+<!-- ===== ACROSS INDIA (single compact horizontal-scroll strip) ===== -->
+<section class="hn-flatmate-across reveal" aria-label="Flatmates across India">
+  <div class="hn-flatmate-across-head">
+    <h2><i class="fa-solid fa-earth-asia" aria-hidden="true"></i> Flatmates across India</h2>
+    <div class="hn-flatmate-row-scroll-btns">
+      <button type="button" onclick="scrollRow('acrossIndiaRow', -1)" aria-label="Scroll left"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" onclick="scrollRow('acrossIndiaRow', 1)" aria-label="Scroll right"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div class="hn-flatmate-across-pills">
+    <% cityCounts.forEach(function(c) { %>
+      <a href="/flatmate?location=<%= encodeURIComponent(c.name) %>" class="<%= filters && filters.location === c.name ? 'active' : '' %>">
+        <%= c.name %> <span style="opacity:.6">(<%= c.count %>)</span>
+      </a>
+    <% }) %>
+  </div>
+
+  <div class="hn-flatmate-row-track" id="acrossIndiaRow">
+    <% acrossIndiaListings.forEach(function(l) { %>
+      <div class="hn-flatmate-row-card-wrap">
+        <div class="hn-flatmate-card" onclick="window.location.href='/flatmate/<%= l._id %>'">
+          <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>">
+            <% if (l.type === 'have') { %>
+              <img src="<%= l.image || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
+            <% } else { %>
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <span>Looking for a flat</span>
+            <% } %>
+            <% if (l.type === 'have') { %>
+              <span class="hn-flatmate-badge have">🏠 FLAT</span>
+            <% } else { %>
+              <span class="hn-flatmate-badge need">👤 FLATMATE</span>
+            <% } %>
+            <button class="hn-flatmate-wish" onclick="event.stopPropagation(); toggleFmWish(event, this)" aria-label="Save to wishlist" aria-pressed="false">
+              <i class="fa-regular fa-heart" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="hn-flatmate-card-body">
+            <div class="hn-flatmate-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
+            <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= l.location %>, <%= l.city %></div>
+            <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
+            <% if (l.type === 'have') { %>
+              <div class="hn-flatmate-card-price">₹<%= l.rent.toLocaleString('en-IN') %> <span>/ month</span></div>
+              <div class="hn-flatmate-card-meta">Available from <%= l.moveIn %></div>
+            <% } else { %>
+              <div class="hn-flatmate-card-price">₹<%= l.budgetMin.toLocaleString('en-IN') %>&ndash;₹<%= l.budgetMax.toLocaleString('en-IN') %></div>
+              <div class="hn-flatmate-card-meta">Move-in <%= l.moveIn %></div>
+            <% } %>
+            <div class="hn-flatmate-card-footer">
+              <div class="hn-flatmate-poster">Posted by <%= l.postedBy %></div>
+              <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">Request to Talk</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
 </section>
 
-<!-- ===== FEED ===== -->
-<section class="hn-flatmate-feed">
+<!-- ===== RESULT TABS ===== -->
+<section class="hn-flatmate-tabs-wrap reveal">
+  <div class="hn-flatmate-tabs" role="tablist" aria-label="Filter listings by type">
+    <button class="hn-flatmate-tab <%= (!filters || !filters.type) ? 'active' : '' %>" onclick="setFeedType('', this)" role="tab" aria-selected="<%= (!filters || !filters.type) ? 'true' : 'false' %>">
+      All <span class="cnt">(<%= listings.length %>)</span>
+    </button>
+    <button class="hn-flatmate-tab <%= filters && filters.type === 'need' ? 'active' : '' %>" onclick="setFeedType('need', this)" role="tab" aria-selected="<%= filters && filters.type === 'need' ? 'true' : 'false' %>">
+      Need a Flat <span class="cnt">(<%= listings.filter(function(l){return l.type==='need'}).length %>)</span>
+    </button>
+    <button class="hn-flatmate-tab <%= filters && filters.type === 'have' ? 'active' : '' %>" onclick="setFeedType('have', this)" role="tab" aria-selected="<%= filters && filters.type === 'have' ? 'true' : 'false' %>">
+      Have a Flat <span class="cnt">(<%= listings.filter(function(l){return l.type==='have'}).length %>)</span>
+    </button>
+  </div>
+</section>
+
+<!-- ===== FLATS & FLATMATES (main feed) ===== -->
+<section class="hn-flatmate-feed reveal">
   <div class="hn-flatmate-feed-head">
     <div>
-      <h2>Latest Listings</h2>
-      <p class="cnt"><strong id="fmResultsCount"><%= listings.length %></strong> listings found</p>
+      <h2>Flats &amp; Flatmates</h2>
+      <p class="cnt"><strong id="fmResultsCount"><%= listings.length %></strong> listings</p>
     </div>
     <div class="hn-flatmate-sort">
+      <label for="fmSort" class="visually-hidden">Sort by</label>
       Sort:
       <select id="fmSort">
         <option value="latest">Latest</option>
@@ -339,33 +675,28 @@
 
   <div class="hn-flatmate-grid" id="fmGrid">
     <% if (listings && listings.length > 0) { %>
-      <% listings.forEach(function(l) { %>
-        <div class="hn-flatmate-card" data-type="<%= l.type %>" onclick="window.location.href='/flatmate/<%= l._id %>'">
+      <% listings.forEach(function(l, i) { %>
+        <div class="hn-flatmate-card" data-type="<%= l.type %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="window.location.href='/flatmate/<%= l._id %>'">
           <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>">
-            <% if (l.type === 'have' && l.image) { %>
-              <img src="<%= l.image %>" alt="<%= l.title %>" loading="lazy">
-            <% } else if (l.type === 'have') { %>
-              <img src="/images/placeholder.jpg" alt="<%= l.title %>" loading="lazy">
+            <% if (l.type === 'have') { %>
+              <img src="<%= l.image || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
             <% } else { %>
-              <i class="fa-solid fa-magnifying-glass"></i>
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               <span>Looking for a flat</span>
             <% } %>
-
             <% if (l.type === 'have') { %>
-              <span class="hn-flatmate-badge have"><span class="dot"></span> ROOM AVAILABLE</span>
+              <span class="hn-flatmate-badge have">🏠 FLAT</span>
             <% } else { %>
-              <span class="hn-flatmate-badge need"><span class="dot"></span> LOOKING FOR FLAT</span>
+              <span class="hn-flatmate-badge need">👤 FLATMATE</span>
             <% } %>
-
-            <div class="hn-flatmate-wish" onclick="event.stopPropagation(); toggleFmWish(event, this)">
-              <i class="fa-regular fa-heart"></i>
-            </div>
+            <button class="hn-flatmate-wish" onclick="event.stopPropagation(); toggleFmWish(event, this)" aria-label="Save to wishlist" aria-pressed="false">
+              <i class="fa-regular fa-heart" aria-hidden="true"></i>
+            </button>
           </div>
-
           <div class="hn-flatmate-card-body">
             <div class="hn-flatmate-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
-            <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot"></i> <%= l.location %></div>
-
+            <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= l.location %>, <%= l.city %></div>
+            <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
             <% if (l.type === 'have') { %>
               <div class="hn-flatmate-card-price">₹<%= l.rent.toLocaleString('en-IN') %> <span>/ month</span></div>
               <div class="hn-flatmate-card-meta">Available from <%= l.moveIn %></div>
@@ -373,20 +704,17 @@
               <div class="hn-flatmate-card-price">₹<%= l.budgetMin.toLocaleString('en-IN') %>&ndash;₹<%= l.budgetMax.toLocaleString('en-IN') %></div>
               <div class="hn-flatmate-card-meta">Move-in <%= l.moveIn %></div>
             <% } %>
-
             <div class="hn-flatmate-card-footer">
-              <div class="hn-flatmate-poster"><%= l.postedBy %> <i class="fa-solid fa-circle-check"></i></div>
-              <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">
-                Request to Talk
-              </button>
+              <div class="hn-flatmate-poster">Posted by <%= l.postedBy %></div>
+              <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">Request to Talk</button>
             </div>
           </div>
         </div>
       <% }) %>
     <% } else { %>
       <div class="hn-flatmate-empty">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <h3>No listings found</h3>
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <h3><%= filters && filters.type === 'need' ? 'No flatmates found' : (filters && filters.type === 'have' ? 'No flats found' : 'No listings found') %></h3>
         <p>Try another location or adjust your filters.</p>
         <a href="/flatmate">Clear filters</a>
       </div>
@@ -395,86 +723,249 @@
 </section>
 
 <!-- ===== HOW IT WORKS ===== -->
-<section class="hn-flatmate-steps">
+<section class="hn-flatmate-steps reveal">
   <div class="hn-flatmate-steps-inner">
     <div class="hn-flatmate-steps-tag">The process</div>
-    <h2>Find your flatmate in three steps</h2>
+    <h2>Find your flatmate in 3 simple steps</h2>
     <div class="hn-flatmate-steps-grid">
       <div class="hn-flatmate-step">
         <div class="num">01</div>
-        <h4>Search or post</h4>
-        <p>Browse listings near your area, or post what you need or what you have — takes under 2 minutes.</p>
+        <h4>Search</h4>
+        <p>Find flats and people near you.</p>
       </div>
       <div class="hn-flatmate-step">
         <div class="num">02</div>
-        <h4>Request to talk</h4>
-        <p>Found a good match? Send a request with a short message and your move-in date.</p>
+        <h4>Request</h4>
+        <p>Send a request to connect.</p>
       </div>
       <div class="hn-flatmate-step">
         <div class="num">03</div>
-        <h4>Chat & connect</h4>
-        <p>Once accepted, chat directly, visit the flat, and move in on your own terms. No brokers, ever.</p>
+        <h4>Connect</h4>
+        <p>Chat after they accept your request.</p>
       </div>
     </div>
   </div>
+</section>
+
+<!-- ===== FEEDBACK / TESTIMONIALS ===== -->
+<section class="hn-flatmate-feedback reveal">
+  <div class="hn-flatmate-feedback-inner">
+    <div class="hn-flatmate-feedback-tag">Real people</div>
+    <h2>They found their flatmate. Now it's your turn.</h2>
+    <p class="sub">Feedback from students and flat owners using HostelNode Flatmate.</p>
+
+    <div class="hn-flatmate-feedback-grid">
+      <div class="hn-flatmate-feedback-card">
+        <div class="hn-flatmate-feedback-stars" aria-label="5 out of 5 stars">★★★★★</div>
+        <p class="hn-flatmate-feedback-quote">"Found a flatmate for my Powai 2BHK in 3 days. Listed for free, got genuine requests only — no broker calls."</p>
+        <div class="hn-flatmate-feedback-person">
+          <div class="hn-flatmate-feedback-avatar">R</div>
+          <div>
+            <div class="hn-flatmate-feedback-name">Rahul M.</div>
+            <div class="hn-flatmate-feedback-role">Flat Owner, Mumbai</div>
+          </div>
+        </div>
+      </div>
+      <div class="hn-flatmate-feedback-card">
+        <div class="hn-flatmate-feedback-stars" aria-label="5 out of 5 stars">★★★★★</div>
+        <p class="hn-flatmate-feedback-quote">"Exactly as listed. Talked directly with the flatmate, visited the same evening and moved in that week."</p>
+        <div class="hn-flatmate-feedback-person">
+          <div class="hn-flatmate-feedback-avatar">A</div>
+          <div>
+            <div class="hn-flatmate-feedback-name">Amit K.</div>
+            <div class="hn-flatmate-feedback-role">Flatmate Seeker, Pune</div>
+          </div>
+        </div>
+      </div>
+      <div class="hn-flatmate-feedback-card">
+        <div class="hn-flatmate-feedback-stars" aria-label="5 out of 5 stars">★★★★★</div>
+        <p class="hn-flatmate-feedback-quote">"Posted my requirement, got matches from three different areas near my office within a day. Simple and honest."</p>
+        <div class="hn-flatmate-feedback-person">
+          <div class="hn-flatmate-feedback-avatar">P</div>
+          <div>
+            <div class="hn-flatmate-feedback-name">Priya S.</div>
+            <div class="hn-flatmate-feedback-role">Flatmate Seeker, Bengaluru</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hn-flatmate-feedback-cta">
+      <button type="button" onclick="openFeedbackModal()">
+        <i class="fa-regular fa-comment-dots" aria-hidden="true"></i> Share Your Feedback
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SEO CONTENT ===== -->
+<section class="hn-flatmate-seo reveal">
+  <h2>Find Flats &amp; Flatmates Near You</h2>
+  <p>HostelNode helps students and renters discover flats, rooms and flatmates in popular Indian cities. Search shared accommodation, explore available spaces and connect directly with people looking for a place to live.</p>
 </section>
 
 <!-- ===== BOTTOM CTA ===== -->
-<section class="hn-flatmate-bottom-cta">
-  <h2>Have a room to fill?</h2>
-  <p>List it free on HostelNode. Your number stays hidden until you accept a request.</p>
-  <a href="/flatmate/create?type=have" class="hn-flatmate-cta-btn" style="background:linear-gradient(135deg,var(--green),#00c264);color:#fff;box-shadow:var(--shadow-green)">
-    List My Flat &mdash; Free <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
+<section class="hn-flatmate-bottom-cta reveal">
+  <h2>Have a spare room?</h2>
+  <p>Find a flatmate and share the rent.</p>
+  <a href="/flatmate/create?type=have" class="hn-flatmate-bottom-cta-btn">
+    List My Flat &mdash; Free <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px"></i>
   </a>
 </section>
 
+</main>
+
 <!-- ===== MOBILE FILTER DRAWER ===== -->
 <div class="hn-flatmate-drawer-overlay" id="fmDrawerOverlay" onclick="closeFilterDrawer()"></div>
-<div class="hn-flatmate-drawer" id="fmDrawer">
-  <button class="hn-flatmate-drawer-close" onclick="closeFilterDrawer()"><i class="fa-solid fa-xmark"></i></button>
+<div class="hn-flatmate-drawer" id="fmDrawer" role="dialog" aria-modal="true" aria-label="Filters">
+  <button class="hn-flatmate-drawer-close" onclick="closeFilterDrawer()" aria-label="Close filters"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
   <h3>Filters</h3>
-  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Use the search bar above, then tap Search to apply.</p>
+  <div class="hn-flatmate-drawer-field">
+    <label for="drawerGender">Gender</label>
+    <select id="drawerGender">
+      <option value="any">Any</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </div>
+  <div class="hn-flatmate-drawer-field">
+    <label for="drawerBudget">Budget</label>
+    <select id="drawerBudget">
+      <option value="">Any budget</option>
+      <option value="8000">Under ₹8,000</option>
+      <option value="15000">Under ₹15,000</option>
+      <option value="25000">Under ₹25,000</option>
+    </select>
+  </div>
+  <div class="hn-flatmate-drawer-field">
+    <label for="drawerBhk">BHK</label>
+    <select id="drawerBhk">
+      <option value="">Any BHK</option>
+      <option value="1">1 BHK</option>
+      <option value="2">2 BHK</option>
+      <option value="3">3 BHK</option>
+    </select>
+  </div>
+  <button class="hn-flatmate-drawer-apply" onclick="applyDrawerFilters()">Apply Filters</button>
+</div>
+
+<!-- ===== FEEDBACK MODAL ===== -->
+<div class="hn-fb-overlay" id="fbOverlay" onclick="if(event.target===this) closeFeedbackModal()">
+  <div class="hn-fb-box" role="dialog" aria-modal="true" aria-label="Share your feedback">
+    <button class="hn-fb-close" onclick="closeFeedbackModal()" aria-label="Close feedback form"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+
+    <div id="fbForm">
+      <h3>Share your feedback</h3>
+      <p class="hint">Tell us about your experience finding a flat or flatmate on HostelNode.</p>
+
+      <div class="hn-fb-stars" id="fbStars" role="radiogroup" aria-label="Rating out of 5">
+        <button type="button" data-v="1" aria-label="1 star"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+        <button type="button" data-v="2" aria-label="2 stars"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+        <button type="button" data-v="3" aria-label="3 stars"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+        <button type="button" data-v="4" aria-label="4 stars"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+        <button type="button" data-v="5" aria-label="5 stars"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+      </div>
+
+      <div class="hn-fb-field">
+        <label for="fbName">Your name (optional)</label>
+        <input type="text" id="fbName" placeholder="e.g. Priya S.">
+      </div>
+      <div class="hn-fb-field">
+        <label for="fbMessage">Your feedback</label>
+        <textarea id="fbMessage" rows="3" placeholder="What worked well? What can we improve?"></textarea>
+      </div>
+
+      <button class="hn-fb-submit" id="fbSubmitBtn" onclick="submitFeedback()">
+        Submit Feedback <i class="fa-solid fa-paper-plane" aria-hidden="true" style="font-size:12px"></i>
+      </button>
+    </div>
+
+    <div id="fbSuccess" class="hn-fb-success" style="display:none">
+      <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+      <h4>Thanks for the feedback!</h4>
+      <p>It helps other students trust HostelNode Flatmate.</p>
+    </div>
+  </div>
 </div>
 
 <!-- ===== FOOTER ===== -->
-<footer class="hn-footer">
-  <div class="footer-grid">
+<footer class="hn-flatmate-footer">
+  <div class="hn-flatmate-footer-grid">
     <div>
-      <div class="footer-brand-name">
+      <div class="hn-flatmate-footer-brand">
         <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
         HostelNode
       </div>
-      <p class="footer-desc">Your smart hostel management and discovery platform. Simplify, automate, manage — and help students find the perfect PG, hostel or flatmate near their college.</p>
+      <div class="hn-flatmate-footer-addr">Navi Mumbai, Maharashtra, India</div>
+      <div class="hn-flatmate-footer-contact">
+        <a href="mailto:hostelnodehelp@gmail.com"><i class="fa-solid fa-envelope" aria-hidden="true"></i> hostelnodehelp@gmail.com</a>
+        <a href="https://wa.me/918828397001" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp us</a>
+        <a href="tel:+918828397001"><i class="fa-solid fa-phone" aria-hidden="true"></i> +91 88283 97001</a>
+      </div>
     </div>
-    <div class="footer-col">
-      <h4>Discover</h4>
+
+    <div>
+      <h4>Flatmates in Mumbai</h4>
       <ul>
-        <li><a href="/findHostels">Find hostel</a></li>
-        <li><a href="/flatmate">Find a flatmate</a></li>
-        <li><a href="/flatmate/create?type=have">List your flat</a></li>
+        <li><a href="/flatmate?location=Mumbai">Mumbai</a></li>
+        <li><a href="/flatmate?location=Andheri">Andheri</a></li>
+        <li><a href="/flatmate?location=Ghatkopar">Ghatkopar</a></li>
+        <li><a href="/flatmate?location=Dadar">Dadar</a></li>
+        <li><a href="/flatmate?location=Vile+Parle">Vile Parle</a></li>
+        <li><a href="/flatmate?location=Bandra">Bandra</a></li>
+        <li><a href="/flatmate?location=Malad">Malad</a></li>
+        <li><a href="/flatmate?location=Powai">Powai</a></li>
       </ul>
     </div>
-    <div class="footer-col">
-      <h4>Product</h4>
+
+    <div>
+      <h4>Flatmates in Pune</h4>
       <ul>
-        <li><a href="/#feature-list">Features</a></li>
-        <li><a href="/signup">Sign up</a></li>
-        <li><a href="/login">Login</a></li>
+        <li><a href="/flatmate?location=Pune">Pune</a></li>
+        <li><a href="/flatmate?location=Kothrud">Kothrud</a></li>
+        <li><a href="/flatmate?location=Baner">Baner</a></li>
+        <li><a href="/flatmate?location=Wakad">Wakad</a></li>
+        <li><a href="/flatmate?location=Hinjewadi">Hinjewadi</a></li>
+        <li><a href="/flatmate?location=Viman+Nagar">Viman Nagar</a></li>
+        <li><a href="/flatmate?location=Hadapsar">Hadapsar</a></li>
+        <li><a href="/flatmate?location=Kharadi">Kharadi</a></li>
       </ul>
     </div>
-    <div class="footer-col">
+
+    <div>
+      <h4>Policies</h4>
+      <ul>
+        <li><a href="/privacy-policy">Privacy Policy</a></li>
+        <li><a href="/terms-and-conditions">Terms &amp; Conditions</a></li>
+        <li><a href="/refunds-and-cancellation">Refunds &amp; Cancellations</a></li>
+        <li><a href="/fraud-disclaimer">Fraud Disclaimer</a></li>
+      </ul>
+      <h4 style="margin-top:22px">Quick Links</h4>
+      <ul>
+        <li><a href="/#aboutus">About Us</a></li>
+        <li><a href="/StartManagingYourHostel">For Property Owners</a></li>
+        <li><a href="/blogs">Blogs</a></li>
+      </ul>
+    </div>
+
+    <div>
       <h4>Support</h4>
       <ul>
-        <li><a href="mailto:hostelnodehelp@gmail.com">Email us</a></li>
+        <li><a href="/faq">FAQs for Tenants</a></li>
+        <li><a href="/faq">FAQs for Property Owners</a></li>
+        <li><a href="/#cotactus">Contact Us</a></li>
       </ul>
     </div>
   </div>
-  <div class="footer-bottom">
-    <p>© 2026 HostelNode. All rights reserved.</p>
+
+  <div class="hn-flatmate-footer-bottom">
+    © 2026 HostelNode. All rights reserved.
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<style>.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () {
@@ -482,13 +973,47 @@ document.addEventListener('DOMContentLoaded', function () {
     loader.style.opacity = '0';
     setTimeout(function () { loader.style.display = 'none'; }, 400);
   }, 900);
+
+  /* ── SCROLL-REVEAL (subtle, one-time, animate once) ── */
+  var revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    revealEls.forEach(function (el) { io.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* ── FEEDBACK STAR PICKER ── */
+  var stars = document.querySelectorAll('#fbStars button');
+  window._fbRating = 5;
+  stars.forEach(function (starBtn) {
+    starBtn.addEventListener('click', function () {
+      window._fbRating = parseInt(this.dataset.v, 10);
+      stars.forEach(function (s) {
+        s.querySelector('i').classList.toggle('active', parseInt(s.dataset.v, 10) <= window._fbRating);
+      });
+    });
+  });
+  stars.forEach(function (s) {
+    s.querySelector('i').classList.toggle('active', parseInt(s.dataset.v, 10) <= window._fbRating);
+  });
 });
 
-/* ── TYPE TAB FILTER (client-side, no reload) ── */
+/* ── RESULT TABS (client-side, no reload) — preserves existing setFeedType() ── */
 function setFeedType(type, btn) {
-  document.querySelectorAll('.hn-flatmate-tab').forEach(function (t) { t.classList.remove('active'); });
+  document.querySelectorAll('.hn-flatmate-tab').forEach(function (t) {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
   btn.classList.add('active');
-  document.getElementById('fmTypeInput').value = type;
+  btn.setAttribute('aria-selected', 'true');
 
   var cards = document.querySelectorAll('#fmGrid .hn-flatmate-card');
   var visible = 0;
@@ -499,9 +1024,68 @@ function setFeedType(type, btn) {
   });
   var countEl = document.getElementById('fmResultsCount');
   if (countEl) countEl.textContent = visible;
+
+  var emptyEl = document.querySelector('#fmGrid .hn-flatmate-empty');
+  if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
 }
 
-/* ── SORT (client-side re-order) ── */
+/* ── MORE FILTERS TOGGLE (desktop inline) ── */
+function toggleExtraFilters() {
+  var el = document.getElementById('fmExtraFilters');
+  var open = el.classList.toggle('open');
+  var btn = document.querySelector('.hn-flatmate-more-filters button');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function submitWithExtra() {
+  var form = document.getElementById('flatmateSearchForm');
+  var budget = document.getElementById('fmBudget').value;
+  var bhk = document.getElementById('fmBhk').value;
+  var addHidden = function (name, val) {
+    if (!val) return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = name; inp.value = val;
+    form.appendChild(inp);
+  };
+  addHidden('budget', budget);
+  addHidden('bhk', bhk);
+  form.submit();
+}
+
+/* ── MOBILE FILTER DRAWER (preserved API: openFilterDrawer / closeFilterDrawer) ── */
+function openFilterDrawer() {
+  document.getElementById('fmDrawerOverlay').classList.add('open');
+  document.getElementById('fmDrawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeFilterDrawer() {
+  document.getElementById('fmDrawerOverlay').classList.remove('open');
+  document.getElementById('fmDrawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function applyDrawerFilters() {
+  var form = document.getElementById('flatmateSearchForm');
+  var gender = document.getElementById('drawerGender').value;
+  var budget = document.getElementById('drawerBudget').value;
+  var bhk = document.getElementById('drawerBhk').value;
+  document.getElementById('fmGender').value = gender;
+  var addHidden = function (name, val) {
+    if (!val) return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = name; inp.value = val;
+    form.appendChild(inp);
+  };
+  addHidden('budget', budget);
+  addHidden('bhk', bhk);
+  form.submit();
+}
+
+/* ── HORIZONTAL SCROLL BUTTONS (across-India row) ── */
+function scrollRow(id, dir) {
+  var track = document.getElementById(id);
+  if (track) track.scrollBy({ left: dir * 280, behavior: 'smooth' });
+}
+
+/* ── SORT (client-side re-order, main feed only) ── */
 document.getElementById('fmSort')?.addEventListener('change', function () {
   var grid = document.getElementById('fmGrid');
   var cards = Array.prototype.slice.call(grid.querySelectorAll('.hn-flatmate-card'));
@@ -517,10 +1101,13 @@ document.getElementById('fmSort')?.addEventListener('change', function () {
   cards.forEach(function (c) { grid.appendChild(c); });
 });
 
-/* ── WISHLIST TOGGLE ── */
+/* ── WISHLIST TOGGLE (existing behaviour + small pop animation) ── */
 function toggleFmWish(e, el) {
   el.classList.toggle('saved');
+  el.setAttribute('aria-pressed', el.classList.contains('saved') ? 'true' : 'false');
   el.querySelector('i').className = el.classList.contains('saved') ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+  el.classList.add('pop');
+  setTimeout(function () { el.classList.remove('pop'); }, 200);
 }
 
 /* ── REQUEST TO TALK (stub — wires to modal once backend exists) ── */
@@ -528,15 +1115,49 @@ function requestToTalk(id) {
   window.location.href = '/flatmate/' + id + '#request';
 }
 
-/* ── MOBILE FILTER DRAWER ── */
-function openFilterDrawer() {
-  document.getElementById('fmDrawerOverlay').classList.add('open');
-  document.getElementById('fmDrawer').classList.add('open');
+/* ── FEEDBACK MODAL ── */
+function openFeedbackModal() {
+  document.getElementById('fbOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
-function closeFilterDrawer() {
-  document.getElementById('fmDrawerOverlay').classList.remove('open');
-  document.getElementById('fmDrawer').classList.remove('open');
+function closeFeedbackModal() {
+  document.getElementById('fbOverlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
+async function submitFeedback() {
+  var message = document.getElementById('fbMessage').value.trim();
+  var name = document.getElementById('fbName').value.trim();
+  var btn = document.getElementById('fbSubmitBtn');
+  if (!message) {
+    document.getElementById('fbMessage').style.borderColor = '#e53e3e';
+    return;
+  }
+  var original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Sending…';
+  try {
+    var res = await fetch('/flatmate/feedback', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, rating: window._fbRating, message: message })
+    });
+    var data = await res.json();
+    btn.disabled = false; btn.innerHTML = original;
+    if (data.success) {
+      document.getElementById('fbForm').style.display = 'none';
+      document.getElementById('fbSuccess').style.display = 'block';
+      setTimeout(closeFeedbackModal, 2200);
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    console.error('Feedback submit error:', err);
+  }
+}
+
+/* ── ESCAPE KEY closes any open modal/drawer ── */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('fbOverlay').classList.contains('open')) closeFeedbackModal();
+  if (document.getElementById('fmDrawer').classList.contains('open')) closeFilterDrawer();
+});
 </script>
 </body>
 </html>
