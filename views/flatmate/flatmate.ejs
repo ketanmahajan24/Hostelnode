@@ -507,7 +507,7 @@
     <h3>I Have a Flat</h3>
     <p>Have a spare room or bed? Find a flatmate.</p>
     <a href="/flatmate/create?type=have" class="hn-flatmate-cta-btn">
-      Find a Flatmate <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px"></i>
+      List your Flat Free <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px"></i>
     </a>
   </div>
 </section>
@@ -521,10 +521,10 @@
       <div class="fld-wrap">
         <label for="fmType">Looking for</label>
         <!-- UI labels are Flat / Flatmates. Internal values stay have/need — unchanged. -->
-        <select name="type" id="fmType">
-          <option value="have" <%= (!filters || filters.type !== 'need') ? 'selected' : '' %>>Flatmates</option>
-          <option value="need" <%= filters && filters.type === 'need' ? 'selected' : '' %>>Flat</option>
-        </select>
+          <select name="type" id="fmType">
+            <option value="need" <%= (!filters || filters.type !== 'have') ? 'selected' : '' %>>Flatmates</option>
+            <option value="have" <%= filters && filters.type === 'have' ? 'selected' : '' %>>Flat</option>
+          </select>
       </div>
     </div>
     <div class="hn-flatmate-field" style="flex:1.4">
@@ -647,10 +647,10 @@
       All <span class="cnt">(<%= listings.length %>)</span>
     </button>
     <button class="hn-flatmate-tab <%= filters && filters.type === 'need' ? 'active' : '' %>" onclick="setFeedType('need', this)" role="tab" aria-selected="<%= filters && filters.type === 'need' ? 'true' : 'false' %>">
-      Need a Flat <span class="cnt">(<%= listings.filter(function(l){return l.type==='need'}).length %>)</span>
+      Flatmates <span class="cnt">(<%= listings.filter(function(l){return l.type==='need'}).length %>)</span>
     </button>
     <button class="hn-flatmate-tab <%= filters && filters.type === 'have' ? 'active' : '' %>" onclick="setFeedType('have', this)" role="tab" aria-selected="<%= filters && filters.type === 'have' ? 'true' : 'false' %>">
-      Have a Flat <span class="cnt">(<%= listings.filter(function(l){return l.type==='have'}).length %>)</span>
+       Flats <span class="cnt">(<%= listings.filter(function(l){return l.type==='have'}).length %>)</span>
     </button>
   </div>
 </section>
