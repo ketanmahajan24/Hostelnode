@@ -13,6 +13,7 @@
 const express = require("express");
 const router  = express.Router();
 
+
 // Fixed city set used for quick-filter pills
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
 
