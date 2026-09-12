@@ -1,0 +1,367 @@
+<!-- flatmate-results.ejs — HostelNode Flatmate search results -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>
+    <%= filters && filters.location ? `Flats & Flatmates in ${filters.location}` : 'Flatmate Search Results' %> | HostelNode
+  </title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, follow">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-3J9E7QW77B"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-3J9E7QW77B');
+  </script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Shared design tokens (--green, --ink, --card-bg, #hn-loader, etc.) -->
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <!-- Results-page-only styles (search bar, tabs, grid, card, drawer, footer) -->
+  <link rel="stylesheet" href="/css/flatmate-results.css">
+</head>
+<body class="hn-flatmate-page">
+
+<!-- ===== LOADER ===== -->
+<div id="hn-loader">
+  <div class="loader-brand">Hostel<span>Node</span></div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+</div>
+
+<header>
+  <%- include("../includes/navbar-user.ejs")%>
+</header>
+
+<main>
+
+<!-- ===== SEARCH: Refine your search ===== -->
+<section class="hn-flatmate-search-wrap" aria-label="Refine your search">
+  <p class="hn-flatmate-search-heading">Refine your search</p>
+  <form class="hn-flatmate-search" id="flatmateSearchForm" action="/flatmate/results" method="GET">
+    <div class="hn-flatmate-field">
+      <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+      <div class="fld-wrap">
+        <label for="fmType">Looking for</label>
+        <!-- UI labels are Flat / Flatmates. Internal values stay have/need — unchanged. -->
+        <select name="type" id="fmType">
+          <option value="need" <%= (!filters || filters.type !== 'have') ? 'selected' : '' %>>Flatmates</option>
+          <option value="have" <%= filters && filters.type === 'have' ? 'selected' : '' %>>Flat</option>
+        </select>
+      </div>
+    </div>
+    <div class="hn-flatmate-field" style="flex:1.4">
+      <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+      <div class="fld-wrap">
+        <label for="fmLocation">Where to?</label>
+        <input type="text" name="location" id="fmLocation" placeholder="City, area…" value="<%= filters && filters.location ? filters.location : '' %>">
+      </div>
+    </div>
+    <div class="hn-flatmate-field">
+      <i class="fa-solid fa-venus-mars" aria-hidden="true"></i>
+      <div class="fld-wrap">
+        <label for="fmGender">Gender</label>
+        <select name="gender" id="fmGender">
+          <option value="any" <%= (!filters || !filters.gender || filters.gender === 'any') ? 'selected' : '' %>>Any</option>
+          <option value="male" <%= filters && filters.gender === 'male' ? 'selected' : '' %>>Male</option>
+          <option value="female" <%= filters && filters.gender === 'female' ? 'selected' : '' %>>Female</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit" class="hn-flatmate-search-btn"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search</button>
+    <button type="button" class="hn-flatmate-filter-btn" onclick="openFilterDrawer()" aria-haspopup="dialog">
+      <i class="fa-solid fa-sliders" aria-hidden="true"></i> Filters
+    </button>
+  </form>
+
+  <% if (filters && (filters.location || (filters.gender && filters.gender !== 'any') || filters.budget || filters.bhk)) { %>
+    <div class="hn-flatmate-active-filter-note">
+      Showing <strong><%= listings.length %></strong> result<%= listings.length === 1 ? '' : 's' %> for your filters &middot; <a href="/flatmate">Clear all</a>
+    </div>
+  <% } %>
+</section>
+
+<!-- ===== RESULT TABS ===== -->
+<section class="hn-flatmate-tabs-wrap">
+  <div class="hn-flatmate-tabs" role="tablist" aria-label="Filter listings by type">
+    <button class="hn-flatmate-tab <%= (!filters || !filters.type) ? 'active' : '' %>" onclick="setFeedType('', this)" role="tab" aria-selected="<%= (!filters || !filters.type) ? 'true' : 'false' %>">
+      All <span class="cnt">(<%= listings.length %>)</span>
+    </button>
+    <button class="hn-flatmate-tab <%= filters && filters.type === 'need' ? 'active' : '' %>" onclick="setFeedType('need', this)" role="tab" aria-selected="<%= filters && filters.type === 'need' ? 'true' : 'false' %>">
+      Flatmates <span class="cnt">(<%= listings.filter(function(l){return l.type==='need'}).length %>)</span>
+    </button>
+    <button class="hn-flatmate-tab <%= filters && filters.type === 'have' ? 'active' : '' %>" onclick="setFeedType('have', this)" role="tab" aria-selected="<%= filters && filters.type === 'have' ? 'true' : 'false' %>">
+       Flats <span class="cnt">(<%= listings.filter(function(l){return l.type==='have'}).length %>)</span>
+    </button>
+  </div>
+</section>
+
+<!-- ===== FLATS & FLATMATES (results feed) ===== -->
+<section class="hn-flatmate-feed">
+  <div class="hn-flatmate-feed-head">
+    <div>
+      <h2>Flats &amp; Flatmates</h2>
+      <p class="cnt"><strong id="fmResultsCount"><%= listings.length %></strong> listings</p>
+    </div>
+    <div class="hn-flatmate-sort">
+      <label for="fmSort" class="visually-hidden">Sort by</label>
+      Sort:
+      <select id="fmSort">
+        <option value="latest">Latest</option>
+        <option value="price-low">Price: Low to High</option>
+        <option value="price-high">Price: High to Low</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="hn-flatmate-grid" id="fmGrid">
+    <% if (listings && listings.length > 0) { %>
+      <% listings.forEach(function(l, i) { %>
+        <div class="hn-flatmate-card" data-type="<%= l.type %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="window.location.href='/flatmate/<%= l._id %>'">
+          <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>">
+            <% if (l.type === 'have') { %>
+              <img src="<%= l.image || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
+            <% } else { %>
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <span>Looking for a flat</span>
+            <% } %>
+            <% if (l.type === 'have') { %>
+              <span class="hn-flatmate-badge have">🏠 FLAT</span>
+            <% } else { %>
+              <span class="hn-flatmate-badge need">👤 FLATMATE</span>
+            <% } %>
+            <button class="hn-flatmate-wish" onclick="event.stopPropagation(); toggleFmWish(event, this)" aria-label="Save to wishlist" aria-pressed="false">
+              <i class="fa-regular fa-heart" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="hn-flatmate-card-body">
+            <div class="hn-flatmate-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
+            <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= l.location %>, <%= l.city %></div>
+            <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
+            <% if (l.type === 'have') { %>
+              <div class="hn-flatmate-card-price">₹<%= l.rent.toLocaleString('en-IN') %> <span>/ month</span></div>
+              <div class="hn-flatmate-card-meta">Available from <%= l.moveIn %></div>
+            <% } else { %>
+              <div class="hn-flatmate-card-price">₹<%= l.budgetMin.toLocaleString('en-IN') %>&ndash;₹<%= l.budgetMax.toLocaleString('en-IN') %></div>
+              <div class="hn-flatmate-card-meta">Move-in <%= l.moveIn %></div>
+            <% } %>
+            <div class="hn-flatmate-card-footer">
+              <div class="hn-flatmate-poster">Posted by <%= l.postedBy %></div>
+              <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">Request to Talk</button>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <div class="hn-flatmate-empty">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <h3><%= filters && filters.type === 'need' ? 'No flatmates found' : (filters && filters.type === 'have' ? 'No flats found' : 'No listings found') %></h3>
+        <p>Try another location or adjust your filters.</p>
+        <a href="/flatmate">Clear filters</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+</main>
+
+<!-- ===== MOBILE FILTER DRAWER ===== -->
+<div class="hn-flatmate-drawer-overlay" id="fmDrawerOverlay" onclick="closeFilterDrawer()"></div>
+<div class="hn-flatmate-drawer" id="fmDrawer" role="dialog" aria-modal="true" aria-label="Filters">
+  <button class="hn-flatmate-drawer-close" onclick="closeFilterDrawer()" aria-label="Close filters"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+  <h3>Filters</h3>
+  <div class="hn-flatmate-drawer-field">
+    <label for="drawerGender">Gender</label>
+    <select id="drawerGender">
+      <option value="any">Any</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </div>
+  <div class="hn-flatmate-drawer-field">
+    <label for="drawerBudget">Budget</label>
+    <select id="drawerBudget">
+      <option value="">Any budget</option>
+      <option value="8000">Under ₹8,000</option>
+      <option value="15000">Under ₹15,000</option>
+      <option value="25000">Under ₹25,000</option>
+    </select>
+  </div>
+  <div class="hn-flatmate-drawer-field">
+    <label for="drawerBhk">BHK</label>
+    <select id="drawerBhk">
+      <option value="">Any BHK</option>
+      <option value="1">1 BHK</option>
+      <option value="2">2 BHK</option>
+      <option value="3">3 BHK</option>
+    </select>
+  </div>
+  <button class="hn-flatmate-drawer-apply" onclick="applyDrawerFilters()">Apply Filters</button>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="hn-flatmate-footer">
+  <div class="hn-flatmate-footer-grid">
+    <div>
+      <div class="hn-flatmate-footer-brand">
+        <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+        HostelNode
+      </div>
+      <div class="hn-flatmate-footer-addr">Navi Mumbai, Maharashtra, India</div>
+      <div class="hn-flatmate-footer-contact">
+        <a href="mailto:hostelnodehelp@gmail.com"><i class="fa-solid fa-envelope" aria-hidden="true"></i> hostelnodehelp@gmail.com</a>
+        <a href="https://wa.me/918828397001" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp us</a>
+        <a href="tel:+918828397001"><i class="fa-solid fa-phone" aria-hidden="true"></i> +91 88283 97001</a>
+      </div>
+    </div>
+    <div>
+      <h4>Flatmates in Mumbai</h4>
+      <ul>
+        <li><a href="/flatmate/results?location=Mumbai">Mumbai</a></li>
+        <li><a href="/flatmate/results?location=Andheri">Andheri</a></li>
+        <li><a href="/flatmate/results?location=Ghatkopar">Ghatkopar</a></li>
+        <li><a href="/flatmate/results?location=Dadar">Dadar</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Flatmates in Pune</h4>
+      <ul>
+        <li><a href="/flatmate/results?location=Pune">Pune</a></li>
+        <li><a href="/flatmate/results?location=Kothrud">Kothrud</a></li>
+        <li><a href="/flatmate/results?location=Baner">Baner</a></li>
+        <li><a href="/flatmate/results?location=Wakad">Wakad</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Policies</h4>
+      <ul>
+        <li><a href="/privacy-policy">Privacy Policy</a></li>
+        <li><a href="/terms-and-conditions">Terms &amp; Conditions</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Support</h4>
+      <ul>
+        <li><a href="/faq">FAQs</a></li>
+        <li><a href="/#cotactus">Contact Us</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="hn-flatmate-footer-bottom">
+    © 2026 HostelNode. All rights reserved.
+  </div>
+</footer>
+
+<style>.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  setTimeout(function () {
+    var loader = document.getElementById('hn-loader');
+    loader.style.opacity = '0';
+    setTimeout(function () { loader.style.display = 'none'; }, 400);
+  }, 600);
+});
+
+/* ── RESULT TABS (client-side, no reload) ── */
+function setFeedType(type, btn) {
+  document.querySelectorAll('.hn-flatmate-tab').forEach(function (t) {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+
+  var cards = document.querySelectorAll('#fmGrid .hn-flatmate-card');
+  var visible = 0;
+  cards.forEach(function (c) {
+    var match = !type || c.dataset.type === type;
+    c.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  var countEl = document.getElementById('fmResultsCount');
+  if (countEl) countEl.textContent = visible;
+
+  var emptyEl = document.querySelector('#fmGrid .hn-flatmate-empty');
+  if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
+}
+
+/* ── SORT (client-side re-order) ── */
+document.getElementById('fmSort')?.addEventListener('change', function () {
+  var grid = document.getElementById('fmGrid');
+  var cards = Array.prototype.slice.call(grid.querySelectorAll('.hn-flatmate-card'));
+  var val = this.value;
+  cards.sort(function (a, b) {
+    var pa = parseInt(a.querySelector('.hn-flatmate-card-price').textContent.replace(/[^0-9]/g, '')) || 0;
+    var pb = parseInt(b.querySelector('.hn-flatmate-card-price').textContent.replace(/[^0-9]/g, '')) || 0;
+    if (val === 'price-low') return pa - pb;
+    if (val === 'price-high') return pb - pa;
+    return 0;
+  });
+  if (val === 'latest') return;
+  cards.forEach(function (c) { grid.appendChild(c); });
+});
+
+/* ── WISHLIST TOGGLE ── */
+function toggleFmWish(e, el) {
+  el.classList.toggle('saved');
+  el.setAttribute('aria-pressed', el.classList.contains('saved') ? 'true' : 'false');
+  el.querySelector('i').className = el.classList.contains('saved') ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+  el.classList.add('pop');
+  setTimeout(function () { el.classList.remove('pop'); }, 200);
+}
+
+/* ── REQUEST TO TALK (stub — wires to modal once backend exists) ── */
+function requestToTalk(id) {
+  window.location.href = '/flatmate/' + id + '#request';
+}
+
+/* ── MOBILE FILTER DRAWER ── */
+function openFilterDrawer() {
+  document.getElementById('fmDrawerOverlay').classList.add('open');
+  document.getElementById('fmDrawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeFilterDrawer() {
+  document.getElementById('fmDrawerOverlay').classList.remove('open');
+  document.getElementById('fmDrawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function applyDrawerFilters() {
+  var form = document.getElementById('flatmateSearchForm');
+  var gender = document.getElementById('drawerGender').value;
+  var budget = document.getElementById('drawerBudget').value;
+  var bhk = document.getElementById('drawerBhk').value;
+  document.getElementById('fmGender').value = gender;
+  var addHidden = function (name, val) {
+    if (!val) return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = name; inp.value = val;
+    form.appendChild(inp);
+  };
+  addHidden('budget', budget);
+  addHidden('bhk', bhk);
+  form.submit();
+}
+
+/* ── ESCAPE KEY closes drawer ── */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('fmDrawer').classList.contains('open')) closeFilterDrawer();
+});
+</script>
+</body>
+</html>

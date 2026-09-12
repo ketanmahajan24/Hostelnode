@@ -2,18 +2,18 @@
 /* ============================================================
    flatmateRoutes.js — HostelNode Flatmate feature
    - GET /flatmate          → Landing page (hero, search, city chips,
-                              across-India preview, how it works, etc.)
+                              featured flats & flatmates, how it works, etc.)
+                              Renders views/flatmate/flatmate.ejs.
                               If a real search/filter is present in the
                               query string, redirects to /flatmate/results
                               so a "search" always opens a dedicated
                               results page — the landing page itself
                               never shows a filtered grid.
    - GET /flatmate/results  → Dedicated search-results page (tabs +
-                              full "Flats & Flatmates" grid). Reuses the
-                              SAME flatmate.ejs template as the landing
-                              page via the `mode` flag, matching the
-                              existing /findHostels + /findHostels/results
-                              pattern already used elsewhere in this app.
+                              full "Flats & Flatmates" grid). Renders its
+                              own views/flatmate/flatmate-results.ejs,
+                              matching the existing /findHostels +
+                              /findHostels/results pattern used elsewhere.
    NOTE: There is no Flatmate model/collection yet. Both routes serve
    SAMPLE data so the UI is fully viewable end to end. Swap
    SAMPLE_LISTINGS for a real Mongoose query once the Flatmate schema
@@ -95,16 +95,18 @@ router.get("/", async (req, res) => {
     }
 
     const totalListingsCount = SAMPLE_LISTINGS.length;
-    const acrossIndiaListings = SAMPLE_LISTINGS.slice().reverse().slice(0, 10);
+
+    // "Featured Flats & Flatmates near you" — top of page, above the fold.
+    // Swap this slice for a real query (e.g. Listing.find({featured:true})) once the model exists.
+    const featuredListings = SAMPLE_LISTINGS.slice().reverse().slice(0, 8);
+
     const cityCounts = CITIES.map(city => ({
       name: city,
       count: SAMPLE_LISTINGS.filter(l => l.city === city).length,
     }));
 
     res.render("flatmate/flatmate", {
-      mode: "home",
-      listings: [],
-      acrossIndiaListings,
+      featuredListings,
       cityCounts,
       totalListingsCount,
       filters: { location: "", gender: "", type: "", budget: "", bhk: "" },
@@ -124,11 +126,8 @@ router.get("/results", async (req, res) => {
     const { location = "", gender = "", type = "", budget = "", bhk = "" } = req.query;
     const listings = filterListings({ location, gender, type, budget, bhk });
 
-    res.render("flatmate/flatmate", {
-      mode: "results",
+    res.render("flatmate/flatmate-results", {
       listings,
-      acrossIndiaListings: [],
-      cityCounts: [],
       totalListingsCount: SAMPLE_LISTINGS.length,
       filters: { location, gender, type, budget, bhk },
     });

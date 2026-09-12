@@ -479,7 +479,6 @@
 
 <main>
 
-<% if (mode !== 'results') { %>
 <!-- ===== HERO ===== -->
 
 <section class="hn-flatmate-hero">
@@ -516,11 +515,10 @@
     </a>
   </div>
 </section>
-<% } %>
 
 <!-- ===== SEARCH: Looking for Flatmates ===== -->
 <section class="hn-flatmate-search-wrap reveal" aria-label="Search flats and flatmates">
-  <p class="hn-flatmate-search-heading"><%= mode === 'results' ? 'Refine your search' : 'Looking for Flatmates' %></p>
+  <p class="hn-flatmate-search-heading">Looking for Flatmates</p>
   <form class="hn-flatmate-search" id="flatmateSearchForm" action="/flatmate/results" method="GET">
     <div class="hn-flatmate-field">
       <i class="fa-solid fa-people-group" aria-hidden="true"></i>
@@ -557,22 +555,69 @@
     </button>
   </form>
 
-  <% if (mode !== 'results') { %>
-    <div class="hn-flatmate-city-row" aria-label="Popular cities">
-      <% cityCounts.forEach(function(c) { %>
-        <a href="/flatmate/results?location=<%= encodeURIComponent(c.name) %>"><%= c.name %></a>
-      <% }) %>
-    </div>
-  <% } %>
-
-  <% if (mode === 'results' && filters && (filters.location || (filters.gender && filters.gender !== 'any') || filters.budget || filters.bhk)) { %>
-    <div class="hn-flatmate-active-filter-note">
-      Showing <strong><%= listings.length %></strong> result<%= listings.length === 1 ? '' : 's' %> for your filters &middot; <a href="/flatmate">Clear all</a>
-    </div>
-  <% } %>
+  <div class="hn-flatmate-city-row" aria-label="Popular cities">
+    <% cityCounts.forEach(function(c) { %>
+      <a href="/flatmate/results?location=<%= encodeURIComponent(c.name) %>"><%= c.name %></a>
+    <% }) %>
+  </div>
 </section>
 
-<% if (mode !== 'results') { %>
+<!-- ===== FEATURED FLATS & FLATMATES (near you) ===== -->
+<section class="hn-flatmate-across reveal" aria-label="Featured flats and flatmates near you">
+  <div class="hn-flatmate-across-head">
+    <h2><i class="fa-solid fa-star" aria-hidden="true"></i> Featured Flats &amp; Flatmates <span style="color:var(--green)">near you</span></h2>
+    <div class="hn-flatmate-row-scroll-btns">
+      <button type="button" onclick="scrollRow('featuredRow', -1)" aria-label="Scroll left"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" onclick="scrollRow('featuredRow', 1)" aria-label="Scroll right"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div class="hn-flatmate-row-track" id="featuredRow">
+    <% if (featuredListings && featuredListings.length > 0) { %>
+      <% featuredListings.forEach(function(l, i) { %>
+        <div class="hn-flatmate-row-card-wrap">
+          <div class="hn-flatmate-card" data-type="<%= l.type %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="window.location.href='/flatmate/<%= l._id %>'">
+            <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>">
+              <% if (l.type === 'have') { %>
+                <img src="<%= l.image || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
+              <% } else { %>
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <span>Looking for a flat</span>
+              <% } %>
+              <% if (l.type === 'have') { %>
+                <span class="hn-flatmate-badge have">🏠 FLAT</span>
+              <% } else { %>
+                <span class="hn-flatmate-badge need">👤 FLATMATE</span>
+              <% } %>
+              <button class="hn-flatmate-wish" onclick="event.stopPropagation(); toggleFmWish(event, this)" aria-label="Save to wishlist" aria-pressed="false">
+                <i class="fa-regular fa-heart" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="hn-flatmate-card-body">
+              <div class="hn-flatmate-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
+              <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= l.location %>, <%= l.city %></div>
+              <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
+              <% if (l.type === 'have') { %>
+                <div class="hn-flatmate-card-price">₹<%= l.rent.toLocaleString('en-IN') %> <span>/ month</span></div>
+                <div class="hn-flatmate-card-meta">Available from <%= l.moveIn %></div>
+              <% } else { %>
+                <div class="hn-flatmate-card-price">₹<%= l.budgetMin.toLocaleString('en-IN') %>&ndash;₹<%= l.budgetMax.toLocaleString('en-IN') %></div>
+                <div class="hn-flatmate-card-meta">Move-in <%= l.moveIn %></div>
+              <% } %>
+              <div class="hn-flatmate-card-footer">
+                <div class="hn-flatmate-poster">Posted by <%= l.postedBy %></div>
+                <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">Request to Talk</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <p style="color:var(--muted); font-size:13.5px; padding:10px 4px;">No featured listings yet — be the first to post one!</p>
+    <% } %>
+  </div>
+</section>
+
 <!-- ===== ACROSS INDIA (single compact horizontal-scroll strip) ===== -->
 <section class="hn-flatmate-across reveal" aria-label="Flatmates across India">
   <div class="hn-flatmate-across-head">
@@ -583,103 +628,15 @@
     </div>
   </div>
 
-  <div class="hn-flatmate-across-pills">
+  <div class="hn-flatmate-across-pills" id="acrossIndiaRow">
     <% cityCounts.forEach(function(c) { %>
       <a href="/flatmate/results?location=<%= encodeURIComponent(c.name) %>" class="<%= filters && filters.location === c.name ? 'active' : '' %>">
         <%= c.name %> <span style="opacity:.6">(<%= c.count %>)</span>
       </a>
     <% }) %>
   </div>
-
- 
-</section>
-<% } %>
-
-<% if (mode === 'results') { %>
-<!-- ===== RESULT TABS ===== -->
-<section class="hn-flatmate-tabs-wrap reveal">
-  <div class="hn-flatmate-tabs" role="tablist" aria-label="Filter listings by type">
-    <button class="hn-flatmate-tab <%= (!filters || !filters.type) ? 'active' : '' %>" onclick="setFeedType('', this)" role="tab" aria-selected="<%= (!filters || !filters.type) ? 'true' : 'false' %>">
-      All <span class="cnt">(<%= listings.length %>)</span>
-    </button>
-    <button class="hn-flatmate-tab <%= filters && filters.type === 'need' ? 'active' : '' %>" onclick="setFeedType('need', this)" role="tab" aria-selected="<%= filters && filters.type === 'need' ? 'true' : 'false' %>">
-      Flatmates <span class="cnt">(<%= listings.filter(function(l){return l.type==='need'}).length %>)</span>
-    </button>
-    <button class="hn-flatmate-tab <%= filters && filters.type === 'have' ? 'active' : '' %>" onclick="setFeedType('have', this)" role="tab" aria-selected="<%= filters && filters.type === 'have' ? 'true' : 'false' %>">
-       Flats <span class="cnt">(<%= listings.filter(function(l){return l.type==='have'}).length %>)</span>
-    </button>
-  </div>
 </section>
 
-<!-- ===== FLATS & FLATMATES (main feed) ===== -->
-<section class="hn-flatmate-feed reveal">
-  <div class="hn-flatmate-feed-head">
-    <div>
-      <h2>Flats &amp; Flatmates</h2>
-      <p class="cnt"><strong id="fmResultsCount"><%= listings.length %></strong> listings</p>
-    </div>
-    <div class="hn-flatmate-sort">
-      <label for="fmSort" class="visually-hidden">Sort by</label>
-      Sort:
-      <select id="fmSort">
-        <option value="latest">Latest</option>
-        <option value="price-low">Price: Low to High</option>
-        <option value="price-high">Price: High to Low</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="hn-flatmate-grid" id="fmGrid">
-    <% if (listings && listings.length > 0) { %>
-      <% listings.forEach(function(l, i) { %>
-        <div class="hn-flatmate-card" data-type="<%= l.type %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="window.location.href='/flatmate/<%= l._id %>'">
-          <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>">
-            <% if (l.type === 'have') { %>
-              <img src="<%= l.image || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
-            <% } else { %>
-              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-              <span>Looking for a flat</span>
-            <% } %>
-            <% if (l.type === 'have') { %>
-              <span class="hn-flatmate-badge have">🏠 FLAT</span>
-            <% } else { %>
-              <span class="hn-flatmate-badge need">👤 FLATMATE</span>
-            <% } %>
-            <button class="hn-flatmate-wish" onclick="event.stopPropagation(); toggleFmWish(event, this)" aria-label="Save to wishlist" aria-pressed="false">
-              <i class="fa-regular fa-heart" aria-hidden="true"></i>
-            </button>
-          </div>
-          <div class="hn-flatmate-card-body">
-            <div class="hn-flatmate-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
-            <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= l.location %>, <%= l.city %></div>
-            <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
-            <% if (l.type === 'have') { %>
-              <div class="hn-flatmate-card-price">₹<%= l.rent.toLocaleString('en-IN') %> <span>/ month</span></div>
-              <div class="hn-flatmate-card-meta">Available from <%= l.moveIn %></div>
-            <% } else { %>
-              <div class="hn-flatmate-card-price">₹<%= l.budgetMin.toLocaleString('en-IN') %>&ndash;₹<%= l.budgetMax.toLocaleString('en-IN') %></div>
-              <div class="hn-flatmate-card-meta">Move-in <%= l.moveIn %></div>
-            <% } %>
-            <div class="hn-flatmate-card-footer">
-              <div class="hn-flatmate-poster">Posted by <%= l.postedBy %></div>
-              <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">Request to Talk</button>
-            </div>
-          </div>
-        </div>
-      <% }) %>
-    <% } else { %>
-      <div class="hn-flatmate-empty">
-        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-        <h3><%= filters && filters.type === 'need' ? 'No flatmates found' : (filters && filters.type === 'have' ? 'No flats found' : 'No listings found') %></h3>
-        <p>Try another location or adjust your filters.</p>
-        <a href="/flatmate">Clear filters</a>
-      </div>
-    <% } %>
-  </div>
-</section>
-<% } %>
-
-<% if (mode !== 'results') { %>
 <!-- ===== HOW IT WORKS ===== -->
 <section class="hn-flatmate-steps reveal">
   <div class="hn-flatmate-steps-inner">
@@ -770,7 +727,6 @@
     List My Flat &mdash; Free <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px"></i>
   </a>
 </section>
-<% } %>
 
 </main>
 
@@ -965,29 +921,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-/* ── RESULT TABS (client-side, no reload) — preserves existing setFeedType() ── */
-function setFeedType(type, btn) {
-  document.querySelectorAll('.hn-flatmate-tab').forEach(function (t) {
-    t.classList.remove('active');
-    t.setAttribute('aria-selected', 'false');
-  });
-  btn.classList.add('active');
-  btn.setAttribute('aria-selected', 'true');
-
-  var cards = document.querySelectorAll('#fmGrid .hn-flatmate-card');
-  var visible = 0;
-  cards.forEach(function (c) {
-    var match = !type || c.dataset.type === type;
-    c.style.display = match ? '' : 'none';
-    if (match) visible++;
-  });
-  var countEl = document.getElementById('fmResultsCount');
-  if (countEl) countEl.textContent = visible;
-
-  var emptyEl = document.querySelector('#fmGrid .hn-flatmate-empty');
-  if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
-}
-
 /* ── MOBILE FILTER DRAWER (preserved API: openFilterDrawer / closeFilterDrawer) ── */
 function openFilterDrawer() {
   document.getElementById('fmDrawerOverlay').classList.add('open');
@@ -1021,22 +954,6 @@ function scrollRow(id, dir) {
   var track = document.getElementById(id);
   if (track) track.scrollBy({ left: dir * 280, behavior: 'smooth' });
 }
-
-/* ── SORT (client-side re-order, main feed only) ── */
-document.getElementById('fmSort')?.addEventListener('change', function () {
-  var grid = document.getElementById('fmGrid');
-  var cards = Array.prototype.slice.call(grid.querySelectorAll('.hn-flatmate-card'));
-  var val = this.value;
-  cards.sort(function (a, b) {
-    var pa = parseInt(a.querySelector('.hn-flatmate-card-price').textContent.replace(/[^0-9]/g, '')) || 0;
-    var pb = parseInt(b.querySelector('.hn-flatmate-card-price').textContent.replace(/[^0-9]/g, '')) || 0;
-    if (val === 'price-low') return pa - pb;
-    if (val === 'price-high') return pb - pa;
-    return 0;
-  });
-  if (val === 'latest') return;
-  cards.forEach(function (c) { grid.appendChild(c); });
-});
 
 /* ── WISHLIST TOGGLE (existing behaviour + small pop animation) ── */
 function toggleFmWish(e, el) {
