@@ -1,18 +1,29 @@
 // ================= flatmateRoutes.js =============================
 /* ============================================================
    flatmateRoutes.js — HostelNode Flatmate feature
-   - GET /flatmate  →  Landing + search + across-India strip + feed
-   NOTE: There is no Flatmate model/collection yet. This route
-   currently serves SAMPLE data so the UI is fully viewable end
-   to end. Swap SAMPLE_LISTINGS for a real Mongoose query once
-   the Flatmate schema + create/detail/request/chat routes exist.
-   All counts shown in the UI (tabs, stats, city pills) are
-   computed from this array — nothing is hard-coded in the view.
+   - GET /flatmate          → Landing page (hero, search, city chips,
+                              across-India preview, how it works, etc.)
+                              If a real search/filter is present in the
+                              query string, redirects to /flatmate/results
+                              so a "search" always opens a dedicated
+                              results page — the landing page itself
+                              never shows a filtered grid.
+   - GET /flatmate/results  → Dedicated search-results page (tabs +
+                              full "Flats & Flatmates" grid). Reuses the
+                              SAME flatmate.ejs template as the landing
+                              page via the `mode` flag, matching the
+                              existing /findHostels + /findHostels/results
+                              pattern already used elsewhere in this app.
+   NOTE: There is no Flatmate model/collection yet. Both routes serve
+   SAMPLE data so the UI is fully viewable end to end. Swap
+   SAMPLE_LISTINGS for a real Mongoose query once the Flatmate schema
+   + create/detail/request/chat routes exist. All counts shown in the
+   UI (tabs, city pills) are computed from this array — nothing is
+   hard-coded in the view.
 ============================================================ */
 
 const express = require("express");
 const router  = express.Router();
-
 
 // Fixed city set used for quick-filter pills
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
@@ -39,59 +50,91 @@ const SAMPLE_LISTINGS = [
   { _id: "s16", type: "need", city: "Hyderabad",    bhk: 1, roomType: "Any",           location: "Madhapur",         gender: "male",   budgetMin: 7000,  budgetMax: 11000, moveIn: "8 Oct",  postedBy: "Sandeep" },
 ];
 
+// Shared filtering logic used by /results (kept separate from "/" so the
+// landing page never has to run/carry this — it only ever redirects).
+function filterListings({ location = "", gender = "", type = "", budget = "", bhk = "" }) {
+  let listings = SAMPLE_LISTINGS.slice();
+
+  if (location) {
+    const q = location.toLowerCase();
+    listings = listings.filter(l =>
+      l.city.toLowerCase().includes(q) || l.location.toLowerCase().includes(q)
+    );
+  }
+  if (gender && gender !== "any") {
+    listings = listings.filter(l => l.gender === "any" || l.gender === gender);
+  }
+  if (type === "need" || type === "have") {
+    listings = listings.filter(l => l.type === type);
+  }
+  if (bhk) {
+    listings = listings.filter(l => String(l.bhk) === String(bhk));
+  }
+  if (budget) {
+    const max = parseInt(budget, 10);
+    listings = listings.filter(l => (l.type === "have" ? l.rent : l.budgetMax) <= max);
+  }
+  return listings;
+}
+
 // ─────────────────────────────────────────────
-// LANDING / SEARCH / FEED  →  GET /flatmate
+// LANDING PAGE  →  GET /flatmate
+// Always shows the clean marketing/landing state. If a search/filter
+// query param is present (e.g. an old bookmarked link, or a city-chip
+// click that somehow lands here), redirect straight to /flatmate/results
+// so search results always live on their own page.
 // ─────────────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
-    const { location = "", gender = "", type = "", budget = "", bhk = "" } = req.query;
+    const hasFilters = ["location", "gender", "type", "budget", "bhk"].some(
+      key => req.query[key] && String(req.query[key]).trim() && req.query[key] !== "any"
+    );
+    if (hasFilters) {
+      const qs = new URLSearchParams(req.query).toString();
+      return res.redirect(302, `/flatmate/results${qs ? "?" + qs : ""}`);
+    }
 
-    // Real total (not a hard-coded marketing number) — swap the source
-    // array for a Mongoose .countDocuments() once real data exists.
     const totalListingsCount = SAMPLE_LISTINGS.length;
-
-    // Single "Across India" horizontal strip — always the full unfiltered mix.
     const acrossIndiaListings = SAMPLE_LISTINGS.slice().reverse().slice(0, 10);
-
     const cityCounts = CITIES.map(city => ({
       name: city,
       count: SAMPLE_LISTINGS.filter(l => l.city === city).length,
     }));
 
-    // Main "Flats & Flatmates" feed: filtered by search bar params
-    let listings = SAMPLE_LISTINGS.slice();
-
-    if (location) {
-      const q = location.toLowerCase();
-      listings = listings.filter(l =>
-        l.city.toLowerCase().includes(q) || l.location.toLowerCase().includes(q)
-      );
-    }
-    if (gender && gender !== "any") {
-      listings = listings.filter(l => l.gender === "any" || l.gender === gender);
-    }
-    if (type === "need" || type === "have") {
-      listings = listings.filter(l => l.type === type);
-    }
-    if (bhk) {
-      listings = listings.filter(l => String(l.bhk) === String(bhk));
-    }
-    if (budget) {
-      const max = parseInt(budget, 10);
-      listings = listings.filter(l => (l.type === "have" ? l.rent : l.budgetMax) <= max);
-    }
-
     res.render("flatmate/flatmate", {
-      listings,
+      mode: "home",
+      listings: [],
       acrossIndiaListings,
       cityCounts,
       totalListingsCount,
+      filters: { location: "", gender: "", type: "", budget: "", bhk: "" },
+    });
+  } catch (err) {
+    console.error("Flatmate landing route error:", err);
+    res.status(500).send("Something went wrong loading the Flatmate page. Please try again in a moment.");
+  }
+});
+
+// ─────────────────────────────────────────────
+// SEARCH RESULTS  →  GET /flatmate/results
+// Dedicated results page: search bar (for refining) + tabs + full grid.
+// ─────────────────────────────────────────────
+router.get("/results", async (req, res) => {
+  try {
+    const { location = "", gender = "", type = "", budget = "", bhk = "" } = req.query;
+    const listings = filterListings({ location, gender, type, budget, bhk });
+
+    res.render("flatmate/flatmate", {
+      mode: "results",
+      listings,
+      acrossIndiaListings: [],
+      cityCounts: [],
+      totalListingsCount: SAMPLE_LISTINGS.length,
       filters: { location, gender, type, budget, bhk },
     });
   } catch (err) {
-    console.error("Flatmate route error:", err);
-    // Never leak stack traces / raw Mongo or Express errors to the user.
-    res.status(500).send("Something went wrong loading Flatmate listings. Please try again in a moment.");
+    console.error("Flatmate results route error:", err);
+    res.status(500).send("Something went wrong loading your search results. Please try again in a moment.");
   }
 });
 

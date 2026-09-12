@@ -185,26 +185,21 @@
     }
     .hn-flatmate-search-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(9,184,80,.32); }
     .hn-flatmate-filter-btn {
-      display: none; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: var(--radius-md); padding: 12px 16px; font-size: 13.5px; font-weight: 700; color: var(--ink);
-      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1.5px solid var(--border);
+      border-radius: var(--radius-md); padding: 0 18px; font-size: 13.5px; font-weight: 700; color: var(--ink);
+      cursor: pointer; flex-shrink: 0; transition: border-color .15s, color .15s;
     }
-    .hn-flatmate-more-filters { text-align: center; margin-top: 10px; }
-    .hn-flatmate-more-filters button {
-      background: none; border: none; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer;
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .hn-flatmate-more-filters button:hover { color: var(--green-dark); }
-    .hn-flatmate-extra-filters {
-      max-width: 860px; margin: 10px auto 0; padding: 0 24px; display: none; gap: 10px; flex-wrap: wrap;
-    }
-    .hn-flatmate-extra-filters.open { display: flex; }
-    .hn-flatmate-extra-filters select {
-      border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 600;
-      color: var(--ink); background: #fff;
-    }
+    .hn-flatmate-filter-btn:hover { border-color: var(--green); color: var(--green-dark); }
     .hn-flatmate-active-filter-note { max-width: 860px; margin: 12px auto 0; padding: 0 24px; text-align: center; font-size: 13px; color: var(--muted); }
     .hn-flatmate-active-filter-note a { color: var(--green-dark); font-weight: 700; }
+
+    /* ---- POPULAR CITIES (below the search box) ---- */
+    .hn-flatmate-city-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
+    .hn-flatmate-city-row a {
+      padding: 9px 20px; border-radius: 999px; background: var(--bg2); color: var(--ink-mid);
+      font-size: 13.5px; font-weight: 700; text-decoration: none; transition: background .15s, color .15s, transform .15s;
+    }
+    .hn-flatmate-city-row a:hover { background: var(--ink); color: #fff; transform: translateY(-1px); }
 
     /* ---- ACROSS INDIA (compact horizontal-scroll strip) ---- */
     .hn-flatmate-across { max-width: 1180px; margin: 40px auto 0; padding: 0 24px; }
@@ -484,7 +479,7 @@
 
 <main>
 
-  
+<% if (mode !== 'results') { %>
 <!-- ===== HERO ===== -->
 
 <section class="hn-flatmate-hero">
@@ -521,11 +516,12 @@
     </a>
   </div>
 </section>
+<% } %>
 
 <!-- ===== SEARCH: Looking for Flatmates ===== -->
 <section class="hn-flatmate-search-wrap reveal" aria-label="Search flats and flatmates">
-  <p class="hn-flatmate-search-heading">Looking for Flatmates</p>
-  <form class="hn-flatmate-search" id="flatmateSearchForm" action="/flatmate" method="GET">
+  <p class="hn-flatmate-search-heading"><%= mode === 'results' ? 'Refine your search' : 'Looking for Flatmates' %></p>
+  <form class="hn-flatmate-search" id="flatmateSearchForm" action="/flatmate/results" method="GET">
     <div class="hn-flatmate-field">
       <i class="fa-solid fa-people-group" aria-hidden="true"></i>
       <div class="fld-wrap">
@@ -561,35 +557,22 @@
     </button>
   </form>
 
-  <div class="hn-flatmate-more-filters">
-    <button type="button" onclick="toggleExtraFilters()" aria-expanded="false" aria-controls="fmExtraFilters">
-      <i class="fa-solid fa-sliders" aria-hidden="true"></i> More filters (budget, BHK)
-    </button>
-  </div>
-  <div class="hn-flatmate-extra-filters" id="fmExtraFilters">
-    <label for="fmBudget" class="visually-hidden">Budget</label>
-    <select id="fmBudget" onchange="submitWithExtra()">
-      <option value="">Any budget</option>
-      <option value="8000"  <%= filters && filters.budget === '8000'  ? 'selected' : '' %>>Under ₹8,000</option>
-      <option value="15000" <%= filters && filters.budget === '15000' ? 'selected' : '' %>>Under ₹15,000</option>
-      <option value="25000" <%= filters && filters.budget === '25000' ? 'selected' : '' %>>Under ₹25,000</option>
-    </select>
-    <label for="fmBhk" class="visually-hidden">BHK</label>
-    <select id="fmBhk" onchange="submitWithExtra()">
-      <option value="">Any BHK</option>
-      <option value="1" <%= filters && filters.bhk === '1' ? 'selected' : '' %>>1 BHK</option>
-      <option value="2" <%= filters && filters.bhk === '2' ? 'selected' : '' %>>2 BHK</option>
-      <option value="3" <%= filters && filters.bhk === '3' ? 'selected' : '' %>>3 BHK</option>
-    </select>
-  </div>
+  <% if (mode !== 'results') { %>
+    <div class="hn-flatmate-city-row" aria-label="Popular cities">
+      <% cityCounts.forEach(function(c) { %>
+        <a href="/flatmate/results?location=<%= encodeURIComponent(c.name) %>"><%= c.name %></a>
+      <% }) %>
+    </div>
+  <% } %>
 
-  <% if (filters && (filters.location || (filters.gender && filters.gender !== 'any') || filters.budget || filters.bhk)) { %>
+  <% if (mode === 'results' && filters && (filters.location || (filters.gender && filters.gender !== 'any') || filters.budget || filters.bhk)) { %>
     <div class="hn-flatmate-active-filter-note">
       Showing <strong><%= listings.length %></strong> result<%= listings.length === 1 ? '' : 's' %> for your filters &middot; <a href="/flatmate">Clear all</a>
     </div>
   <% } %>
 </section>
 
+<% if (mode !== 'results') { %>
 <!-- ===== ACROSS INDIA (single compact horizontal-scroll strip) ===== -->
 <section class="hn-flatmate-across reveal" aria-label="Flatmates across India">
   <div class="hn-flatmate-across-head">
@@ -602,7 +585,7 @@
 
   <div class="hn-flatmate-across-pills">
     <% cityCounts.forEach(function(c) { %>
-      <a href="/flatmate?location=<%= encodeURIComponent(c.name) %>" class="<%= filters && filters.location === c.name ? 'active' : '' %>">
+      <a href="/flatmate/results?location=<%= encodeURIComponent(c.name) %>" class="<%= filters && filters.location === c.name ? 'active' : '' %>">
         <%= c.name %> <span style="opacity:.6">(<%= c.count %>)</span>
       </a>
     <% }) %>
@@ -610,7 +593,9 @@
 
  
 </section>
+<% } %>
 
+<% if (mode === 'results') { %>
 <!-- ===== RESULT TABS ===== -->
 <section class="hn-flatmate-tabs-wrap reveal">
   <div class="hn-flatmate-tabs" role="tablist" aria-label="Filter listings by type">
@@ -692,7 +677,9 @@
     <% } %>
   </div>
 </section>
+<% } %>
 
+<% if (mode !== 'results') { %>
 <!-- ===== HOW IT WORKS ===== -->
 <section class="hn-flatmate-steps reveal">
   <div class="hn-flatmate-steps-inner">
@@ -783,6 +770,7 @@
     List My Flat &mdash; Free <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px"></i>
   </a>
 </section>
+<% } %>
 
 </main>
 
@@ -998,28 +986,6 @@ function setFeedType(type, btn) {
 
   var emptyEl = document.querySelector('#fmGrid .hn-flatmate-empty');
   if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
-}
-
-/* ── MORE FILTERS TOGGLE (desktop inline) ── */
-function toggleExtraFilters() {
-  var el = document.getElementById('fmExtraFilters');
-  var open = el.classList.toggle('open');
-  var btn = document.querySelector('.hn-flatmate-more-filters button');
-  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-}
-function submitWithExtra() {
-  var form = document.getElementById('flatmateSearchForm');
-  var budget = document.getElementById('fmBudget').value;
-  var bhk = document.getElementById('fmBhk').value;
-  var addHidden = function (name, val) {
-    if (!val) return;
-    var inp = document.createElement('input');
-    inp.type = 'hidden'; inp.name = name; inp.value = val;
-    form.appendChild(inp);
-  };
-  addHidden('budget', budget);
-  addHidden('bhk', bhk);
-  form.submit();
 }
 
 /* ── MOBILE FILTER DRAWER (preserved API: openFilterDrawer / closeFilterDrawer) ── */
