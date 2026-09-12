@@ -1,0 +1,81 @@
+<%
+  /*
+   * flatmate-results-filters.ejs — shared by desktop sidebar + mobile drawer
+   * Expects: filters (the parsed search filters object from the route)
+   */
+%>
+
+<form id="flatSidebarFilterForm">
+
+  <!-- BHK -->
+  <div class="filter-section">
+    <div class="filter-label">BHK</div>
+    <div class="filter-chips">
+      <% ['1','2','3','4'].forEach(function(n){ %>
+        <div class="fchip <%= filters.bhk===n?'active':'' %>"
+          onclick="toggleFlatChip(this,'bhk','<%= n %>')">
+          <%= n %><%= n==='4' ? '+' : '' %> BHK
+        </div>
+      <% }) %>
+    </div>
+    <input type="hidden" name="bhk" id="bhkChipInput" value="<%= filters.bhk||'' %>">
+  </div>
+
+  <div class="filter-divider"></div>
+
+  <!-- Room preference -->
+  <div class="filter-section">
+    <div class="filter-label">Room Preference</div>
+    <div class="filter-chips">
+      <% ['private','shared'].forEach(function(rt){ %>
+        <div class="fchip <%= filters.roomType===rt?'active':'' %>"
+          onclick="toggleFlatChip(this,'roomType','<%= rt %>')">
+          <%= rt.charAt(0).toUpperCase()+rt.slice(1) %>
+        </div>
+      <% }) %>
+    </div>
+    <input type="hidden" name="roomType" id="roomTypeChipInput" value="<%= filters.roomType||'' %>">
+  </div>
+
+  <div class="filter-divider"></div>
+
+  <!-- Max Budget -->
+  <div class="filter-section">
+    <div class="filter-label">Max Budget / Month</div>
+    <div class="price-wrap">
+      <input type="range" min="5000" max="25000" step="1000"
+        id="flatPriceSlider" value="<%= filters.budget || 25000 %>"
+        oninput="updateFlatSlider(this.value)">
+      <div class="price-vals">
+        <span>₹5,000</span>
+        <strong id="flatSliderVal">
+          ₹<%= Number(filters.budget||25000).toLocaleString('en-IN') %>
+        </strong>
+      </div>
+    </div>
+    <input type="hidden" name="budget" id="budgetSliderInput" value="<%= filters.budget||'' %>">
+  </div>
+
+  <div class="filter-divider"></div>
+
+  <button type="button" class="btn-apply" onclick="applyResultFilters()">
+    <i class="fa-solid fa-sliders"></i> Apply Filters
+  </button>
+
+</form>
+
+<script>
+  function toggleFlatChip(chip, field, val) {
+    const input = document.getElementById(field === 'bhk' ? 'bhkChipInput' : 'roomTypeChipInput');
+    const group = chip.parentElement;
+    const already = chip.classList.contains('active');
+    group.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+    if (!already) { chip.classList.add('active'); input.value = val; }
+    else { input.value = ''; }
+  }
+
+  function updateFlatSlider(val) {
+    document.getElementById('flatSliderVal').textContent = '₹' + Number(val).toLocaleString('en-IN');
+    document.getElementById('budgetSliderInput').value = val;
+  }
+</script>

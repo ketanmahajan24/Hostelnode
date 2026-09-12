@@ -578,7 +578,7 @@
           <div class="hn-flatmate-card" data-type="<%= l.type %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="window.location.href='/flatmate/<%= l._id %>'">
             <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>">
               <% if (l.type === 'have') { %>
-                <img src="<%= l.image || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
+                <img src="<%= (l.images && l.images[0]) || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
               <% } else { %>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                 <span>Looking for a flat</span>
