@@ -1,4 +1,40 @@
 
+<style>
+  .hn-notif-wrap { position: relative; display: inline-flex; align-items: center; margin-right: 6px; }
+  .hn-notif-bell {
+    position: relative; width: 38px; height: 38px; border-radius: 50%; border: none;
+    background: rgba(9,184,80,.08); color: #0a1628; font-size: 15px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: background .15s;
+  }
+  .hn-notif-bell:hover { background: rgba(9,184,80,.16); }
+  .hn-notif-badge {
+    position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 3px;
+    border-radius: 999px; background: #e53e3e; color: #fff; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .hn-notif-dropdown {
+    position: absolute; top: calc(100% + 10px); right: 0; width: 320px; max-height: 420px;
+    background: #fff; border-radius: 16px; border: 1px solid #e8f0ea;
+    box-shadow: 0 8px 40px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.06);
+    overflow: hidden; z-index: 9999; opacity: 0; transform: translateY(-6px);
+    pointer-events: none; transition: opacity .18s ease, transform .18s ease; display: flex; flex-direction: column;
+  }
+  .hn-notif-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: all; }
+  .hn-notif-dd-head {
+    display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
+    border-bottom: 1px solid #eef3ee; font-size: 13.5px; font-weight: 700; color: #0a1628; flex-shrink: 0;
+  }
+  .hn-notif-dd-head button { background: none; border: none; color: #09b850; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .hn-notif-list { overflow-y: auto; flex: 1; }
+  .hn-notif-empty { padding: 30px 16px; text-align: center; font-size: 13px; color: #94a3a8; }
+  .hn-notif-item { display: block; padding: 12px 16px; border-bottom: 1px solid #f5f8f6; text-decoration: none; transition: background .12s; }
+  .hn-notif-item:hover { background: #f7fbf8; }
+  .hn-notif-item.unread { background: #f0fdf4; }
+  .hn-notif-item .n-title { font-size: 13px; font-weight: 700; color: #0a1628; margin-bottom: 2px; }
+  .hn-notif-item .n-body { font-size: 12px; color: #64748b; }
+  .hn-notif-item .n-time { font-size: 10.5px; color: #94a3a8; margin-top: 4px; }
+</style>
+
 <!-- ═══════════════════════════════════════════════════════════
      MOBILE NAV
      student comes from res.student (set by global middleware)
@@ -95,6 +131,23 @@
   <div class="hn-nav-actions">
 
     <% if (student) { %>
+    <!-- ══ NOTIFICATION BELL ══ -->
+    <div class="hn-notif-wrap" id="notifWrap">
+      <button class="hn-notif-bell" id="notifBellBtn" onclick="toggleNotifDropdown(event)" aria-label="Notifications">
+        <i class="fa-solid fa-bell"></i>
+        <span class="hn-notif-badge" id="notifBadge" style="display:none">0</span>
+      </button>
+      <div class="hn-notif-dropdown" id="notifDropdown">
+        <div class="hn-notif-dd-head">
+          <span>Notifications</span>
+          <button onclick="markAllNotifsRead()">Mark all read</button>
+        </div>
+        <div class="hn-notif-list" id="notifList">
+          <div class="hn-notif-empty">Loading…</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ LOGGED IN: profile pill with dropdown ══ -->
 
       <div class="sn-pill" id="snPill" onclick="snToggle(event)">
@@ -259,3 +312,75 @@
   setInterval(flip, 3000);
 })();
 </script>
+
+<% if (student) { %>
+<script>
+(function () {
+  const dropdown = document.getElementById('notifDropdown');
+  const badge = document.getElementById('notifBadge');
+  const list = document.getElementById('notifList');
+  let loaded = false;
+
+  function timeAgo(dateStr) {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.floor(hrs / 24) + 'd ago';
+  }
+
+  async function loadNotifs() {
+    try {
+      const res = await fetch('/notifications');
+      const data = await res.json();
+      if (!data.success) return;
+
+      badge.style.display = data.unreadCount > 0 ? 'flex' : 'none';
+      badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+
+      if (!data.notifications.length) {
+        list.innerHTML = '<div class="hn-notif-empty">No notifications yet</div>';
+        return;
+      }
+      list.innerHTML = data.notifications.map(function (n) {
+        const href = n.link || '#';
+        return '<a class="hn-notif-item ' + (n.isRead ? '' : 'unread') + '" href="' + href + '" onclick="markNotifRead(\'' + n._id + '\')">' +
+          '<div class="n-title">' + n.title + '</div>' +
+          (n.body ? '<div class="n-body">' + n.body + '</div>' : '') +
+          '<div class="n-time">' + timeAgo(n.createdAt) + '</div>' +
+          '</a>';
+      }).join('');
+    } catch (err) { /* silent — bell just stays empty on a network hiccup */ }
+  }
+
+  window.toggleNotifDropdown = function (e) {
+    e.stopPropagation();
+    const willOpen = !dropdown.classList.contains('open');
+    dropdown.classList.toggle('open');
+    if (willOpen && !loaded) { loaded = true; loadNotifs(); }
+    else if (willOpen) { loadNotifs(); }
+  };
+
+  window.markNotifRead = function (id) {
+    fetch('/notifications/' + id + '/read', { method: 'POST' }).catch(function () {});
+  };
+
+  window.markAllNotifsRead = async function () {
+    try {
+      await fetch('/notifications/read-all', { method: 'POST' });
+      loadNotifs();
+    } catch (err) {}
+  };
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.hn-notif-wrap')) dropdown.classList.remove('open');
+  });
+
+  // Refresh the unread badge periodically without opening the dropdown.
+  loadNotifs();
+  setInterval(loadNotifs, 30000);
+})();
+</script>
+<% } %>

@@ -39,6 +39,7 @@ const fs       = require("fs");
 
 const FlatmateListing = require("../models/FlatmateListing");
 const FlatmateConnection = require("../models/FlatmateConnection");
+const Block = require("../models/Block");
 
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
 const RESULTS_PAGE_SIZE = 9;
@@ -681,6 +682,16 @@ router.post("/connect", requireStudent, async (req, res) => {
     }
     if (listing.student.toString() === req.student.id) {
       return res.json({ success: false, error: "You can't request to connect on your own listing." });
+    }
+
+    const blocked = await Block.findOne({
+      $or: [
+        { blocker: req.student.id, blocked: listing.student },
+        { blocker: listing.student, blocked: req.student.id },
+      ],
+    });
+    if (blocked) {
+      return res.json({ success: false, error: "You can't connect with this user." });
     }
 
     const existing = await FlatmateConnection.findOne({

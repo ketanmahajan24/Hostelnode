@@ -44,6 +44,7 @@ const adminRouter       = require("./routes/adminRoutes");
 const cityRouter        = require("./routes/cityRoutes");
 const flatmateRouter    = require("./routes/flatmateRoutes");
 const messagesRouter    = require("./routes/messagesRoutes");
+const notificationsRouter = require("./routes/notificationsRoutes");
 const sitemapRouter     = require("./routes/sitemapRoute");
 const waBot             = require("./app-wa-bot");
 
@@ -118,6 +119,7 @@ app.use("/findHostels", findHostelsRouter);
 app.use("/city",        cityRouter);
 app.use("/flatmate",    flatmateRouter);
 app.use("/messages",    messagesRouter);
+app.use("/notifications", notificationsRouter);
 app.use("/",            sitemapRouter);
 app.use("/",            publicRoutes);
 
@@ -224,4 +226,4 @@ cron.schedule("0 0 * * *", async () => {
 const PORT = process.env.PORT || 6060;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-});   
+});

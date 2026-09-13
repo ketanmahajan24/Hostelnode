@@ -75,6 +75,13 @@
         <% } %>
       </a>
 
+      <a href="/admin/reports" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'reports' ? 'active' : '' %>">
+        <i class="fa-solid fa-flag"></i> Reports
+        <% if (typeof stats !== 'undefined' && stats.pendingReports > 0) { %>
+          <span class="nav-badge amber"><%= stats.pendingReports %></span>
+        <% } %>
+      </a>
+
       <a href="/admin/hostels" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'hostels' ? 'active' : '' %>">
         <i class="fa-solid fa-house-chimney"></i> Hostels
       </a>

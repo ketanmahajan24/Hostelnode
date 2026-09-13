@@ -67,6 +67,14 @@
     .rm-actions button { flex: 1; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; }
     .rm-actions .cancel { background: var(--bg2); color: var(--ink-mid); }
     .rm-actions .confirm { background: #c53030; color: #fff; }
+
+    .report-reasons { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .report-reason-opt { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-mid); padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; }
+    .report-reason-opt input { accent-color: #c53030; }
+    .report-reason-opt.checked { border-color: #c53030; background: #fef2f2; }
+    .rm-box textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; margin-bottom: 14px; }
+    .rm-success { text-align: center; padding: 10px 0; }
+    .rm-success i { font-size: 30px; color: var(--green); display: block; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -101,8 +109,10 @@
           <a href="/flatmate/<%= conversation.listing.slug %>"><i class="fa-solid fa-house"></i> View Listing</a>
         <% } %>
         <% if (conversation.status === 'active' && connection) { %>
-          <button class="danger" onclick="openRemoveModal()"><i class="fa-solid fa-user-slash"></i> Remove Connection</button>
+          <button onclick="openRemoveModal()"><i class="fa-solid fa-user-slash"></i> Remove Connection</button>
         <% } %>
+        <button onclick="openReportModal()"><i class="fa-solid fa-flag"></i> Report</button>
+        <button class="danger" onclick="openBlockModal()"><i class="fa-solid fa-ban"></i> Block User</button>
       </div>
     </div>
   </div>
@@ -158,6 +168,49 @@
   </div>
 </div>
 
+<!-- Report modal -->
+<div class="rm-overlay" id="reportOverlay" onclick="if(event.target===this) closeReportModal()">
+  <div class="rm-box">
+    <div id="reportForm">
+      <h3>Report <%= counterpart?.firstName || 'this user' %></h3>
+      <p style="font-size:13px;color:var(--muted-light);margin-bottom:14px">Why are you reporting this user?</p>
+      <div class="report-reasons" id="reportReasons">
+        <% ["Spam","Fake profile","Harassment","Fraud / Scam","Inappropriate content","Other"].forEach(function(r, i) { %>
+          <label class="report-reason-opt">
+            <input type="radio" name="reportReason" value="<%= r %>" onchange="markReportReason(this)"> <%= r %>
+          </label>
+        <% }) %>
+      </div>
+      <textarea id="reportDetails" rows="3" maxlength="1000" placeholder="Additional details (optional)"></textarea>
+      <div class="rm-actions">
+        <button class="cancel" onclick="closeReportModal()">Cancel</button>
+        <button class="confirm" onclick="submitReport()">Submit Report</button>
+      </div>
+    </div>
+    <div id="reportSuccess" class="rm-success" style="display:none">
+      <i class="fa-solid fa-circle-check"></i>
+      <p style="font-size:13.5px;color:var(--ink)">Thanks — our team will review this report.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Block confirmation -->
+<div class="rm-overlay" id="blockOverlay" onclick="if(event.target===this) closeBlockModal()">
+  <div class="rm-box">
+    <h3>Block <%= counterpart?.firstName || 'this user' %>?</h3>
+    <ul>
+      <li>They won't be able to send you new connection requests</li>
+      <li>They won't be able to message you</li>
+      <li>Any active connection between you will end</li>
+      <li>Your private information will no longer be visible to them</li>
+    </ul>
+    <div class="rm-actions">
+      <button class="cancel" onclick="closeBlockModal()">Cancel</button>
+      <button class="confirm" onclick="blockUser()">Block User</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 <script>
 const CONVERSATION_ID = "<%= conversation._id %>";
@@ -178,6 +231,48 @@ document.addEventListener('click', function(e) {
 
 function openRemoveModal() { document.getElementById('rmOverlay').classList.add('open'); toggleChatMenu(); }
 function closeRemoveModal() { document.getElementById('rmOverlay').classList.remove('open'); }
+
+const COUNTERPART_ID = <%- counterpart ? JSON.stringify(counterpart._id.toString()) : 'null' %>;
+const LISTING_ID = <%- (conversation.listing && conversation.listing._id) ? JSON.stringify(conversation.listing._id.toString()) : 'null' %>;
+
+function openReportModal() { document.getElementById('reportOverlay').classList.add('open'); toggleChatMenu(); }
+function closeReportModal() { document.getElementById('reportOverlay').classList.remove('open'); }
+function markReportReason(input) {
+  document.querySelectorAll('.report-reason-opt').forEach(el => el.classList.remove('checked'));
+  input.closest('.report-reason-opt').classList.add('checked');
+}
+async function submitReport() {
+  const reasonEl = document.querySelector('input[name="reportReason"]:checked');
+  if (!reasonEl) { alert('Please select a reason.'); return; }
+  try {
+    const res = await fetch('/messages/report', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reportedUserId: COUNTERPART_ID, listingId: LISTING_ID, conversationId: CONVERSATION_ID,
+        reason: reasonEl.value, details: document.getElementById('reportDetails').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('reportForm').style.display = 'none';
+      document.getElementById('reportSuccess').style.display = 'block';
+      setTimeout(closeReportModal, 1800);
+    } else {
+      alert(data.error || 'Could not submit report.');
+    }
+  } catch (err) { alert('Network error — please try again.'); }
+}
+
+function openBlockModal() { document.getElementById('blockOverlay').classList.add('open'); toggleChatMenu(); }
+function closeBlockModal() { document.getElementById('blockOverlay').classList.remove('open'); }
+async function blockUser() {
+  try {
+    const res = await fetch('/messages/block/' + COUNTERPART_ID, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) { window.location.href = '/messages'; }
+    else alert(data.error || 'Could not block user.');
+  } catch (err) { alert('Network error — please try again.'); }
+}
 
 async function removeConnection() {
   try {

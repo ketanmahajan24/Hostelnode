@@ -18,6 +18,7 @@ const Payment  = require("../models/payment");
 const SearchLog = require("../models/searchLog");
 const FlatmateListing = require("../models/FlatmateListing");
 const FlatmateConnection = require("../models/FlatmateConnection");
+const Report = require("../models/Report");
 
 const { sendMail } = require("../utils/sendMail");
 const { jwtAdminAuth, generateAdminToken } = require("../Middlewares/jwtAuth");
@@ -593,6 +594,58 @@ router.delete("/flatmate/:id", jwtAdminAuth, async (req, res) => {
   try {
     await FlatmateListing.findByIdAndDelete(req.params.id);
     await FlatmateConnection.deleteMany({ receiverListing: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+/* ============================================================
+   REPORTS  (Block/Report — user safety)
+   Reports are auditable, reviewed here — reporting never auto-blocks
+   anyone; that stays a separate user action (POST /messages/block/:id).
+============================================================ */
+router.get("/reports", jwtAdminAuth, async (req, res) => {
+  try {
+    const { status, page = 1 } = req.query;
+    const limit = 20, skip = (page - 1) * limit;
+
+    const filter = {};
+    if (status && status !== "all") filter.status = status;
+
+    const [reports, total, pendingCount] = await Promise.all([
+      Report.find(filter)
+        .populate("reporter", "firstName lastName phone")
+        .populate("reportedUser", "firstName lastName phone")
+        .populate("relatedListing", "bhk roomType area city slug")
+        .sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Report.countDocuments(filter),
+      Report.countDocuments({ status: "pending" }),
+    ]);
+
+    const admin = await Admin.findById(req.admin.id).select("-password");
+    res.render("admin/reports.ejs", {
+      admin, reports, total, pendingCount,
+      currentPage: +page, totalPages: Math.ceil(total / limit),
+      filters: { status },
+    });
+  } catch (err) {
+    console.error("Admin reports list error:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
+/* PATCH /admin/reports/:id/status  body: { status, adminNote? } */
+router.patch("/reports/:id/status", jwtAdminAuth, async (req, res) => {
+  try {
+    const { status, adminNote } = req.body;
+    if (!["pending", "reviewed", "dismissed"].includes(status)) {
+      return res.status(400).json({ success: false, error: "Invalid status." });
+    }
+    const update = { status };
+    if (adminNote !== undefined) update.adminNote = (adminNote || "").trim().slice(0, 500);
+    const report = await Report.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!report) return res.status(404).json({ success: false, error: "Report not found." });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: "Server error" });

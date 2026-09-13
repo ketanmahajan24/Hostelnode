@@ -1,0 +1,69 @@
+<% locals.pageTitle = 'Reports'; locals.activePage = 'reports'; %>
+<%- include('layout', { body: `
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Reports</h1>
+    <p>${total} total report${total!==1?'s':''} &middot; ${pendingCount} awaiting review</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <form method="GET" action="/admin/reports" style="display:contents">
+    <select name="status" class="filter-select" onchange="this.form.submit()">
+      <option value="all">All</option>
+      <option value="pending"   ${filters.status==='pending'  ?'selected':''}>Pending</option>
+      <option value="reviewed"  ${filters.status==='reviewed' ?'selected':''}>Reviewed</option>
+      <option value="dismissed" ${filters.status==='dismissed'?'selected':''}>Dismissed</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+    <a href="/admin/reports" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Reported User</th><th>Reported By</th><th>Reason</th><th>Details</th><th>Listing</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        ${reports.length === 0 ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">No reports found</td></tr>' :
+        reports.map(r => `
+        <tr>
+          <td>
+            <div class="cell-name">${r.reportedUser?.firstName||''} ${r.reportedUser?.lastName||''}</div>
+            <div class="cell-sub">${r.reportedUser?.phone||'—'}</div>
+          </td>
+          <td>
+            <div class="cell-name">${r.reporter?.firstName||''} ${r.reporter?.lastName||''}</div>
+            <div class="cell-sub">${r.reporter?.phone||'—'}</div>
+          </td>
+          <td><span class="badge badge-blue">${r.reason}</span></td>
+          <td><div class="cell-sub" style="max-width:220px;white-space:normal">${r.details || '—'}</div></td>
+          <td>${r.relatedListing ? `<a href="/flatmate/${r.relatedListing.slug}" target="_blank">${r.relatedListing.bhk} BHK, ${r.relatedListing.area}</a>` : '—'}</td>
+          <td>
+            <select class="filter-select" style="padding:4px 28px 4px 8px;font-size:0.72rem"
+              onchange="updateStatus('/admin/reports/${r._id}/status', {status:this.value}, 'Report updated')">
+              ${['pending','reviewed','dismissed'].map(s=>`<option value="${s}" ${r.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <a href="/admin/students/${r.reportedUser?._id}" class="icon-btn" title="View reported user's profile"><i class="fa-solid fa-user"></i></a>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  ${totalPages > 1 ? `
+  <div class="card-footer">
+    <div class="pagination">
+      <a href="?page=${currentPage-1}" class="page-btn ${currentPage===1?'disabled':''}"><i class="fa-solid fa-chevron-left"></i></a>
+      ${Array.from({length:totalPages},(_,i)=>`<a href="?page=${i+1}" class="page-btn ${currentPage===i+1?'active':''}">${i+1}</a>`).join('')}
+      <a href="?page=${currentPage+1}" class="page-btn ${currentPage===totalPages?'disabled':''}"><i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+  </div>` : ''}
+</div>
+` }) %>

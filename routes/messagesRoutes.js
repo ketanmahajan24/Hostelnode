@@ -29,6 +29,8 @@ const FlatmateConnection = require("../models/FlatmateConnection");
 const Conversation       = require("../models/Conversation");
 const Message            = require("../models/Message");
 const Notification       = require("../models/Notification");
+const Block              = require("../models/Block");
+const Report             = require("../models/Report");
 
 /* ── Auth — same contract as flatmateRoutes.js's requireStudent, defined
    locally so this file has no cross-file coupling. ── */
@@ -227,6 +229,81 @@ router.post("/connection/:id/remove", requireStudent, async (req, res) => {
 });
 
 /* ─────────────────────────────────────────────
+   BLOCK USER  →  POST /messages/block/:studentId
+   User-level block (not tied to one listing) — also ends any
+   currently-accepted connection(s) between the two and closes their
+   conversation(s), so private info re-locks and messaging stops
+   immediately, consistent with Remove Connection's behavior.
+───────────────────────────────────────────── */
+router.post("/block/:studentId", requireStudent, async (req, res) => {
+  try {
+    const viewerId = req.student.id;
+    const targetId = req.params.studentId;
+    if (targetId === viewerId) {
+      return res.json({ success: false, error: "You can't block yourself." });
+    }
+
+    await Block.updateOne(
+      { blocker: viewerId, blocked: targetId },
+      { $setOnInsert: { blocker: viewerId, blocked: targetId } },
+      { upsert: true }
+    );
+
+    // End any live connections between the two, either direction.
+    const connections = await FlatmateConnection.find({
+      status: "accepted",
+      $or: [
+        { requester: viewerId, receiver: targetId },
+        { requester: targetId, receiver: viewerId },
+      ],
+    });
+    for (const connection of connections) {
+      connection.status = "ended";
+      connection.endedAt = new Date();
+      await connection.save();
+      await Conversation.updateOne({ connection: connection._id }, { $set: { status: "closed" } });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Block user error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   REPORT  →  POST /messages/report
+   Auditable moderation record — reporting does NOT itself block
+   anyone (use Block for that). Reviewed at /admin/reports.
+───────────────────────────────────────────── */
+router.post("/report", requireStudent, async (req, res) => {
+  try {
+    const { reportedUserId, listingId, conversationId, reason, details } = req.body;
+    const allowedReasons = ["Spam", "Fake profile", "Harassment", "Fraud / Scam", "Inappropriate content", "Other"];
+    if (!reportedUserId || !allowedReasons.includes(reason)) {
+      return res.json({ success: false, error: "Please select a valid reason." });
+    }
+    if (reportedUserId === req.student.id) {
+      return res.json({ success: false, error: "You can't report yourself." });
+    }
+
+    await Report.create({
+      reporter: req.student.id,
+      reportedUser: reportedUserId,
+      relatedListing: listingId || null,
+      relatedConversation: conversationId || null,
+      reason,
+      details: (details || "").trim().slice(0, 1000),
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Report error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
    CHAT THREAD  →  GET /messages/:conversationId
 ───────────────────────────────────────────── */
 router.get("/:conversationId", requireStudent, async (req, res) => {
@@ -297,10 +374,20 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
       }
     }
 
+    const receiverId = conv.participants.find((p) => p.toString() !== viewerId);
+    const blocked = await Block.findOne({
+      $or: [
+        { blocker: viewerId, blocked: receiverId },
+        { blocker: receiverId, blocked: viewerId },
+      ],
+    });
+    if (blocked) {
+      return res.json({ success: false, error: "You can't message this user." });
+    }
+
     const text = (req.body.text || "").trim().slice(0, 2000);
     if (!text) return res.json({ success: false, error: "Message can't be empty." });
 
-    const receiverId = conv.participants.find((p) => p.toString() !== viewerId);
     const message = await Message.create({ conversation: conv._id, sender: viewerId, text });
 
     conv.lastMessage = text.slice(0, 140);
