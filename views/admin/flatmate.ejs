@@ -1,0 +1,106 @@
+<% locals.pageTitle = 'Flatmate Moderation'; locals.activePage = 'flatmate'; %>
+<%- include('layout', { body: `
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Flatmate Moderation</h1>
+    <p>${total} total listing${total!==1?'s':''} &middot; ${pendingCount} pending review &middot; ${activeCount} active</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <form method="GET" action="/admin/flatmate" style="display:contents">
+    <div class="filter-input">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="search" placeholder="Search city, area…" value="${filters.search||''}">
+    </div>
+    <select name="status" class="filter-select" onchange="this.form.submit()">
+      <option value="all">All Status</option>
+      <option value="PENDING"   ${filters.status==='PENDING'  ?'selected':''}>Pending</option>
+      <option value="ACTIVE"    ${filters.status==='ACTIVE'   ?'selected':''}>Active</option>
+      <option value="PAUSED"    ${filters.status==='PAUSED'   ?'selected':''}>Paused</option>
+      <option value="CLOSED"    ${filters.status==='CLOSED'   ?'selected':''}>Closed</option>
+      <option value="REJECTED"  ${filters.status==='REJECTED' ?'selected':''}>Rejected</option>
+      <option value="SUSPENDED" ${filters.status==='SUSPENDED'?'selected':''}>Suspended</option>
+      <option value="DRAFT"     ${filters.status==='DRAFT'    ?'selected':''}>Draft</option>
+    </select>
+    <select name="type" class="filter-select" onchange="this.form.submit()">
+      <option value="all">All Types</option>
+      <option value="HAVE_FLAT" ${filters.type==='HAVE_FLAT'?'selected':''}>Have a Flat</option>
+      <option value="NEED_FLAT" ${filters.type==='NEED_FLAT'?'selected':''}>Need a Flat</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+    <a href="/admin/flatmate" class="btn btn-ghost btn-sm">Clear</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Listing</th><th>Posted by</th><th>Type</th><th>Price</th><th>Status</th><th>Requests</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        ${listings.length === 0 ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">No listings found</td></tr>' :
+        listings.map(l => `
+        <tr>
+          <td>
+            <div class="cell-name">${l.bhk} BHK &middot; ${l.roomType||''}</div>
+            <div class="cell-sub">${l.area||'—'}, ${l.city||'—'}</div>
+          </td>
+          <td>
+            <div class="cell-name">${l.student?.firstName||''} ${l.student?.lastName||''}</div>
+            <div class="cell-sub">${l.student?.phone||'—'}</div>
+          </td>
+          <td><span class="badge ${l.type==='HAVE_FLAT'?'badge-green':'badge-blue'}">${l.type==='HAVE_FLAT'?'🏠 Have':'👤 Need'}</span></td>
+          <td style="font-weight:700;color:var(--g)">
+            ${l.type==='HAVE_FLAT'
+              ? '₹'+((l.have?.rentMonthly||0).toLocaleString('en-IN'))+'/mo'
+              : '₹'+((l.need?.budgetMin||0).toLocaleString('en-IN'))+'–₹'+((l.need?.budgetMax||0).toLocaleString('en-IN'))}
+          </td>
+          <td>
+            <select class="filter-select" style="padding:4px 28px 4px 8px;font-size:0.72rem"
+              onchange="quickFlatmateStatus('${l._id}', this.value, this)">
+              ${['PENDING','ACTIVE','PAUSED','CLOSED','REJECTED','SUSPENDED'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+            ${l.status==='REJECTED' && l.rejectionReason ? `<div class="cell-sub" style="color:#dc2626;margin-top:4px">${l.rejectionReason}</div>` : ''}
+          </td>
+          <td><span style="font-weight:600">${l.requestsCount||0}</span></td>
+          <td>
+            <div style="display:flex;gap:6px">
+              ${l.slug ? `<a href="/flatmate/${l.slug}" target="_blank" class="icon-btn" title="View live"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
+              <button class="icon-btn danger" title="Delete"
+                onclick="openConfirm('Delete Listing','Permanently delete this listing? This also removes any connection requests on it. This cannot be undone.',()=>deleteRecord('/admin/flatmate/${l._id}','Listing deleted','/admin/flatmate'))">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  ${totalPages > 1 ? `
+  <div class="card-footer">
+    <div class="pagination">
+      <a href="?page=${currentPage-1}" class="page-btn ${currentPage===1?'disabled':''}"><i class="fa-solid fa-chevron-left"></i></a>
+      ${Array.from({length:totalPages},(_,i)=>`<a href="?page=${i+1}" class="page-btn ${currentPage===i+1?'active':''}">${i+1}</a>`).join('')}
+      <a href="?page=${currentPage+1}" class="page-btn ${currentPage===totalPages?'disabled':''}"><i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+  </div>` : ''}
+</div>
+
+<script>
+async function quickFlatmateStatus(id, newStatus, select) {
+  const prevValue = select.dataset.prev || select.value;
+  if (newStatus === 'REJECTED') {
+    const reason = prompt('Reason for rejection (shown to the student):');
+    if (reason === null) { select.value = prevValue; return; } // cancelled
+    const ok = await updateStatus('/admin/flatmate/'+id+'/status', { status: 'REJECTED', rejectionReason: reason }, 'Listing rejected');
+    if (ok) select.dataset.prev = 'REJECTED'; else select.value = prevValue;
+    return;
+  }
+  const ok = await updateStatus('/admin/flatmate/'+id+'/status', { status: newStatus }, 'Status updated');
+  if (ok) select.dataset.prev = newStatus; else select.value = prevValue;
+}
+</script>
+` }) %>

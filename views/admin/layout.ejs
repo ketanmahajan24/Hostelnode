@@ -68,6 +68,13 @@
         <% } %>
       </a>
 
+      <a href="/admin/flatmate" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'flatmate' ? 'active' : '' %>">
+        <i class="fa-solid fa-people-roof"></i> Flatmate
+        <% if (typeof stats !== 'undefined' && stats.pendingFlatmateListings > 0) { %>
+          <span class="nav-badge amber"><%= stats.pendingFlatmateListings %></span>
+        <% } %>
+      </a>
+
       <a href="/admin/hostels" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'hostels' ? 'active' : '' %>">
         <i class="fa-solid fa-house-chimney"></i> Hostels
       </a>

@@ -16,6 +16,8 @@ const Room     = require("../models/room");
 const Enquiry  = require("../models/enquiry");
 const Payment  = require("../models/payment");
 const SearchLog = require("../models/searchLog");
+const FlatmateListing = require("../models/FlatmateListing");
+const FlatmateConnection = require("../models/FlatmateConnection");
 
 const { sendMail } = require("../utils/sendMail");
 const { jwtAdminAuth, generateAdminToken } = require("../Middlewares/jwtAuth");
@@ -507,6 +509,90 @@ router.patch("/listings/:id/status", jwtAdminAuth, async (req, res) => {
 router.delete("/listings/:id", jwtAdminAuth, async (req, res) => {
   try {
     await Listing.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+/* ============================================================
+   FLATMATE MODERATION
+   Approve/reject the queue Phase 2's publish flow creates
+   (status: "PENDING"). Nothing else can turn a PENDING listing
+   into ACTIVE or REJECTED — this is the only path.
+============================================================ */
+router.get("/flatmate", jwtAdminAuth, async (req, res) => {
+  try {
+    const { status, search, type, page = 1 } = req.query;
+    const limit = 20, skip = (page - 1) * limit;
+
+    const filter = {};
+    if (status && status !== "all") filter.status = status;
+    if (type && type !== "all") filter.type = type;
+    if (search) filter.$or = [
+      { city: { $regex: search, $options: "i" } },
+      { area: { $regex: search, $options: "i" } },
+    ];
+
+    const [listings, total] = await Promise.all([
+      FlatmateListing.find(filter).populate("student", "firstName lastName phone").sort({ createdAt: -1 }).skip(skip).limit(limit),
+      FlatmateListing.countDocuments(filter),
+    ]);
+
+    const [pendingCount, activeCount] = await Promise.all([
+      FlatmateListing.countDocuments({ status: "PENDING" }),
+      FlatmateListing.countDocuments({ status: "ACTIVE" }),
+    ]);
+
+    const admin = await Admin.findById(req.admin.id).select("-password");
+    res.render("admin/flatmate.ejs", {
+      admin, listings, total, pendingCount, activeCount,
+      currentPage: +page, totalPages: Math.ceil(total / limit),
+      filters: { status, search, type },
+    });
+  } catch (err) {
+    console.error("Admin flatmate list error:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
+/* PATCH /admin/flatmate/:id/status
+   body: { status, rejectionReason? }
+   Approve  → status: "ACTIVE"
+   Reject   → status: "REJECTED", rejectionReason: "..."
+   Suspend  → status: "SUSPENDED"
+   Close    → status: "CLOSED"
+   Reactivate (from SUSPENDED) → status: "ACTIVE"          */
+router.patch("/flatmate/:id/status", jwtAdminAuth, async (req, res) => {
+  try {
+    const { status, rejectionReason } = req.body;
+    const allowed = ["PENDING", "ACTIVE", "PAUSED", "REJECTED", "CLOSED", "SUSPENDED"];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ success: false, error: "Invalid status." });
+    }
+    const update = { status };
+    if (status === "REJECTED") update.rejectionReason = (rejectionReason || "").trim().slice(0, 300);
+    if (status === "ACTIVE") update.rejectionReason = null; // clear any stale rejection note on (re)approval
+
+    const listing = await FlatmateListing.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Admin flatmate status update error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+/* DELETE /admin/flatmate/:id — admin-only hard delete (unlike the
+   student-facing route, which only allows deleting DRAFTs). Used
+   for spam/abuse cleanup. Also removes any FlatmateConnections that
+   reference it, so the Messages inbox never shows an orphaned request
+   for a listing an admin has explicitly removed. */
+router.delete("/flatmate/:id", jwtAdminAuth, async (req, res) => {
+  try {
+    await FlatmateListing.findByIdAndDelete(req.params.id);
+    await FlatmateConnection.deleteMany({ receiverListing: req.params.id });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: "Server error" });
