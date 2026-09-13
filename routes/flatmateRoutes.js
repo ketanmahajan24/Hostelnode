@@ -1,131 +1,272 @@
 // ================= flatmateRoutes.js =============================
 /* ============================================================
    flatmateRoutes.js — HostelNode Flatmate feature
-   - GET /flatmate          → Landing page (hero, search, city chips,
-                              featured flats & flatmates, how it works, etc.)
-                              Renders views/flatmate/flatmate.ejs.
-                              If a real search/filter is present in the
-                              query string, redirects to /flatmate/results
-                              so a "search" always opens a dedicated
-                              results page — the landing page itself
-                              never shows a filtered grid.
-   - GET /flatmate/results  → Dedicated search-results page, laid out the
-                              same way as /findHostels/results (sticky
-                              topbar, sidebar filters, swipeable image
-                              cards, sort, pagination, mobile filter
-                              drawer). Renders views/flatmate/flatmate-results.ejs.
-   NOTE: There is no Flatmate model/collection yet. Both routes serve
-   SAMPLE data so the UI is fully viewable end to end. Swap
-   SAMPLE_LISTINGS for a real Mongoose query (with real .skip()/.limit()
-   pagination) once the Flatmate schema exists. All counts shown in the
-   UI are computed from this array — nothing is hard-coded in the view.
+
+   PHASE 1: backed by real MongoDB (FlatmateListing) instead of the
+   in-memory SAMPLE_LISTINGS array used in the earliest prototype.
+   PHASE 2: Create Listing wizards (HAVE_FLAT / NEED_FLAT), draft
+   save, photo upload (HAVE only, reusing the same multer+sharp
+   pattern as the existing PG listing upload in userRoutes.js), and
+   publish → status "PENDING" pending admin approval (Phase 7).
+
+   IMPORTANT — the view-model shape returned to /flatmate + /results
+   templates is UNCHANGED on purpose:
+     { _id, slug, type: 'have'|'need', city, location, bhk, roomType,
+       gender, moveIn, postedBy, images[], rent, budgetMin, budgetMax }
+
+   - GET  /flatmate                  → Landing page
+   - GET  /flatmate/results           → Dedicated search-results page
+   - GET  /flatmate/create            → Choice/redirect based on ?type
+   - GET  /flatmate/create/have       → HAVE_FLAT 6-step wizard
+   - GET  /flatmate/create/need       → NEED_FLAT 5-step wizard
+   - POST /flatmate/create/draft      → Save/update a draft (auth required)
+   - POST /flatmate/create/publish    → Validate + publish (auth required)
+   - GET  /flatmate/create-success/:id → Confirmation page
+   - POST /flatmate/feedback          → still a stub (unrelated to this phase)
+
+   Phases 3+ will add: listing detail page, connections, messages,
+   my-listings, admin moderation.
 ============================================================ */
 
-const express = require("express");
-const router  = express.Router();
+const express  = require("express");
+const router   = express.Router();
+const jwt      = require("jsonwebtoken");
+const multer   = require("multer");
+const sharp    = require("sharp");
+const path     = require("path");
+const crypto   = require("crypto");
+const fs       = require("fs");
 
-// Fixed city set used for quick-filter pills
+const FlatmateListing = require("../models/FlatmateListing");
+const FlatmateConnection = require("../models/FlatmateConnection");
+
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
 const RESULTS_PAGE_SIZE = 9;
 
-// ─────────────────────────────────────────────
-// TEMP SAMPLE DATA (replace with FlatmateListing.find(...))
-// "have" listings use an images[] array so the results-page card can
-// demonstrate the same swipeable multi-photo slider as /findHostels/results.
-// ─────────────────────────────────────────────
-const SAMPLE_LISTINGS = [
-  { _id: "s1",  type: "have", city: "Mumbai",       bhk: 2, roomType: "Private Room", location: "Powai",            gender: "any",    rent: 14000, moveIn: "1 Oct",   postedBy: "Rahul",
-    images: [
-      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/542608327.jpg?k=281c15e9f915014269a9f2bfc531bb2e5e847de13edb47731bce3e10f0675c3a&o=",
-      "https://imagecdn.99acres.com/media1/40931/4/818624697M-1786799944191.jpg",
-    ] },
-  { _id: "s2",  type: "need", city: "Mumbai",       bhk: 1, roomType: "Any",           location: "Andheri West",     gender: "female", budgetMin: 9000,  budgetMax: 14000, moveIn: "5 Oct",  postedBy: "Priya" },
-  { _id: "s3",  type: "have", city: "Mumbai",       bhk: 1, roomType: "Shared Room",   location: "Malad",            gender: "male",   rent: 7500,  moveIn: "15 Sept", postedBy: "Karan",
-    images: ["https://imagecdn.99acres.com/media1/40928/10/818570917M-1786793808662.jpg"] },
-  { _id: "s4",  type: "have", city: "Navi Mumbai",  bhk: 2, roomType: "Private Room",  location: "Kharghar, Sector 12", gender: "any", rent: 10000, moveIn: "1 Oct",   postedBy: "Rahul",
-    images: [
-      "https://imagecdn.99acres.com/media1/40931/4/818624697M-1786799944191.jpg",
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvt8v79KliIJRqSanU6hwFF0iADVRG2GnC0L2HFzkAlQ&s",
-    ] },
-  { _id: "s5",  type: "need", city: "Navi Mumbai",  bhk: 2, roomType: "Private Room",  location: "Nerul",            gender: "any",    budgetMin: 8000,  budgetMax: 12000, moveIn: "1 Oct",  postedBy: "Amit" },
-  { _id: "s6",  type: "have", city: "Navi Mumbai",  bhk: 1, roomType: "Shared Room",   location: "Vashi",            gender: "male",   rent: 6500,  moveIn: "20 Sept", postedBy: "Sahil",
-    images: ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvt8v79KliIJRqSanU6hwFF0iADVRG2GnC0L2HFzkAlQ&s"] },
-  { _id: "s7",  type: "have", city: "Pune",         bhk: 1, roomType: "Shared Room",   location: "Kondhwa Budruk",   gender: "male",   rent: 5500,  moveIn: "15 Sept", postedBy: "Sneha",
-    images: [
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9etHkCuHEC7zbolGtntprKTEOR8-5T34r4uX9h226Wg&s",
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCJlpOx2lkLNy0iuN9r0plINYEcGXTR4SUvrcCQTp9-w&s=10",
-    ] },
-  { _id: "s8",  type: "have", city: "Pune",         bhk: 3, roomType: "Private Room",  location: "Mahalunge",        gender: "any",    rent: 15000, moveIn: "1 Oct",   postedBy: "Vikram",
-    images: ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCJlpOx2lkLNy0iuN9r0plINYEcGXTR4SUvrcCQTp9-w&s=10"] },
-  { _id: "s9",  type: "have", city: "Pune",         bhk: 1, roomType: "Shared Room",   location: "Marunji",          gender: "any",    rent: 12000, moveIn: "1 Oct",   postedBy: "Karan",
-    images: ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEMOYEC9qOEIdCqOHBLM5gUGpU1kbsGyr9LG4fCyZkog&s=10"] },
-  { _id: "s10", type: "need", city: "Pune",         bhk: 2, roomType: "Either",        location: "Koregaon Park",    gender: "female", budgetMin: 10000, budgetMax: 16000, moveIn: "10 Oct", postedBy: "Neha" },
-  { _id: "s11", type: "have", city: "Bengaluru",    bhk: 2, roomType: "Private Room",  location: "Koramangala",      gender: "any",    rent: 16000, moveIn: "1 Oct",   postedBy: "Arjun",
-    images: [
-      "https://housing-images.n7net.in/01c16c28/639fe00b066e524fddbef5eb81018e73/v0/medium/1_bhk_independent_builder_floor-for-rent-chikkakannalli-Bengaluru-hall.jpg",
-    ] },
-  { _id: "s12", type: "need", city: "Bengaluru",    bhk: 1, roomType: "Any",           location: "HSR Layout",       gender: "male",   budgetMin: 9000,  budgetMax: 15000, moveIn: "5 Oct",  postedBy: "Rohit" },
-  { _id: "s13", type: "have", city: "Delhi NCR",    bhk: 2, roomType: "Shared Room",   location: "Lajpat Nagar",     gender: "female", rent: 11000, moveIn: "1 Oct",   postedBy: "Anjali",
-    images: ["https://s3.ap-south-1.amazonaws.com/prophunt.prod.fs/listings/6a5e1008a0ee7102aae9befd/images/img0.webp"] },
-  { _id: "s14", type: "need", city: "Delhi NCR",    bhk: 1, roomType: "Private",       location: "Dwarka",           gender: "any",    budgetMin: 8000,  budgetMax: 13000, moveIn: "12 Oct", postedBy: "Vivek" },
-  { _id: "s15", type: "have", city: "Hyderabad",    bhk: 2, roomType: "Private Room",  location: "Gachibowli",       gender: "any",    rent: 12500, moveIn: "1 Oct",   postedBy: "Kiran",
-    images: ["https://cdn.sowerent.com/propertyowner/1baece87-2ab5-4a23-a7c6-a0b7a4a8c9e3/5e5e7c85-a3f6-4938-a0b5-f261a64d23f2_WhatsApp-Image-2024-06-19-at-31027-PM-(1).jpeg"] },
-  { _id: "s16", type: "need", city: "Hyderabad",    bhk: 1, roomType: "Any",           location: "Madhapur",         gender: "male",   budgetMin: 7000,  budgetMax: 11000, moveIn: "8 Oct",  postedBy: "Sandeep" },
-];
-
-// Normalize the inconsistent free-text roomType values in the sample set
-// into a simple private/shared/any bucket for filtering.
-function roomTypeBucket(rt) {
-  const s = (rt || "").toLowerCase();
-  if (s.includes("private")) return "private";
-  if (s.includes("shared"))  return "shared";
-  return "any";
+/* ─────────────────────────────────────────────
+   AUTH — same JWT/cookie contract as Middlewares/jwtAuth.js's
+   jwtStudentAuth, but preserves a `?next=` so the login page can
+   send the user back to the exact create page they wanted, instead
+   of always landing on the generic dashboard. Defined locally
+   (rather than editing the shared middleware) so this phase can't
+   affect any other already-gated student page.
+───────────────────────────────────────────── */
+function requireStudent(req, res, next) {
+  const token = req.cookies?.studentToken;
+  if (!token) {
+    return res.redirect(`/student/login?next=${encodeURIComponent(req.originalUrl)}`);
+  }
+  try {
+    req.student = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (err) {
+    res.clearCookie("studentToken");
+    return res.redirect(`/student/login?next=${encodeURIComponent(req.originalUrl)}`);
+  }
 }
 
-// Shared filtering logic used by /results (kept separate from "/" so the
-// landing page never has to run/carry this — it only ever redirects).
-function filterListings({ location = "", gender = "", type = "", budget = "", bhk = "", roomType = "" }) {
-  let listings = SAMPLE_LISTINGS.slice();
+/* ─────────────────────────────────────────────
+   PHOTO UPLOAD — HAVE_FLAT listings only.
+   Mirrors the exact multer pattern already used for PG listing
+   photos in routes/userRoutes.js (disk storage under /secure_uploads,
+   random filename, 5MB/file limit), writing to its own subfolder so
+   it never collides with PG listing images. Files are additionally
+   compressed/resized with sharp (already a project dependency) before
+   being written to disk, standing in for "client-side compression
+   where practical" without introducing a new frontend dependency.
+───────────────────────────────────────────── */
+const flatmateUploadDir = "/secure_uploads/flatmate";
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+ensureDir(flatmateUploadDir);
 
-  if (location) {
-    const q = location.toLowerCase();
-    listings = listings.filter(l =>
-      l.city.toLowerCase().includes(q) || l.location.toLowerCase().includes(q)
-    );
-  }
-  if (gender && gender !== "any") {
-    listings = listings.filter(l => l.gender === "any" || l.gender === gender);
-  }
-  if (type === "need" || type === "have") {
-    listings = listings.filter(l => l.type === type);
-  }
-  if (bhk) {
-    listings = listings.filter(l => String(l.bhk) === String(bhk));
-  }
-  if (budget) {
-    const max = parseInt(budget, 10);
-    listings = listings.filter(l => (l.type === "have" ? l.rent : l.budgetMax) <= max);
-  }
-  if (roomType) {
-    listings = listings.filter(l => roomTypeBucket(l.roomType) === roomType);
-  }
-  return listings;
+const flatmateStorage = multer.memoryStorage(); // we re-encode with sharp before writing, so no need to hit disk twice
+const flatmateUpload = multer({
+  storage: flatmateStorage,
+  limits: { fileSize: 5 * 1024 * 1024, files: 15 }, // 5MB/image, max 15 images
+  fileFilter: (req, file, cb) => {
+    const ok = ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.mimetype);
+    cb(ok ? null : new Error("Only JPG, PNG or WebP images are allowed."), ok);
+  },
+});
+
+async function saveCompressedImage(fileBuffer) {
+  const filename = `${crypto.randomBytes(16).toString("hex")}.jpg`;
+  const fullPath = path.join(flatmateUploadDir, filename);
+  await sharp(fileBuffer)
+    .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 78 })
+    .toFile(fullPath);
+  return filename; // stored in FlatmateListing.images[]; served at /flatmate-images/<filename>
 }
 
-function sortListings(listings, sort) {
-  const price = l => (l.type === "have" ? l.rent : l.budgetMax);
-  if (sort === "price_asc")  return listings.slice().sort((a, b) => price(a) - price(b));
-  if (sort === "price_desc") return listings.slice().sort((a, b) => price(b) - price(a));
-  return listings; // "newest" — sample array order stands in for createdAt desc
+function handleFlatmateUploadError(fn) {
+  return (req, res, next) => {
+    fn(req, res, (err) => {
+      if (!err) return next();
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE")  return res.status(413).json({ success: false, error: "Each photo must be under 5 MB." });
+        if (err.code === "LIMIT_FILE_COUNT") return res.status(413).json({ success: false, error: "Maximum 15 photos allowed." });
+      }
+      return res.status(400).json({ success: false, error: err.message || "Photo upload failed." });
+    });
+  };
 }
 
-// ─────────────────────────────────────────────
-// LANDING PAGE  →  GET /flatmate
-// Always shows the clean marketing/landing state. If a search/filter
-// query param is present (e.g. an old bookmarked link, or a city-chip
-// click that somehow lands here), redirect straight to /flatmate/results
-// so search results always live on their own page.
-// ─────────────────────────────────────────────
+/* ─────────────────────────────────────────────
+   FORM → SCHEMA MAPPING HELPERS
+───────────────────────────────────────────── */
+function toInt(v, fallback = null) {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+function asArray(v) {
+  if (v === undefined || v === null || v === "") return [];
+  return Array.isArray(v) ? v : [v];
+}
+
+// Builds the FlatmateListing field set shared by both draft-save and
+// publish, from a submitted form body. Does NOT touch `status` or
+// `images` — callers decide those explicitly.
+function buildListingFieldsFromBody(body, type) {
+  const isHave = type === "HAVE_FLAT";
+
+  const fields = {
+    type,
+    city: (body.city || "").trim(),
+    area: (body.area || "").trim(),
+    landmark: (body.landmark || "").trim() || null,
+    nearCollege: (body.nearCollege || "").trim() || null,
+    address: (body.address || "").trim() || null,
+    bhk: toInt(isHave ? body.bhk : body.bhk, null),
+    roomType: isHave ? body.roomType : body.roomPreference,
+    gender: isHave ? (body.preferredGender === "No Preference" ? "any" : (body.preferredGender || "any").toLowerCase())
+                   : (body.gender || "").toLowerCase(),
+    occupation: body.occupation || null,
+    food: body.food || "No Preference",
+    lifestyle: asArray(body["lifestyle[]"] || body.lifestyle),
+    about: {
+      company: (body.company || "").trim() || null,
+      college: (body.college || "").trim() || null,
+    },
+    contact: {
+      phone: (body.phone || "").trim(),
+      whatsapp: body.sameAsPhone === "on" || body.sameAsPhone === "true"
+        ? (body.phone || "").trim()
+        : (body.whatsapp || "").trim() || null,
+      preferredMethod: body.preferredMethod || "HostelNode Messages",
+    },
+  };
+
+  if (isHave) {
+    fields.description = (body.description || "").trim().slice(0, 500);
+    fields.have = {
+      availabilityType: body.availabilityType,
+      availableSpots: toInt(body.availableSpots, 1),
+      furnishing: body.furnishing || null,
+      availableFromMode: body.availableFromMode || "now",
+      availableFromDate: body.availableFromMode === "date" && body.availableFromDate ? new Date(body.availableFromDate) : null,
+      rentMonthly: toInt(body.rentMonthly, null),
+      depositAmount: body.depositNegotiable === "on" ? null : toInt(body.depositAmount, null),
+      depositNegotiable: body.depositNegotiable === "on" || body.depositNegotiable === "true",
+      maintenance: body.maintenance || "Included",
+      maintenanceAmount: body.maintenance === "Separate" ? toInt(body.maintenanceAmount, null) : null,
+      occupantsCount: toInt(body.occupantsCount, null),
+      occupantsType: body.occupantsType || null,
+      amenities: asArray(body["amenities[]"] || body.amenities),
+    };
+  } else {
+    fields.need = {
+      needType: body.needType,
+      preferredAreas: asArray(body["preferredAreas[]"] || body.preferredAreas),
+      budgetMin: toInt(body.budgetMin, null),
+      budgetMax: toInt(body.budgetMax, null),
+      depositPreference: body.depositPreference || "Flexible",
+      moveInMode: body.moveInMode || "immediate",
+      moveInDate: body.moveInMode === "date" && body.moveInDate ? new Date(body.moveInDate) : null,
+      intro: (body.intro || "").trim().slice(0, 300),
+    };
+  }
+
+  return fields;
+}
+
+// Minimal server-side validation — never trust the client's disabled
+// buttons/required attributes alone.
+function validateForPublish(fields, type) {
+  const errors = [];
+  if (!fields.city) errors.push("City is required.");
+  if (!fields.area) errors.push("Area/locality is required.");
+  if (!fields.bhk || fields.bhk < 1 || fields.bhk > 4) errors.push("Please select a valid flat type.");
+  if (!fields.roomType) errors.push("Room type is required.");
+  if (!fields.contact.phone || !/^[6-9]\d{9}$/.test(fields.contact.phone)) errors.push("A valid 10-digit phone number is required.");
+
+  if (type === "HAVE_FLAT") {
+    if (!fields.have.availabilityType) errors.push("Please select what's available.");
+    if (!fields.have.rentMonthly || fields.have.rentMonthly <= 0) errors.push("Monthly rent is required.");
+  } else {
+    if (fields.gender !== "male" && fields.gender !== "female") errors.push("Please select your gender.");
+    if (!fields.need.budgetMin || !fields.need.budgetMax || fields.need.budgetMin > fields.need.budgetMax) {
+      errors.push("Please enter a valid budget range.");
+    }
+  }
+  return errors;
+}
+
+/* ─────────────────────────────────────────────
+   VIEW-MODEL MAPPER
+   Works on both populated .lean() docs (student.firstName present)
+   and aggregation-pipeline docs (student field normalized to the
+   same shape by the pipeline before this runs — see /results below).
+───────────────────────────────────────────── */
+function formatMoveIn(doc) {
+  const fmt = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : null);
+  if (doc.type === "HAVE_FLAT") {
+    if (doc.have?.availableFromMode === "now") return "Now";
+    return fmt(doc.have?.availableFromDate) || "Flexible";
+  }
+  const mode = doc.need?.moveInMode;
+  if (mode === "immediate") return "Immediately";
+  if (mode === "15days") return "Within 15 days";
+  if (mode === "1month") return "Within 1 month";
+  return fmt(doc.need?.moveInDate) || "Flexible";
+}
+
+function toCardViewModel(doc) {
+  const isHave = doc.type === "HAVE_FLAT";
+  return {
+    _id: doc._id.toString(),
+    slug: doc.slug || null,
+    type: isHave ? "have" : "need",
+    city: doc.city,
+    location: doc.area,
+    bhk: doc.bhk,
+    roomType: doc.roomType,
+    gender: doc.gender,
+    moveIn: formatMoveIn(doc),
+    postedBy: doc.student?.firstName || "HostelNode User",
+    images: isHave ? (doc.images || []) : undefined,
+    rent: isHave ? doc.have?.rentMonthly : undefined,
+    budgetMin: !isHave ? doc.need?.budgetMin : undefined,
+    budgetMax: !isHave ? doc.need?.budgetMax : undefined,
+  };
+}
+
+// Normalize the roomType filter chip value ("private"/"shared") to the
+// exact enum stored on the document.
+function roomTypeFilterValue(rt) {
+  if (rt === "private") return "Private Room";
+  if (rt === "shared")  return "Shared Room";
+  return null;
+}
+
+/* ─────────────────────────────────────────────
+   LANDING PAGE  →  GET /flatmate
+   Always shows the clean marketing/landing state. If a search/filter
+   query param is present, redirect to /flatmate/results — the landing
+   page itself never shows a filtered grid.
+───────────────────────────────────────────── */
 router.get("/", async (req, res) => {
   try {
     const hasFilters = ["location", "gender", "type", "budget", "bhk"].some(
@@ -136,16 +277,21 @@ router.get("/", async (req, res) => {
       return res.redirect(302, `/flatmate/results${qs ? "?" + qs : ""}`);
     }
 
-    const totalListingsCount = SAMPLE_LISTINGS.length;
+    const totalListingsCount = await FlatmateListing.countDocuments({ status: "ACTIVE" });
 
-    // "Featured Flats & Flatmates near you" — top of page, above the fold.
-    // Swap this slice for a real query (e.g. Listing.find({featured:true})) once the model exists.
-    const featuredListings = SAMPLE_LISTINGS.slice().reverse().slice(0, 8);
+    const featuredDocs = await FlatmateListing.find({ status: "ACTIVE" })
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .populate("student", "firstName")
+      .lean();
+    const featuredListings = featuredDocs.map(toCardViewModel);
 
-    const cityCounts = CITIES.map(city => ({
-      name: city,
-      count: SAMPLE_LISTINGS.filter(l => l.city === city).length,
-    }));
+    const cityAgg = await FlatmateListing.aggregate([
+      { $match: { status: "ACTIVE" } },
+      { $group: { _id: "$city", count: { $sum: 1 } } },
+    ]);
+    const countByCity = Object.fromEntries(cityAgg.map(c => [c._id, c.count]));
+    const cityCounts = CITIES.map(name => ({ name, count: countByCity[name] || 0 }));
 
     res.render("flatmate/flatmate", {
       featuredListings,
@@ -159,11 +305,14 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// SEARCH RESULTS  →  GET /flatmate/results
-// Dedicated results page — same layout pattern as /findHostels/results:
-// sticky topbar, sidebar filters, swipeable card grid, sort, pagination.
-// ─────────────────────────────────────────────
+/* ─────────────────────────────────────────────
+   SEARCH RESULTS  →  GET /flatmate/results
+   Real filter + sort + pagination against MongoDB. Uses an
+   aggregation pipeline (not a plain .find()) because "price" lives
+   on a different sub-path depending on listing type (have.rentMonthly
+   vs need.budgetMax), so sorting/filtering by budget needs a
+   computed field.
+───────────────────────────────────────────── */
 router.get("/results", async (req, res) => {
   try {
     const {
@@ -171,14 +320,62 @@ router.get("/results", async (req, res) => {
       roomType = "", sort = "newest", page = "1",
     } = req.query;
 
-    const filtered = filterListings({ location, gender, type, budget, bhk, roomType });
-    const sorted   = sortListings(filtered, sort);
+    const match = { status: "ACTIVE" };
 
-    const total = sorted.length;
+    if (location) {
+      const re = new RegExp(location.trim(), "i");
+      match.$or = [{ city: re }, { area: re }];
+    }
+    if (gender && gender !== "any") {
+      match.gender = { $in: [gender, "any"] };
+    }
+    if (type === "need" || type === "have") {
+      match.type = type === "have" ? "HAVE_FLAT" : "NEED_FLAT";
+    }
+    if (bhk) {
+      match.bhk = parseInt(bhk, 10);
+    }
+    const roomTypeValue = roomTypeFilterValue(roomType);
+    if (roomTypeValue) {
+      match.roomType = roomTypeValue;
+    }
+    if (budget) {
+      const max = parseInt(budget, 10);
+      match.$and = (match.$and || []).concat([{
+        $or: [
+          { type: "HAVE_FLAT", "have.rentMonthly": { $lte: max } },
+          { type: "NEED_FLAT", "need.budgetMax":   { $lte: max } },
+        ],
+      }]);
+    }
+
+    const total = await FlatmateListing.countDocuments(match);
     const totalPages = Math.max(1, Math.ceil(total / RESULTS_PAGE_SIZE));
     const currentPage = Math.min(Math.max(parseInt(page, 10) || 1, 1), totalPages);
-    const start = (currentPage - 1) * RESULTS_PAGE_SIZE;
-    const listings = sorted.slice(start, start + RESULTS_PAGE_SIZE);
+
+    const pipeline = [
+      { $match: match },
+      {
+        $addFields: {
+          sortPrice: {
+            $cond: [{ $eq: ["$type", "HAVE_FLAT"] }, "$have.rentMonthly", "$need.budgetMax"],
+          },
+        },
+      },
+    ];
+    if (sort === "price_asc")       pipeline.push({ $sort: { sortPrice: 1 } });
+    else if (sort === "price_desc") pipeline.push({ $sort: { sortPrice: -1 } });
+    else                            pipeline.push({ $sort: { createdAt: -1 } });
+
+    pipeline.push(
+      { $skip: (currentPage - 1) * RESULTS_PAGE_SIZE },
+      { $limit: RESULTS_PAGE_SIZE },
+      { $lookup: { from: "students", localField: "student", foreignField: "_id", as: "student" } },
+      { $unwind: { path: "$student", preserveNullAndEmptyArrays: true } }
+    );
+
+    const rawListings = await FlatmateListing.aggregate(pipeline);
+    const listings = rawListings.map(toCardViewModel);
 
     res.render("flatmate/flatmate-results", {
       listings,
@@ -193,10 +390,356 @@ router.get("/results", async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// FEEDBACK STUB  →  POST /flatmate/feedback
-// (client-side modal posts here; no model yet, just acknowledges receipt)
-// ─────────────────────────────────────────────
+// Builds SEO title/description/canonical for a listing detail page. Never
+// includes phone/whatsapp/address — those are private regardless of SEO needs.
+function buildListingSeo(listing) {
+  const isHave = listing.type === "HAVE_FLAT";
+  const title = isHave
+    ? `${listing.bhk} BHK ${listing.roomType} in ${listing.area}, ${listing.city} | HostelNode`
+    : `Flatmate Looking for ${listing.bhk} BHK in ${listing.area}, ${listing.city} | HostelNode`;
+  const description = isHave
+    ? `${listing.bhk} BHK ${listing.roomType} available in ${listing.area}, ${listing.city}. ₹${listing.have?.rentMonthly || "—"}/month. Connect directly on HostelNode — no brokers.`
+    : `Looking for a ${listing.bhk} BHK ${listing.roomType} in ${listing.area}, ${listing.city}. Budget ₹${listing.need?.budgetMin || "—"}–₹${listing.need?.budgetMax || "—"}/month. Connect directly on HostelNode.`;
+  return { title, description, canonical: `https://www.hostelnode.com/flatmate/${listing.slug}` };
+}
+
+
+/* ─────────────────────────────────────────────
+   CREATE — CHOICE / TYPE ROUTER  →  GET /flatmate/create
+   Validates ?type, requires auth (with return-to), then dispatches
+   to the appropriate wizard. Invalid/missing type → back to /flatmate.
+───────────────────────────────────────────── */
+router.get("/create", requireStudent, (req, res) => {
+  const type = (req.query.type || "").toLowerCase();
+  if (type === "have") return res.redirect(`/flatmate/create/have${req.query.draft ? `?draft=${req.query.draft}` : ""}`);
+  if (type === "need") return res.redirect(`/flatmate/create/need${req.query.draft ? `?draft=${req.query.draft}` : ""}`);
+  return res.redirect("/flatmate");
+});
+
+/* ─────────────────────────────────────────────
+   CREATE — HAVE_FLAT WIZARD  →  GET /flatmate/create/have
+───────────────────────────────────────────── */
+router.get("/create/have", requireStudent, async (req, res) => {
+  try {
+    let draft = null;
+    if (req.query.draft) {
+      draft = await FlatmateListing.findOne({
+        _id: req.query.draft, student: req.student.id, type: "HAVE_FLAT",
+      }).select("+contact.phone +contact.whatsapp +address").lean();
+    }
+    res.render("flatmate/create-have", { draft, cities: CITIES });
+  } catch (err) {
+    console.error("Flatmate create/have error:", err);
+    res.status(500).send("Something went wrong loading the form. Please try again.");
+  }
+});
+
+/* ─────────────────────────────────────────────
+   CREATE — NEED_FLAT WIZARD  →  GET /flatmate/create/need
+───────────────────────────────────────────── */
+router.get("/create/need", requireStudent, async (req, res) => {
+  try {
+    let draft = null;
+    if (req.query.draft) {
+      draft = await FlatmateListing.findOne({
+        _id: req.query.draft, student: req.student.id, type: "NEED_FLAT",
+      }).select("+contact.phone +contact.whatsapp +address").lean();
+    }
+    res.render("flatmate/create-need", { draft, cities: CITIES });
+  } catch (err) {
+    console.error("Flatmate create/need error:", err);
+    res.status(500).send("Something went wrong loading the form. Please try again.");
+  }
+});
+
+/* ─────────────────────────────────────────────
+   SAVE DRAFT  →  POST /flatmate/create/draft
+   Upserts a DRAFT-status listing owned by the current student.
+   No validation beyond "must belong to the current student" — a
+   draft is allowed to be incomplete by definition.
+───────────────────────────────────────────── */
+router.post("/create/draft", requireStudent, handleFlatmateUploadError(flatmateUpload.array("photos", 15)), async (req, res) => {
+  try {
+    const type = req.body.type === "have" ? "HAVE_FLAT" : "NEED_FLAT";
+    const fields = buildListingFieldsFromBody(req.body, type);
+
+    let listing;
+    if (req.body.draftId) {
+      listing = await FlatmateListing.findOne({ _id: req.body.draftId, student: req.student.id });
+      if (!listing) return res.status(404).json({ success: false, error: "Draft not found." });
+      Object.assign(listing, fields);
+    } else {
+      listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT" });
+    }
+
+    if (type === "HAVE_FLAT" && req.files && req.files.length) {
+      const newFilenames = [];
+      for (const file of req.files) newFilenames.push(await saveCompressedImage(file.buffer));
+      listing.images = [...(listing.images || []), ...newFilenames];
+      if (!listing.coverImage) listing.coverImage = listing.images[0];
+    }
+
+    await listing.save();
+    res.json({ success: true, draftId: listing._id.toString() });
+  } catch (err) {
+    console.error("Flatmate draft save error:", err);
+    res.status(500).json({ success: false, error: "Could not save draft. Please try again." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   PUBLISH  →  POST /flatmate/create/publish
+   Validates required fields server-side (never trusts the client),
+   uploads/compresses any new photos, generates the slug, and sets
+   status → PENDING (an admin approves it in Phase 7 before it
+   becomes ACTIVE/searchable).
+───────────────────────────────────────────── */
+router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmateUpload.array("photos", 15)), async (req, res) => {
+  try {
+    const type = req.body.type === "have" ? "HAVE_FLAT" : "NEED_FLAT";
+    const fields = buildListingFieldsFromBody(req.body, type);
+
+    let listing;
+    if (req.body.draftId) {
+      listing = await FlatmateListing.findOne({ _id: req.body.draftId, student: req.student.id });
+      if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
+      Object.assign(listing, fields);
+    } else {
+      listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT" });
+    }
+
+    let newImageCount = 0;
+    if (type === "HAVE_FLAT" && req.files && req.files.length) {
+      const newFilenames = [];
+      for (const file of req.files) newFilenames.push(await saveCompressedImage(file.buffer));
+      listing.images = [...(listing.images || []), ...newFilenames];
+      if (!listing.coverImage) listing.coverImage = listing.images[0];
+      newImageCount = newFilenames.length;
+    }
+
+    const errors = validateForPublish(fields, type);
+    if (type === "HAVE_FLAT" && (!listing.images || listing.images.length === 0)) {
+      errors.push("Please add at least 1 photo (3+ recommended).");
+    }
+    if (errors.length) {
+      // Save whatever we have as a draft so the student doesn't lose their work,
+      // then report the errors back for the form to display.
+      await listing.save();
+      return res.status(400).json({ success: false, errors, draftId: listing._id.toString() });
+    }
+
+    // Only a fresh draft or a fixed-up rejected listing goes (back) into the
+    // review queue. Editing an already-ACTIVE/PAUSED/CLOSED listing must
+    // preserve its current status — publishing a small edit should never
+    // silently demote a live listing back to "pending review".
+    if (listing.status === "DRAFT" || listing.status === "REJECTED") {
+      listing.status = "PENDING";
+    }
+    listing.publishedAt = listing.publishedAt || new Date();
+    if (!listing.slug) listing.generateSlug();
+    await listing.save();
+
+    res.json({ success: true, redirect: `/flatmate/create-success/${listing._id}` });
+  } catch (err) {
+    console.error("Flatmate publish error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong publishing your listing. Please try again." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   SUCCESS  →  GET /flatmate/create-success/:id
+───────────────────────────────────────────── */
+router.get("/create-success/:id", requireStudent, async (req, res) => {
+  try {
+    const listing = await FlatmateListing.findOne({ _id: req.params.id, student: req.student.id }).lean();
+    if (!listing) return res.redirect("/flatmate");
+    res.render("flatmate/create-success", { listing });
+  } catch (err) {
+    console.error("Flatmate create-success error:", err);
+    res.redirect("/flatmate");
+  }
+});
+
+/* ─────────────────────────────────────────────
+   MY LISTINGS  →  GET /flatmate/my-listings
+   Must stay registered before the /:slug catch-all (same reason as
+   /create, /results, /create-success/:id — it's a single path segment).
+───────────────────────────────────────────── */
+router.get("/my-listings", requireStudent, async (req, res) => {
+  try {
+    const listings = await FlatmateListing.find({ student: req.student.id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const listingIds = listings.map((l) => l._id);
+    const connectionCounts = await FlatmateConnection.aggregate([
+      { $match: { receiverListing: { $in: listingIds } } },
+      { $group: { _id: { listing: "$receiverListing", status: "$status" }, count: { $sum: 1 } } },
+    ]);
+    const countsByListing = {};
+    connectionCounts.forEach((c) => {
+      const key = c._id.listing.toString();
+      if (!countsByListing[key]) countsByListing[key] = { pending: 0, accepted: 0 };
+      if (c._id.status === "pending") countsByListing[key].pending = c.count;
+      if (c._id.status === "accepted") countsByListing[key].accepted = c.count;
+    });
+
+    const withCounts = listings.map((l) => ({
+      ...l,
+      requestCount: countsByListing[l._id.toString()]?.pending || 0,
+      connectedCount: countsByListing[l._id.toString()]?.accepted || 0,
+    }));
+
+    res.render("flatmate/my-listings", { listings: withCounts });
+  } catch (err) {
+    console.error("My Listings error:", err);
+    res.status(500).send("Something went wrong loading your listings. Please try again.");
+  }
+});
+
+/* ─────────────────────────────────────────────
+   LISTING STATUS ACTIONS
+   All verify ownership (student === req.student.id) as the real
+   security gate — never trust a hidden form field for this.
+───────────────────────────────────────────── */
+router.post("/listing/:id/pause", requireStudent, async (req, res) => {
+  try {
+    const listing = await FlatmateListing.findOne({ _id: req.params.id, student: req.student.id });
+    if (!listing) return res.json({ success: false, error: "Listing not found." });
+    if (listing.status !== "ACTIVE") return res.json({ success: false, error: "Only active listings can be paused." });
+    listing.status = "PAUSED";
+    await listing.save();
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Pause listing error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+router.post("/listing/:id/reactivate", requireStudent, async (req, res) => {
+  try {
+    const listing = await FlatmateListing.findOne({ _id: req.params.id, student: req.student.id });
+    if (!listing) return res.json({ success: false, error: "Listing not found." });
+    if (listing.status !== "PAUSED") return res.json({ success: false, error: "Only paused listings can be reactivated." });
+    listing.status = "ACTIVE";
+    await listing.save();
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Reactivate listing error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+router.post("/listing/:id/close", requireStudent, async (req, res) => {
+  try {
+    const listing = await FlatmateListing.findOne({ _id: req.params.id, student: req.student.id });
+    if (!listing) return res.json({ success: false, error: "Listing not found." });
+    if (!["ACTIVE", "PAUSED", "PENDING"].includes(listing.status)) {
+      return res.json({ success: false, error: "This listing can't be closed." });
+    }
+    listing.status = "CLOSED";
+    await listing.save();
+    // Existing connections/conversations intentionally survive — only new
+    // requests stop, per spec. Nothing to clean up here.
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Close listing error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+router.post("/listing/:id/delete", requireStudent, async (req, res) => {
+  try {
+    const listing = await FlatmateListing.findOne({ _id: req.params.id, student: req.student.id });
+    if (!listing) return res.json({ success: false, error: "Listing not found." });
+    // Only DRAFTs can be hard-deleted — anything ever published may have
+    // real FlatmateConnections/Conversations pointing at it, and those
+    // relationships must never silently break. Use Close for those instead.
+    if (listing.status !== "DRAFT") {
+      return res.json({ success: false, error: "Only drafts can be deleted. Use Close for a published listing." });
+    }
+    await FlatmateListing.deleteOne({ _id: listing._id });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete listing error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   REQUEST TO CONNECT  →  POST /flatmate/connect
+   Creates a FlatmateConnection. Server-side duplicate protection —
+   never relies on the frontend disabling the button.
+───────────────────────────────────────────── */
+router.post("/connect", requireStudent, async (req, res) => {
+  try {
+    const { listingId, message } = req.body;
+    const listing = await FlatmateListing.findById(listingId);
+
+    if (!listing || listing.status !== "ACTIVE") {
+      return res.json({ success: false, error: "This listing is no longer available." });
+    }
+    if (listing.student.toString() === req.student.id) {
+      return res.json({ success: false, error: "You can't request to connect on your own listing." });
+    }
+
+    const existing = await FlatmateConnection.findOne({
+      requester: req.student.id,
+      receiverListing: listing._id,
+      status: { $in: ["pending", "accepted"] },
+    });
+    if (existing) {
+      return res.json({
+        success: false,
+        error: existing.status === "accepted" ? "You're already connected on this listing." : "You already have a pending request for this listing.",
+      });
+    }
+
+    // Optional context: the requester's own most recent active listing, if any.
+    const requesterListing = await FlatmateListing.findOne({ student: req.student.id, status: "ACTIVE" }).sort({ createdAt: -1 });
+
+    const connection = await FlatmateConnection.create({
+      requester: req.student.id,
+      receiver: listing.student,
+      receiverListing: listing._id,
+      requesterListing: requesterListing ? requesterListing._id : null,
+      message: (message || "").trim().slice(0, 500),
+      status: "pending",
+    });
+
+    res.json({ success: true, connectionId: connection._id.toString() });
+  } catch (err) {
+    console.error("Flatmate connect error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong sending your request." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   CANCEL REQUEST  →  POST /flatmate/connection/:id/cancel
+   Only the original requester can cancel, and only while pending.
+───────────────────────────────────────────── */
+router.post("/connection/:id/cancel", requireStudent, async (req, res) => {
+  try {
+    const connection = await FlatmateConnection.findOne({
+      _id: req.params.id, requester: req.student.id, status: "pending",
+    });
+    if (!connection) {
+      return res.json({ success: false, error: "Request not found or already handled." });
+    }
+    connection.status = "cancelled";
+    connection.cancelledAt = new Date();
+    await connection.save();
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Flatmate cancel connection error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   FEEDBACK STUB  →  POST /flatmate/feedback
+   (unchanged from earlier phase — no model yet, just acknowledges)
+───────────────────────────────────────────── */
 router.post("/feedback", async (req, res) => {
   try {
     const { name, rating, message } = req.body;
@@ -204,11 +747,85 @@ router.post("/feedback", async (req, res) => {
       return res.json({ success: false, error: "Please write a short message." });
     }
     console.log("New Flatmate feedback:", { name, rating, message });
-    // TODO: persist to a Feedback model once one exists.
     res.json({ success: true });
   } catch (err) {
     console.error("Flatmate feedback error:", err);
     res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   LISTING DETAIL  →  GET /flatmate/:slug
+   MUST be the last GET route in this file — it's a catch-all single
+   path segment, so anything registered after it would be shadowed.
+
+   Privacy: the listing is fetched WITHOUT contact.phone/whatsapp/address
+   (schema default, select:false). Those are only re-fetched with an
+   explicit .select("+contact.phone ...") if the viewer is the owner OR
+   has an "accepted" FlatmateConnection on this exact listing — never
+   based on anything the client sends.
+───────────────────────────────────────────── */
+router.get("/:slug", async (req, res) => {
+  try {
+    const listing = await FlatmateListing.findOne({ slug: req.params.slug })
+      .populate("student", "firstName lastName")
+      .lean();
+
+    if (!listing) {
+      return res.status(404).render("flatmate/listing-detail", {
+        listing: null, isOwner: false, cta: null, connection: null, seo: null,
+      });
+    }
+
+    const viewerId = req.student?.id || null;
+    const isOwner = !!(viewerId && listing.student && listing.student._id.toString() === viewerId);
+
+    // Only look up a connection when the viewer isn't the owner — an owner
+    // never needs one to see their own listing's private fields.
+    let connection = null;
+    if (viewerId && !isOwner) {
+      connection = await FlatmateConnection.findOne({
+        requester: viewerId,
+        receiverListing: listing._id,
+      }).sort({ createdAt: -1 }).lean();
+    }
+
+    const canSeePrivate = isOwner || (connection && connection.status === "accepted");
+
+    if (canSeePrivate) {
+      const withPrivate = await FlatmateListing.findOne({ slug: req.params.slug })
+        .select("+contact.phone +contact.whatsapp +address")
+        .lean();
+      listing.contact = withPrivate.contact;
+      listing.address = withPrivate.address;
+    }
+
+    // CTA state machine (see spec section 50 / doc7 section 8)
+    let cta = "connect";
+    if (isOwner) {
+      cta = "manage";
+    } else if (listing.status !== "ACTIVE") {
+      cta = "closed";
+    } else if (connection) {
+      if (connection.status === "pending")       cta = "pending_sent";
+      else if (connection.status === "accepted") cta = "connected";
+      else if (connection.status === "blocked")  cta = "blocked";
+      // declined / cancelled / ended → fall through to "connect" (re-request allowed)
+    }
+
+    // Fire-and-forget view counter — never block the render on it, and
+    // never inflate it when the owner views their own listing.
+    if (!isOwner) {
+      FlatmateListing.updateOne({ _id: listing._id }, { $inc: { views: 1 } }).catch(() => {});
+    }
+
+    res.render("flatmate/listing-detail", {
+      listing, isOwner, cta, connection,
+      seo: buildListingSeo(listing),
+    });
+  } catch (err) {
+    console.error("Flatmate detail route error:", err);
+    res.status(500).send("Something went wrong loading this listing. Please try again.");
   }
 });
 

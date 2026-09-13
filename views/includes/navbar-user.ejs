@@ -28,6 +28,8 @@
 
       <a href= "/#search-card" class="active">Find Hostel</a>
       <a href="/flatmate">Flatmate</a>
+      <a href="/messages">Messages</a>
+      <a href="/flatmate/my-listings">My Listings</a>
       <a href="/student/wishlist" class="sn-dd-link">
         <i class="fa-solid fa-heart"></i> My Wishlist
       </a>
@@ -82,6 +84,8 @@
     <li><a href="/#cotactus">Contact</a></li>
     <li><a href="/#aboutus">About</a></li>
     <% if (student) { %>
+    <li><a href="/messages">Messages</a></li>
+    <li><a href="/flatmate/my-listings">My Listings</a></li>
     <%} else { %>
     <li><a href="#" onclick="openNudgeModal('login'); return false;" class="btn-ghost">Login</a></li>
     <li>   <a href="#" onclick="openNudgeModal('signup'); return false;" class="btn-nav-green">Sign up free</a></li>

@@ -1,0 +1,648 @@
+<!-- create-have.ejs — HostelNode Flatmate: List Your Flat (HAVE_FLAT wizard) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>List Your Flat &amp; Find Your Flatmate | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .wiz-wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+    .wiz-head { text-align: center; margin-bottom: 26px; }
+    .wiz-head h1 { font-family: var(--font-d); font-size: 1.7rem; font-weight: 700; color: var(--ink); }
+    .wiz-head p { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+
+    /* Progress stepper */
+    .wiz-progress { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 30px; flex-wrap: wrap; }
+    .wiz-progress .pstep { display: flex; align-items: center; gap: 8px; }
+    .wiz-progress .circ {
+      width: 30px; height: 30px; border-radius: 50%; background: var(--bg2); color: var(--muted);
+      display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700;
+      border: 2px solid var(--border); transition: all .2s;
+    }
+    .wiz-progress .plabel { font-size: 11.5px; font-weight: 600; color: var(--muted); display: none; }
+    @media (min-width: 640px) { .wiz-progress .plabel { display: inline; } }
+    .wiz-progress .pstep.active .circ { background: var(--green); border-color: var(--green); color: #fff; }
+    .wiz-progress .pstep.active .plabel { color: var(--ink); }
+    .wiz-progress .pstep.done .circ { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+    .wiz-progress .pline { width: 20px; height: 2px; background: var(--border); }
+    .wiz-progress .pstep.done + .pline { background: var(--green); }
+
+    .wiz-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 28px; }
+    .wiz-step { display: none; }
+    .wiz-step.active { display: block; animation: wizFade .3s ease; }
+    @keyframes wizFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .wiz-step h2 { font-family: var(--font-d); font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .wiz-step .step-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 20px; }
+
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-mid); margin-bottom: 7px; }
+    .field .hint { font-size: 11.5px; color: var(--muted-light); margin-top: 5px; }
+    .field input[type="text"], .field input[type="number"], .field input[type="date"], .field select, .field textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 14px;
+      font-family: inherit; color: var(--ink); background: #fff; outline: none; box-sizing: border-box;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--green); box-shadow: 0 0 0 4px var(--green-glow); }
+    .field textarea { resize: vertical; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 480px) { .row-2 { grid-template-columns: 1fr; } }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; }
+    .chip { padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; color: var(--ink-mid); cursor: pointer; transition: all .15s; user-select: none; }
+    .chip:hover { border-color: var(--green); }
+    .chip.selected { background: var(--green); border-color: var(--green); color: #fff; }
+
+    .radio-group { display: flex; flex-wrap: wrap; gap: 16px; }
+    .radio-opt { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink-mid); cursor: pointer; }
+    .radio-opt input { accent-color: var(--green); width: 16px; height: 16px; }
+
+    .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-mid); margin-top: 6px; }
+
+    /* Photo upload */
+    .photo-drop {
+      border: 2px dashed var(--border); border-radius: 14px; padding: 28px; text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s; background: var(--bg2);
+    }
+    .photo-drop:hover, .photo-drop.dragover { border-color: var(--green); background: var(--green-light); }
+    .photo-drop i { font-size: 26px; color: var(--green); margin-bottom: 8px; display: block; }
+    .photo-drop span { font-size: 13px; color: var(--muted); }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 16px; }
+    .photo-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-thumb .cover-tag { position: absolute; bottom: 4px; left: 4px; background: var(--green); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
+    .photo-thumb .rm-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 11px; }
+
+    /* Preview card (step 6) */
+    .preview-card { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
+    .preview-img { aspect-ratio: 16/9; background: var(--bg2); position: relative; }
+    .preview-img img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-badge { position: absolute; top: 10px; left: 10px; background: rgba(9,184,80,.92); color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+    .preview-body { padding: 16px; }
+    .preview-body .pv-title { font-family: var(--font-d); font-weight: 700; font-size: 15px; color: var(--ink); }
+    .preview-body .pv-loc { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .preview-body .pv-price { font-family: var(--font-d); font-weight: 700; font-size: 17px; color: var(--ink); margin-top: 10px; }
+    .preview-body .pv-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .preview-body .pv-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .preview-body .pv-tags span { background: var(--bg2); color: var(--ink-mid); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+
+    .wiz-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 26px; gap: 10px; }
+    .wiz-btn { padding: 12px 22px; border-radius: 999px; font-size: 13.5px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .wiz-btn.primary { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; box-shadow: var(--shadow-green); }
+    .wiz-btn.ghost { background: var(--bg2); color: var(--ink-mid); }
+    .wiz-btn.link { background: none; color: var(--muted); font-weight: 600; }
+    .wiz-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .wiz-errors { background: #fef2f2; border: 1px solid #fecaca; color: #c53030; border-radius: 12px; padding: 12px 16px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .wiz-errors.show { display: block; }
+    .wiz-errors ul { margin: 4px 0 0 18px; padding: 0; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<div class="wiz-wrap">
+  <div class="wiz-head">
+    <h1>List Your Flat. Find Your Flatmate.</h1>
+    <p>List your available room or flat and connect directly with verified users.</p>
+  </div>
+
+  <div class="wiz-progress" id="wizProgress">
+    <% ["Flat","Location","Rent","Preferences","Photos","Review"].forEach(function(label, i){ %>
+      <div class="pstep <%= i===0?'active':'' %>" data-pstep="<%= i+1 %>">
+        <div class="circ"><%= i+1 %></div>
+        <div class="plabel"><%= label %></div>
+      </div>
+      <% if (i < 5) { %><div class="pline"></div><% } %>
+    <% }) %>
+  </div>
+
+  <div class="wiz-errors" id="wizErrors"><strong>Please fix the following:</strong><ul id="wizErrorList"></ul></div>
+
+  <form class="wiz-card" id="haveForm">
+    <input type="hidden" name="type" value="have">
+    <input type="hidden" name="draftId" id="draftIdField" value="<%= draft ? draft._id : '' %>">
+
+    <!-- STEP 1 — Flat -->
+    <div class="wiz-step active" data-step="1">
+      <h2>Flat details</h2>
+      <p class="step-sub">Tell us about the flat you're offering.</p>
+
+      <div class="field">
+        <label>Flat type <span style="color:#e53e3e">*</span></label>
+        <div class="chips" data-chip-group="bhk" data-required="true">
+          <% [["1","1 BHK"],["2","2 BHK"],["3","3 BHK"],["4","4+ BHK"]].forEach(function(o){ %>
+            <div class="chip <%= draft && String(draft.bhk)===o[0] ? 'selected' : '' %>" data-value="<%= o[0] %>"><%= o[1] %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="bhk" id="bhkInput" value="<%= draft ? draft.bhk : '' %>">
+      </div>
+
+      <div class="field">
+        <label>Room being offered <span style="color:#e53e3e">*</span></label>
+        <div class="chips" data-chip-group="roomType" data-required="true">
+          <% ["Private Room","Shared Room"].forEach(function(o){ %>
+            <div class="chip <%= draft && draft.roomType===o ? 'selected' : '' %>" data-value="<%= o %>"><%= o %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="roomType" id="roomTypeInput" value="<%= draft ? draft.roomType : '' %>">
+      </div>
+
+      <div class="field">
+        <label>What is available? <span style="color:#e53e3e">*</span></label>
+        <div class="chips" data-chip-group="availabilityType" data-required="true">
+          <% ["Room","Bed/Spot","Entire Flat"].forEach(function(o){ %>
+            <div class="chip <%= draft && draft.have && draft.have.availabilityType===o ? 'selected' : '' %>" data-value="<%= o %>"><%= o %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="availabilityType" id="availabilityTypeInput" value="<%= draft && draft.have ? draft.have.availabilityType||'' : '' %>">
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Number of available spots</label>
+          <select name="availableSpots">
+            <option value="1" <%= draft && draft.have && draft.have.availableSpots===1?'selected':'' %>>1</option>
+            <option value="2" <%= draft && draft.have && draft.have.availableSpots===2?'selected':'' %>>2</option>
+            <option value="3" <%= draft && draft.have && draft.have.availableSpots===3?'selected':'' %>>3</option>
+            <option value="4" <%= draft && draft.have && draft.have.availableSpots>=4?'selected':'' %>>4+</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Furnishing</label>
+          <select name="furnishing">
+            <option value="">Select (optional)</option>
+            <option value="Fully Furnished">Fully Furnished</option>
+            <option value="Semi Furnished">Semi Furnished</option>
+            <option value="Unfurnished">Unfurnished</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Available from</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="availableFromMode" value="now" checked onchange="toggleAvailDate()"> Available Now</label>
+          <label class="radio-opt"><input type="radio" name="availableFromMode" value="date" onchange="toggleAvailDate()"> Specific Date</label>
+        </div>
+        <div class="field" id="availDateWrap" style="display:none; margin-top:10px;">
+          <input type="date" name="availableFromDate">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Description <span style="font-weight:400;color:var(--muted-light)">(optional, max 500 characters)</span></label>
+        <textarea name="description" rows="3" maxlength="500" placeholder="e.g. Fully furnished 2 BHK near Powai Lake and Hiranandani."></textarea>
+      </div>
+    </div>
+
+    <!-- STEP 2 — Location -->
+    <div class="wiz-step" data-step="2">
+      <h2>Location</h2>
+      <p class="step-sub">We'll only show your city and area publicly — your exact address stays private until you accept a connection request.</p>
+
+      <div class="row-2">
+        <div class="field">
+          <label>City <span style="color:#e53e3e">*</span></label>
+          <select name="city" required>
+            <option value="">Select city</option>
+            <% cities.forEach(function(c){ %>
+              <option value="<%= c %>" <%= draft && draft.city===c ? 'selected':'' %>><%= c %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Area / Locality <span style="color:#e53e3e">*</span></label>
+          <input type="text" name="area" placeholder="e.g. Powai" value="<%= draft ? draft.area||'' : '' %>" required>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Nearby landmark <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="landmark" placeholder="e.g. Near Hiranandani Gardens">
+        </div>
+        <div class="field">
+          <label>Nearest college/office area <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="nearCollege" placeholder="e.g. IIT Bombay">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Full address <span style="font-weight:400;color:var(--muted-light)">(private — only shared after you accept a connection)</span></label>
+        <textarea name="address" rows="2" placeholder="Flat/House no., building, street..."></textarea>
+        <div class="hint"><i class="fa-solid fa-lock"></i> This is never shown on your public listing.</div>
+      </div>
+    </div>
+
+    <!-- STEP 3 — Rent -->
+    <div class="wiz-step" data-step="3">
+      <h2>Rent &amp; money</h2>
+      <p class="step-sub">Keep it simple — the public card only shows the monthly rent.</p>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Monthly rent per person <span style="color:#e53e3e">*</span></label>
+          <input type="number" name="rentMonthly" placeholder="e.g. 12500" min="0" value="<%= draft && draft.have ? draft.have.rentMonthly||'' : '' %>" required>
+        </div>
+        <div class="field">
+          <label>Security deposit</label>
+          <input type="number" name="depositAmount" placeholder="e.g. 25000" min="0" id="depositAmountInput">
+          <div class="checkbox-row">
+            <input type="checkbox" name="depositNegotiable" id="depositNegotiable" onchange="document.getElementById('depositAmountInput').disabled=this.checked">
+            <label for="depositNegotiable" style="margin:0;font-weight:500">Negotiable</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Maintenance</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="maintenance" value="Included" checked onchange="toggleMaintenance()"> Included</label>
+          <label class="radio-opt"><input type="radio" name="maintenance" value="Separate" onchange="toggleMaintenance()"> Separate</label>
+        </div>
+        <div class="field" id="maintenanceAmountWrap" style="display:none; margin-top:10px;">
+          <input type="number" name="maintenanceAmount" placeholder="Maintenance amount" min="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 — Amenities & Preferences -->
+    <div class="wiz-step" data-step="4">
+      <h2>Amenities &amp; flatmate preferences</h2>
+      <p class="step-sub">These help the right flatmate find you — not a dating profile, just accommodation compatibility.</p>
+
+      <div class="field">
+        <label>Amenities</label>
+        <div class="chips" data-chip-group="amenities" data-multi="true">
+          <% ["WiFi","AC","Washing Machine","Geyser","Refrigerator","Bed","Wardrobe","Study Table","Sofa","Dining Table","TV","Microwave","RO Water","Power Backup","Lift","Parking","CCTV","Security","Balcony","Gym","Swimming Pool","Housekeeping"].forEach(function(a){ %>
+            <div class="chip" data-value="<%= a %>"><%= a %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="amenities[]" id="amenitiesInput" value="">
+      </div>
+
+      <div class="field">
+        <label>Preferred gender</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="preferredGender" value="Male"> Male</label>
+          <label class="radio-opt"><input type="radio" name="preferredGender" value="Female"> Female</label>
+          <label class="radio-opt"><input type="radio" name="preferredGender" value="No Preference" checked> No Preference</label>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Suitable for</label>
+          <select name="occupation">
+            <option value="">No preference</option>
+            <option value="Student">Students</option>
+            <option value="Working Professional">Working Professionals</option>
+            <option value="Intern">Interns</option>
+            <option value="Other">Anyone</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Food preference</label>
+          <select name="food">
+            <option value="No Preference">No Preference</option>
+            <option value="Vegetarian">Vegetarian</option>
+            <option value="Non-Vegetarian">Non-Vegetarian</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Lifestyle <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+        <div class="chips" data-chip-group="lifestyle" data-multi="true">
+          <% ["Non-Smoker","Non-Drinker","No Pets","Pet Friendly","Quiet Lifestyle","Social","Early Riser","Night Owl","No Overnight Guests"].forEach(function(l){ %>
+            <div class="chip" data-value="<%= l %>"><%= l %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="lifestyle[]" id="lifestyleInput" value="">
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Current occupants <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="number" name="occupantsCount" min="0" placeholder="e.g. 1">
+        </div>
+        <div class="field">
+          <label>Occupant type</label>
+          <select name="occupantsType">
+            <option value="">Select (optional)</option>
+            <option value="Students">Students</option>
+            <option value="Working Professionals">Working Professionals</option>
+            <option value="Mixed">Mixed</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 — Photos -->
+    <div class="wiz-step" data-step="5">
+      <h2>Photos</h2>
+      <p class="step-sub">3–15 photos recommended. Show the living room, bedroom, kitchen and common areas — no personal photos needed.</p>
+
+      <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoInput').click()">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Click or drag photos here &middot; JPG, PNG or WebP &middot; up to 5 MB each</span>
+        <input type="file" id="photoInput" name="photos" accept="image/jpeg,image/png,image/webp" multiple hidden>
+      </div>
+      <div class="photo-grid" id="photoGrid"></div>
+    </div>
+
+    <!-- STEP 6 — Contact & Review -->
+    <div class="wiz-step" data-step="6">
+      <h2>Contact &amp; review</h2>
+      <p class="step-sub">Your phone number is never shown publicly — only used for HostelNode Messages / WhatsApp after you accept a request.</p>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Phone <span style="color:#e53e3e">*</span></label>
+          <input type="text" name="phone" id="phoneInput" placeholder="10-digit mobile number" maxlength="10" required>
+        </div>
+        <div class="field">
+          <label>WhatsApp</label>
+          <input type="text" name="whatsapp" id="whatsappInput" placeholder="10-digit WhatsApp number" maxlength="10">
+          <div class="checkbox-row">
+            <input type="checkbox" id="sameAsPhone" name="sameAsPhone" checked onchange="toggleSamePhone()">
+            <label for="sameAsPhone" style="margin:0;font-weight:500">Same as phone</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Preferred contact method</label>
+        <select name="preferredMethod">
+          <option value="HostelNode Messages">HostelNode Messages</option>
+          <option value="WhatsApp">WhatsApp</option>
+          <option value="Both">Both</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Company <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="company" placeholder="e.g. TCS">
+        </div>
+        <div class="field">
+          <label>College <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="college" placeholder="e.g. IIT Bombay">
+        </div>
+      </div>
+
+      <h2 style="margin-top:8px">Listing preview</h2>
+      <div class="preview-card">
+        <div class="preview-img">
+          <img id="pvImg" src="/images/placeholder.jpg" alt="Preview">
+          <span class="preview-badge">🏠 FLAT</span>
+        </div>
+        <div class="preview-body">
+          <div class="pv-title" id="pvTitle">— BHK · —</div>
+          <div class="pv-loc" id="pvLoc">—</div>
+          <div class="pv-price" id="pvPrice">₹—/month</div>
+          <div class="pv-meta" id="pvMeta">Available from —</div>
+          <div class="pv-tags" id="pvTags"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wiz-nav">
+      <div>
+        <button type="button" class="wiz-btn ghost" id="btnBack" onclick="wizBack()" style="display:none"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button type="button" class="wiz-btn link" onclick="saveDraft()"><i class="fa-regular fa-floppy-disk"></i> Save Draft</button>
+        <button type="button" class="wiz-btn primary" id="btnNext" onclick="wizNext()">Next <i class="fa-solid fa-arrow-right"></i></button>
+        <button type="button" class="wiz-btn primary" id="btnPublish" onclick="publishListing()" style="display:none">Publish Listing <i class="fa-solid fa-check"></i></button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+const TOTAL_STEPS = 6;
+let currentStep = 1;
+let selectedFiles = [];
+
+/* ── Chip selectors (single + multi) ── */
+document.querySelectorAll('[data-chip-group]').forEach(function(group) {
+  const isMulti = group.dataset.multi === 'true';
+  const hiddenInput = document.getElementById(group.dataset.chipGroup + 'Input');
+  group.querySelectorAll('.chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      if (isMulti) {
+        chip.classList.toggle('selected');
+      } else {
+        group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+      }
+      if (hiddenInput) {
+        if (isMulti) {
+          const values = [...group.querySelectorAll('.chip.selected')].map(c => c.dataset.value);
+          hiddenInput.value = values.join(',');
+        } else {
+          hiddenInput.value = chip.dataset.value;
+        }
+      }
+    });
+  });
+});
+
+function toggleAvailDate() {
+  document.getElementById('availDateWrap').style.display =
+    document.querySelector('input[name="availableFromMode"]:checked').value === 'date' ? 'block' : 'none';
+}
+function toggleMaintenance() {
+  document.getElementById('maintenanceAmountWrap').style.display =
+    document.querySelector('input[name="maintenance"]:checked').value === 'Separate' ? 'block' : 'none';
+}
+function toggleSamePhone() {
+  const same = document.getElementById('sameAsPhone').checked;
+  document.getElementById('whatsappInput').disabled = same;
+  if (same) document.getElementById('whatsappInput').value = '';
+}
+
+/* ── Wizard navigation ── */
+function showStep(n) {
+  document.querySelectorAll('.wiz-step').forEach(s => s.classList.toggle('active', parseInt(s.dataset.step) === n));
+  document.querySelectorAll('.pstep').forEach(function(p) {
+    const idx = parseInt(p.dataset.pstep);
+    p.classList.toggle('active', idx === n);
+    p.classList.toggle('done', idx < n);
+  });
+  document.getElementById('btnBack').style.display = n > 1 ? 'inline-flex' : 'none';
+  document.getElementById('btnNext').style.display = n < TOTAL_STEPS ? 'inline-flex' : 'none';
+  document.getElementById('btnPublish').style.display = n === TOTAL_STEPS ? 'inline-flex' : 'none';
+  if (n === TOTAL_STEPS) updatePreview();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(n) {
+  const errors = [];
+  if (n === 1) {
+    if (!document.getElementById('bhkInput').value) errors.push('Please select a flat type.');
+    if (!document.getElementById('roomTypeInput').value) errors.push('Please select the room being offered.');
+    if (!document.getElementById('availabilityTypeInput').value) errors.push("Please select what's available.");
+  }
+  if (n === 2) {
+    if (!document.querySelector('[name="city"]').value) errors.push('Please select a city.');
+    if (!document.querySelector('[name="area"]').value.trim()) errors.push('Please enter an area/locality.');
+  }
+  if (n === 3) {
+    if (!document.querySelector('[name="rentMonthly"]').value) errors.push('Please enter the monthly rent.');
+  }
+  if (n === 6) {
+    const phone = document.getElementById('phoneInput').value.trim();
+    if (!/^[6-9]\d{9}$/.test(phone)) errors.push('Please enter a valid 10-digit phone number.');
+  }
+  return errors;
+}
+
+function showErrors(errors) {
+  const box = document.getElementById('wizErrors');
+  const list = document.getElementById('wizErrorList');
+  if (!errors.length) { box.classList.remove('show'); return; }
+  list.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
+  box.classList.add('show');
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function wizNext() {
+  const errors = validateStep(currentStep);
+  if (errors.length) { showErrors(errors); return; }
+  showErrors([]);
+  currentStep = Math.min(currentStep + 1, TOTAL_STEPS);
+  showStep(currentStep);
+}
+function wizBack() {
+  currentStep = Math.max(currentStep - 1, 1);
+  showStep(currentStep);
+}
+
+/* ── Preview (step 6) ── */
+function updatePreview() {
+  const bhk = document.getElementById('bhkInput').value;
+  const roomType = document.getElementById('roomTypeInput').value;
+  const area = document.querySelector('[name="area"]').value || '—';
+  const city = document.querySelector('[name="city"]').value || '—';
+  const rent = document.querySelector('[name="rentMonthly"]').value || '—';
+  const availMode = document.querySelector('input[name="availableFromMode"]:checked').value;
+  const availDate = document.querySelector('[name="availableFromDate"]').value;
+
+  document.getElementById('pvTitle').textContent = `${bhk || '—'} BHK · ${roomType || '—'}`;
+  document.getElementById('pvLoc').textContent = `${area}, ${city}`;
+  document.getElementById('pvPrice').textContent = `₹${Number(rent).toLocaleString('en-IN')}/month`;
+  document.getElementById('pvMeta').textContent = 'Available ' + (availMode === 'now' ? 'now' : (availDate ? 'from ' + availDate : 'soon'));
+
+  const gender = document.querySelector('input[name="preferredGender"]:checked')?.value || 'No Preference';
+  const occupation = document.querySelector('[name="occupation"]').selectedOptions[0]?.text || '';
+  document.getElementById('pvTags').innerHTML = [gender, occupation].filter(Boolean).map(t => `<span>${t}</span>`).join('');
+
+  if (selectedFiles.length) {
+    const reader = new FileReader();
+    reader.onload = e => document.getElementById('pvImg').src = e.target.result;
+    reader.readAsDataURL(selectedFiles[0]);
+  }
+}
+
+/* ── Photo upload ── */
+const photoDrop = document.getElementById('photoDrop');
+const photoInput = document.getElementById('photoInput');
+const photoGrid = document.getElementById('photoGrid');
+
+photoInput.addEventListener('change', e => addFiles(e.target.files));
+['dragover','dragenter'].forEach(evt => photoDrop.addEventListener(evt, e => { e.preventDefault(); photoDrop.classList.add('dragover'); }));
+['dragleave','drop'].forEach(evt => photoDrop.addEventListener(evt, e => { e.preventDefault(); photoDrop.classList.remove('dragover'); }));
+photoDrop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+function addFiles(fileList) {
+  const remaining = 15 - selectedFiles.length;
+  const files = Array.from(fileList).slice(0, remaining);
+  selectedFiles = selectedFiles.concat(files);
+  renderPhotoGrid();
+}
+function removePhoto(idx) {
+  selectedFiles.splice(idx, 1);
+  renderPhotoGrid();
+}
+function renderPhotoGrid() {
+  photoGrid.innerHTML = '';
+  selectedFiles.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const div = document.createElement('div');
+      div.className = 'photo-thumb';
+      div.innerHTML = `<img src="${e.target.result}">${idx===0 ? '<span class="cover-tag">COVER</span>' : ''}<button type="button" class="rm-btn" onclick="removePhoto(${idx})">✕</button>`;
+      photoGrid.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ── Build FormData from the whole form + selected files ── */
+function buildFormData() {
+  const form = document.getElementById('haveForm');
+  const fd = new FormData(form);
+  selectedFiles.forEach(f => fd.append('photos', f));
+  return fd;
+}
+
+/* ── Save draft ── */
+async function saveDraft() {
+  const btn = event.target.closest('button');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Saving…';
+  try {
+    const res = await fetch('/flatmate/create/draft', { method: 'POST', body: buildFormData() });
+    const data = await res.json();
+    btn.disabled = false; btn.innerHTML = original;
+    if (data.success) {
+      document.getElementById('draftIdField').value = data.draftId;
+      showErrors([]);
+      alert('Draft saved! You can come back to finish this listing anytime.');
+    } else {
+      showErrors([data.error || 'Could not save draft.']);
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    showErrors(['Network error — please try again.']);
+  }
+}
+
+/* ── Publish ── */
+async function publishListing() {
+  const errors = validateStep(6);
+  if (errors.length) { showErrors(errors); return; }
+
+  const btn = document.getElementById('btnPublish');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Publishing…';
+  try {
+    const res = await fetch('/flatmate/create/publish', { method: 'POST', body: buildFormData() });
+    const data = await res.json();
+    if (data.success) {
+      window.location.href = data.redirect;
+    } else {
+      btn.disabled = false; btn.innerHTML = original;
+      showErrors(data.errors || [data.error || 'Something went wrong.']);
+      if (data.draftId) document.getElementById('draftIdField').value = data.draftId;
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    showErrors(['Network error — please try again.']);
+  }
+}
+
+showStep(1);
+</script>
+</body>
+</html>

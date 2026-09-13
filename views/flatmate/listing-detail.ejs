@@ -1,0 +1,377 @@
+<!-- listing-detail.ejs — HostelNode Flatmate listing detail page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <% if (listing) { %>
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
+    <link rel="canonical" href="<%= seo.canonical %>">
+    <meta name="robots" content="<%= listing.status === 'ACTIVE' ? 'index, follow' : 'noindex, follow' %>">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<%= seo.title %>">
+    <meta property="og:description" content="<%= seo.description %>">
+    <meta property="og:url" content="<%= seo.canonical %>">
+  <% } else { %>
+    <title>Listing Not Found | HostelNode</title>
+    <meta name="robots" content="noindex, follow">
+  <% } %>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .detail-wrap { max-width: 880px; margin: 0 auto; padding: 20px 20px 80px; }
+
+    /* breadcrumb */
+    .crumb { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+    .crumb a { color: var(--muted); text-decoration: none; }
+    .crumb a:hover { color: var(--green-dark); }
+    .crumb .sep { margin: 0 6px; opacity: .5; }
+
+    /* gallery */
+    .gallery { border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); }
+    .gallery-main { aspect-ratio: 16/9; background: var(--bg2); position: relative; }
+    .gallery-main img { width: 100%; height: 100%; object-fit: cover; }
+    .gallery-need-placeholder {
+      width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; background: linear-gradient(135deg,#eaf1ff,#f5f8ff); color: #2563eb;
+    }
+    .gallery-need-placeholder i { font-size: 40px; }
+    .gallery-badge { position: absolute; top: 14px; left: 14px; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #fff; }
+    .gallery-badge.have { background: rgba(9,184,80,.92); }
+    .gallery-badge.need { background: rgba(37,99,235,.92); }
+    .gallery-thumbs { display: flex; gap: 8px; padding: 10px; background: #fff; overflow-x: auto; }
+    .gallery-thumbs img { width: 74px; height: 56px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; flex-shrink: 0; }
+    .gallery-thumbs img.active { border-color: var(--green); }
+
+    /* header block */
+    .listing-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+    .listing-head h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .listing-loc { font-size: 13.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .listing-loc i { color: var(--green); }
+    .listing-price { text-align: right; }
+    .listing-price .val { font-family: var(--font-d); font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+    .listing-price .label { font-size: 11.5px; color: var(--muted-light); }
+
+    .section { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
+    .section h3 { font-family: var(--font-d); font-size: 1rem; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+    .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+    @media (max-width: 480px) { .kv-grid { grid-template-columns: 1fr; } }
+    .kv { font-size: 13px; }
+    .kv .k { color: var(--muted-light); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .3px; }
+    .kv .v { color: var(--ink); font-weight: 600; margin-top: 2px; }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag { background: var(--bg2); color: var(--ink-mid); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
+
+    .desc-text { font-size: 13.5px; color: var(--ink-mid); line-height: 1.7; }
+
+    .private-box { border: 1.5px dashed var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+    .private-box.locked { color: var(--muted); font-size: 13px; }
+    .private-box.locked i { font-size: 20px; color: var(--muted-light); display: block; margin-bottom: 8px; }
+    .private-box.unlocked { text-align: left; }
+    .private-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink); margin-bottom: 8px; }
+    .private-row i { color: var(--green); width: 16px; }
+
+    .poster-row { display: flex; align-items: center; justify-content: space-between; }
+    .poster-info { display: flex; align-items: center; gap: 10px; }
+    .poster-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), #00c264); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .poster-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+    .poster-meta { font-size: 11.5px; color: var(--muted); }
+    .verified-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--green-light); color: var(--green-dark); font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+
+    /* sticky CTA bar (mobile) + inline CTA (desktop) */
+    .cta-bar { position: sticky; bottom: 0; background: #fff; border-top: 1px solid var(--border); padding: 14px 20px; margin: 0 -20px; }
+    .cta-btn { width: 100%; padding: 14px; border-radius: 999px; font-size: 14.5px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+    .cta-btn.connect { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; box-shadow: var(--shadow-green); }
+    .cta-btn.pending { background: #fffbeb; color: #92400e; border: 1.5px solid #fde68a; cursor: default; }
+    .cta-btn.connected { background: var(--green-light); color: var(--green-dark); border: 1.5px solid var(--green-border); cursor: default; }
+    .cta-btn.muted { background: var(--bg2); color: var(--muted); cursor: default; }
+    .cta-sub { text-align: center; font-size: 12px; margin-top: 8px; }
+    .cta-sub a, .cta-sub button { color: var(--muted); background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 12px; }
+
+    .not-found { text-align: center; padding: 80px 20px; }
+    .not-found i { font-size: 2.4rem; color: var(--border-dark); }
+    .not-found h2 { font-family: var(--font-d); margin: 16px 0 8px; }
+
+    /* modal */
+    .rc-overlay { position: fixed; inset: 0; background: rgba(10,22,40,.55); backdrop-filter: blur(4px); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .rc-overlay.open { opacity: 1; pointer-events: all; }
+    .rc-box { background: #fff; border-radius: 20px; width: 100%; max-width: 420px; padding: 24px; position: relative; }
+    .rc-close { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg2); color: var(--muted); }
+    .rc-box h3 { font-family: var(--font-d); font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .rc-box p.hint { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+    .rc-summary { background: var(--bg2); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--ink-mid); margin-bottom: 16px; }
+    .rc-field textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 13.5px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+    .rc-send { width: 100%; margin-top: 14px; padding: 13px; background: linear-gradient(135deg, var(--green), #00c264); color: #fff; border: none; border-radius: 13px; font-weight: 700; font-size: 14px; }
+    .rc-alert { font-size: 12.5px; color: #c53030; margin-top: 10px; display: none; }
+    .rc-alert.show { display: block; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<div class="detail-wrap">
+
+<% if (!listing) { %>
+  <div class="not-found">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <h2>Listing not found</h2>
+    <p style="color:var(--muted);font-size:13.5px">This listing may have been removed or the link is incorrect.</p>
+    <a href="/flatmate" style="color:var(--green-dark);font-weight:700">&larr; Back to Flatmate</a>
+  </div>
+<% } else { %>
+
+  <div class="crumb">
+    <a href="/flatmate">Home</a><span class="sep">/</span><a href="/flatmate">Flatmate</a><span class="sep">/</span>
+    <%= listing.bhk %> BHK <%= listing.roomType %>, <%= listing.area %>
+  </div>
+
+  <!-- Gallery -->
+  <div class="gallery">
+    <div class="gallery-main">
+      <% if (listing.type === 'HAVE_FLAT' && listing.images && listing.images.length) { %>
+        <img id="galleryMainImg" src="/flatmate-images/<%= listing.images[0] %>" alt="<%= listing.bhk %> BHK <%= listing.roomType %> in <%= listing.area %>, <%= listing.city %>">
+      <% } else if (listing.type === 'HAVE_FLAT') { %>
+        <img src="/images/placeholder.jpg" alt="<%= listing.bhk %> BHK <%= listing.roomType %> in <%= listing.area %>">
+      <% } else { %>
+        <div class="gallery-need-placeholder"><i class="fa-solid fa-magnifying-glass"></i><span>Looking for a flat</span></div>
+      <% } %>
+      <span class="gallery-badge <%= listing.type === 'HAVE_FLAT' ? 'have' : 'need' %>">
+        <%= listing.type === 'HAVE_FLAT' ? '🏠 FLAT' : '👤 FLATMATE' %>
+      </span>
+    </div>
+    <% if (listing.type === 'HAVE_FLAT' && listing.images && listing.images.length > 1) { %>
+      <div class="gallery-thumbs">
+        <% listing.images.forEach(function(img, i) { %>
+          <img src="/flatmate-images/<%= img %>" class="<%= i===0?'active':'' %>" onclick="switchGalleryImage('<%= img %>', this)">
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Header -->
+  <div class="listing-head">
+    <div>
+      <h1><%= listing.bhk %> BHK &middot; <%= listing.roomType %></h1>
+      <div class="listing-loc"><i class="fa-solid fa-location-dot"></i> <%= listing.area %>, <%= listing.city %></div>
+    </div>
+    <div class="listing-price">
+      <% if (listing.type === 'HAVE_FLAT') { %>
+        <div class="val">₹<%= (listing.have?.rentMonthly || 0).toLocaleString('en-IN') %></div>
+        <div class="label">per month</div>
+      <% } else { %>
+        <div class="val">₹<%= (listing.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (listing.need?.budgetMax || 0).toLocaleString('en-IN') %></div>
+        <div class="label">budget / month</div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Key facts -->
+  <div class="section">
+    <h3>Details</h3>
+    <div class="kv-grid">
+      <% if (listing.type === 'HAVE_FLAT') { %>
+        <div class="kv"><div class="k">Available</div><div class="v"><%= listing.have?.availabilityType || '—' %> &middot; <%= listing.have?.availableSpots || 1 %> spot(s)</div></div>
+        <div class="kv"><div class="k">Furnishing</div><div class="v"><%= listing.have?.furnishing || 'Not specified' %></div></div>
+        <div class="kv"><div class="k">Available from</div>
+          <div class="v"><%= listing.have?.availableFromMode === 'now' ? 'Now' : (listing.have?.availableFromDate ? new Date(listing.have.availableFromDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Flexible') %></div>
+        </div>
+        <div class="kv"><div class="k">Deposit</div><div class="v"><%= listing.have?.depositNegotiable ? 'Negotiable' : ('₹' + (listing.have?.depositAmount || 0).toLocaleString('en-IN')) %></div></div>
+        <div class="kv"><div class="k">Maintenance</div><div class="v"><%= listing.have?.maintenance %><%= listing.have?.maintenance === 'Separate' && listing.have?.maintenanceAmount ? ' — ₹' + listing.have.maintenanceAmount.toLocaleString('en-IN') : '' %></div></div>
+        <% if (listing.have?.occupantsCount) { %>
+          <div class="kv"><div class="k">Current occupants</div><div class="v"><%= listing.have.occupantsCount %> (<%= listing.have.occupantsType || 'Not specified' %>)</div></div>
+        <% } %>
+      <% } else { %>
+        <div class="kv"><div class="k">Looking for</div><div class="v"><%= listing.need?.needType || '—' %></div></div>
+        <div class="kv"><div class="k">Move-in</div>
+          <div class="v"><%
+            const moveInLabels = { immediate:'Immediately', '15days':'Within 15 days', '1month':'Within 1 month' };
+            %><%= moveInLabels[listing.need?.moveInMode] || (listing.need?.moveInDate ? new Date(listing.need.moveInDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Flexible') %></div>
+        </div>
+        <div class="kv"><div class="k">Deposit preference</div><div class="v"><%= listing.need?.depositPreference || 'Flexible' %></div></div>
+        <% if (listing.need?.preferredAreas && listing.need.preferredAreas.length > 1) { %>
+          <div class="kv"><div class="k">Also considering</div><div class="v"><%= listing.need.preferredAreas.slice(1).join(', ') %></div></div>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Amenities (HAVE only) -->
+  <% if (listing.type === 'HAVE_FLAT' && listing.have?.amenities && listing.have.amenities.length) { %>
+    <div class="section">
+      <h3>Amenities</h3>
+      <div class="tag-row"><% listing.have.amenities.forEach(function(a){ %><span class="tag"><%= a %></span><% }) %></div>
+    </div>
+  <% } %>
+
+  <!-- Preferences -->
+  <div class="section">
+    <h3>Flatmate preferences</h3>
+    <div class="tag-row">
+      <span class="tag"><%= listing.gender === 'any' ? 'No gender preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span>
+      <% if (listing.occupation) { %><span class="tag"><%= listing.occupation %></span><% } %>
+      <span class="tag"><%= listing.food %></span>
+      <% (listing.lifestyle || []).forEach(function(l){ %><span class="tag"><%= l %></span><% }) %>
+    </div>
+  </div>
+
+  <!-- Description -->
+  <% if (listing.description || listing.need?.intro) { %>
+    <div class="section">
+      <h3><%= listing.type === 'HAVE_FLAT' ? 'About this listing' : 'About this person' %></h3>
+      <p class="desc-text"><%= listing.description || listing.need.intro %></p>
+    </div>
+  <% } %>
+
+  <!-- Private info -->
+  <div class="section">
+    <h3><i class="fa-solid fa-lock" style="font-size:13px;color:var(--muted-light)"></i> Contact information</h3>
+    <% if (isOwner || (connection && connection.status === 'accepted')) { %>
+      <div class="private-box unlocked">
+        <div class="private-row"><i class="fa-solid fa-phone"></i> <%= listing.contact?.phone || 'Not provided' %></div>
+        <% if (listing.contact?.whatsapp) { %><div class="private-row"><i class="fa-brands fa-whatsapp"></i> <%= listing.contact.whatsapp %></div><% } %>
+        <% if (listing.address) { %><div class="private-row"><i class="fa-solid fa-location-dot"></i> <%= listing.address %></div><% } %>
+        <div class="private-row"><i class="fa-solid fa-comment"></i> Prefers <%= listing.contact?.preferredMethod || 'HostelNode Messages' %></div>
+      </div>
+    <% } else { %>
+      <div class="private-box locked">
+        <i class="fa-solid fa-lock"></i>
+        Private profile information — phone, WhatsApp and exact address — becomes available after your connection request is accepted.
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Posted by -->
+  <div class="section poster-row">
+    <div class="poster-info">
+      <div class="poster-avatar"><%= (listing.student?.firstName || 'H')[0] %></div>
+      <div>
+        <div class="poster-name">Posted by <%= listing.student?.firstName || 'HostelNode User' %></div>
+        <div class="poster-meta">
+          <%= new Date(listing.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %>
+          &middot; <%= listing.views || 0 %> views
+        </div>
+      </div>
+    </div>
+    <% if (listing.isVerified) { %><span class="verified-badge"><i class="fa-solid fa-circle-check"></i> Verified</span><% } %>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-bar">
+    <% if (cta === 'manage') { %>
+      <a class="cta-btn muted" href="/flatmate/my-listings"><i class="fa-solid fa-gear"></i> This is your listing — Manage it</a>
+      <div class="cta-sub">Status: <%= listing.status %></div>
+
+    <% } else if (cta === 'closed') { %>
+      <button class="cta-btn muted" disabled><i class="fa-solid fa-lock"></i> This listing is no longer available</button>
+
+    <% } else if (cta === 'blocked') { %>
+      <button class="cta-btn muted" disabled>Unavailable</button>
+
+    <% } else if (cta === 'pending_sent') { %>
+      <button class="cta-btn pending" disabled><i class="fa-solid fa-clock"></i> Request Pending</button>
+      <div class="cta-sub"><button onclick="cancelRequest('<%= connection._id %>')">Cancel Request</button></div>
+
+    <% } else if (cta === 'connected') { %>
+      <button class="cta-btn connected" disabled><i class="fa-solid fa-circle-check"></i> Connected</button>
+      <div class="cta-sub">Messages &amp; chat launching soon</div>
+
+    <% } else if (!isOwner) { %>
+      <% /* cta === 'connect', logged in or not */ %>
+      <% if (typeof student !== 'undefined' && student) { %>
+        <button class="cta-btn connect" id="connectBtn" onclick="openConnectModal()"><i class="fa-solid fa-people-arrows"></i> Request to Connect</button>
+      <% } else { %>
+        <a class="cta-btn connect" href="/student/login?next=<%= encodeURIComponent('/flatmate/' + listing.slug) %>"><i class="fa-solid fa-people-arrows"></i> Request to Connect</a>
+      <% } %>
+    <% } %>
+  </div>
+
+  <!-- Request to Connect modal -->
+  <div class="rc-overlay" id="rcOverlay" onclick="if(event.target===this) closeConnectModal()">
+    <div class="rc-box">
+      <button class="rc-close" onclick="closeConnectModal()"><i class="fa-solid fa-xmark"></i></button>
+      <h3>Request to Connect</h3>
+      <p class="hint">You're requesting to connect with <%= listing.student?.firstName || 'this user' %> about this listing.</p>
+      <div class="rc-summary">
+        <%= listing.type === 'HAVE_FLAT' ? '🏠' : '👤' %> <%= listing.bhk %> BHK &middot; <%= listing.area %>, <%= listing.city %>
+        <% if (listing.type === 'HAVE_FLAT') { %> &middot; ₹<%= (listing.have?.rentMonthly||0).toLocaleString('en-IN') %>/mo<% } %>
+      </div>
+      <div class="rc-field">
+        <textarea id="rcMessage" rows="3" maxlength="500" placeholder="Hi, I'm interested in this listing..."></textarea>
+      </div>
+      <button class="rc-send" id="rcSendBtn" onclick="sendConnectRequest('<%= listing._id %>')">Send Request</button>
+      <div class="rc-alert" id="rcAlert"></div>
+    </div>
+  </div>
+
+<% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+function switchGalleryImage(filename, thumbEl) {
+  document.getElementById('galleryMainImg').src = '/flatmate-images/' + filename;
+  document.querySelectorAll('.gallery-thumbs img').forEach(i => i.classList.remove('active'));
+  thumbEl.classList.add('active');
+}
+
+function openConnectModal() {
+  document.getElementById('rcOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeConnectModal() {
+  document.getElementById('rcOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function sendConnectRequest(listingId) {
+  const btn = document.getElementById('rcSendBtn');
+  const alertBox = document.getElementById('rcAlert');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Sending…';
+  try {
+    const res = await fetch('/flatmate/connect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId, message: document.getElementById('rcMessage').value.trim() }),
+    });
+    if (res.status === 302 || res.redirected) {
+      window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    const data = await res.json();
+    btn.disabled = false; btn.innerHTML = original;
+    if (data.success) {
+      closeConnectModal();
+      window.location.reload();
+    } else {
+      alertBox.textContent = data.error || 'Something went wrong.';
+      alertBox.classList.add('show');
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    alertBox.textContent = 'Network error — please try again.';
+    alertBox.classList.add('show');
+  }
+}
+
+async function cancelRequest(connectionId) {
+  if (!confirm('Cancel this request?')) return;
+  try {
+    const res = await fetch('/flatmate/connection/' + connectionId + '/cancel', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) window.location.reload();
+    else alert(data.error || 'Could not cancel request.');
+  } catch (err) {
+    alert('Network error — please try again.');
+  }
+}
+</script>
+</body>
+</html>

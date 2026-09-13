@@ -1,0 +1,51 @@
+<!-- create-success.ejs — HostelNode Flatmate: listing submitted confirmation -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Listing Submitted | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .success-wrap { max-width: 480px; margin: 0 auto; padding: 60px 20px; text-align: center; }
+    .success-icon { width: 76px; height: 76px; border-radius: 50%; background: var(--green-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; }
+    .success-icon::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--green-border); animation: pulse 1.8s ease-out infinite; }
+    @keyframes pulse { 0% { transform: scale(.9); opacity: .8; } 100% { transform: scale(1.4); opacity: 0; } }
+    .success-icon i { font-size: 32px; color: var(--green); }
+    h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+    p.sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; background: #fffbeb; color: #92400e; border: 1px solid #fde68a; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 999px; margin: 14px 0 26px; }
+    .actions { display: flex; flex-direction: column; gap: 10px; }
+    .btn-primary { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; padding: 13px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; box-shadow: var(--shadow-green); }
+    .btn-secondary { background: var(--bg2); color: var(--ink-mid); padding: 13px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<div class="success-wrap">
+  <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+  <h1>Listing submitted successfully!</h1>
+  <p class="sub">
+    Your <%= listing.type === 'HAVE_FLAT' ? 'flat listing' : 'requirement' %> for
+    <%= listing.bhk %> BHK · <%= listing.area %>, <%= listing.city %> is under review.
+  </p>
+  <p class="sub">We'll notify you as soon as it's approved and live in search.</p>
+  <div class="status-pill"><i class="fa-solid fa-clock"></i> Pending Review</div>
+
+  <div class="actions">
+    <a href="/flatmate/my-listings" class="btn-primary">View My Listings</a>
+    <a href="/flatmate" class="btn-secondary">Browse Flatmates</a>
+  </div>
+</div>
+
+</body>
+</html>

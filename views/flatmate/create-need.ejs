@@ -1,0 +1,552 @@
+<!-- create-need.ejs — HostelNode Flatmate: Post Your Requirement (NEED_FLAT wizard) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Your Requirement | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .wiz-wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+    .wiz-head { text-align: center; margin-bottom: 26px; }
+    .wiz-head h1 { font-family: var(--font-d); font-size: 1.7rem; font-weight: 700; color: var(--ink); }
+    .wiz-head p { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+
+    .wiz-progress { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 30px; flex-wrap: wrap; }
+    .wiz-progress .pstep { display: flex; align-items: center; gap: 8px; }
+    .wiz-progress .circ {
+      width: 30px; height: 30px; border-radius: 50%; background: var(--bg2); color: var(--muted);
+      display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700;
+      border: 2px solid var(--border); transition: all .2s;
+    }
+    .wiz-progress .plabel { font-size: 11.5px; font-weight: 600; color: var(--muted); display: none; }
+    @media (min-width: 640px) { .wiz-progress .plabel { display: inline; } }
+    .wiz-progress .pstep.active .circ { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .wiz-progress .pstep.active .plabel { color: var(--ink); }
+    .wiz-progress .pstep.done .circ { background: #eaf1ff; border-color: #2563eb; color: #2563eb; }
+    .wiz-progress .pline { width: 20px; height: 2px; background: var(--border); }
+    .wiz-progress .pstep.done + .pline { background: #2563eb; }
+
+    .wiz-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 28px; }
+    .wiz-step { display: none; }
+    .wiz-step.active { display: block; animation: wizFade .3s ease; }
+    @keyframes wizFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .wiz-step h2 { font-family: var(--font-d); font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .wiz-step .step-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 20px; }
+
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-mid); margin-bottom: 7px; }
+    .field .hint { font-size: 11.5px; color: var(--muted-light); margin-top: 5px; }
+    .field input[type="text"], .field input[type="number"], .field input[type="date"], .field select, .field textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 14px;
+      font-family: inherit; color: var(--ink); background: #fff; outline: none; box-sizing: border-box;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,.12); }
+    .field textarea { resize: vertical; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 480px) { .row-2 { grid-template-columns: 1fr; } }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; }
+    .chip { padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; color: var(--ink-mid); cursor: pointer; transition: all .15s; user-select: none; }
+    .chip:hover { border-color: #2563eb; }
+    .chip.selected { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+    .radio-group { display: flex; flex-wrap: wrap; gap: 16px; }
+    .radio-opt { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink-mid); cursor: pointer; }
+    .radio-opt input { accent-color: #2563eb; width: 16px; height: 16px; }
+
+    .area-tag-input { display: flex; flex-wrap: wrap; gap: 8px; border: 1.5px solid var(--border); border-radius: 12px; padding: 8px; }
+    .area-tag { background: #eaf1ff; color: #2563eb; font-size: 12.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; display: flex; align-items: center; gap: 6px; }
+    .area-tag button { background: none; border: none; color: #2563eb; font-size: 13px; cursor: pointer; }
+    .area-tag-input input { border: none; outline: none; flex: 1; min-width: 120px; font-size: 13.5px; padding: 5px; }
+
+    .preview-card { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
+    .preview-body { padding: 18px; }
+    .preview-badge { display: inline-block; background: rgba(37,99,235,.12); color: #1d4ed8; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; margin-bottom: 10px; }
+    .preview-body .pv-title { font-family: var(--font-d); font-weight: 700; font-size: 15px; color: var(--ink); }
+    .preview-body .pv-loc { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .preview-body .pv-price { font-family: var(--font-d); font-weight: 700; font-size: 17px; color: var(--ink); margin-top: 10px; }
+    .preview-body .pv-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .preview-body .pv-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .preview-body .pv-tags span { background: var(--bg2); color: var(--ink-mid); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+
+    .wiz-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 26px; gap: 10px; }
+    .wiz-btn { padding: 12px 22px; border-radius: 999px; font-size: 13.5px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .wiz-btn.primary { background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff; box-shadow: 0 6px 20px rgba(37,99,235,.32); }
+    .wiz-btn.ghost { background: var(--bg2); color: var(--ink-mid); }
+    .wiz-btn.link { background: none; color: var(--muted); font-weight: 600; }
+    .wiz-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .wiz-errors { background: #fef2f2; border: 1px solid #fecaca; color: #c53030; border-radius: 12px; padding: 12px 16px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .wiz-errors.show { display: block; }
+    .wiz-errors ul { margin: 4px 0 0 18px; padding: 0; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<div class="wiz-wrap">
+  <div class="wiz-head">
+    <h1>Post Your Requirement. Find a Flat or Room.</h1>
+    <p>Tell us what you're looking for and connect with suitable flat owners and flatmates.</p>
+  </div>
+
+  <div class="wiz-progress" id="wizProgress">
+    <% ["What You Need","Location & Budget","Preferences","About You","Contact & Review"].forEach(function(label, i){ %>
+      <div class="pstep <%= i===0?'active':'' %>" data-pstep="<%= i+1 %>">
+        <div class="circ"><%= i+1 %></div>
+        <div class="plabel"><%= label %></div>
+      </div>
+      <% if (i < 4) { %><div class="pline"></div><% } %>
+    <% }) %>
+  </div>
+
+  <div class="wiz-errors" id="wizErrors"><strong>Please fix the following:</strong><ul id="wizErrorList"></ul></div>
+
+  <form class="wiz-card" id="needForm">
+    <input type="hidden" name="type" value="need">
+    <input type="hidden" name="draftId" id="draftIdField" value="<%= draft ? draft._id : '' %>">
+
+    <!-- STEP 1 — What You Need -->
+    <div class="wiz-step active" data-step="1">
+      <h2>What are you looking for?</h2>
+      <p class="step-sub">This helps flat owners and flatmates know if you're a match.</p>
+
+      <div class="field">
+        <label>Flat type <span style="color:#e53e3e">*</span></label>
+        <div class="chips" data-chip-group="bhk" data-required="true">
+          <% [["1","1 BHK"],["2","2 BHK"],["3","3+ BHK"]].forEach(function(o){ %>
+            <div class="chip" data-value="<%= o[0] %>"><%= o[1] %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="bhk" id="bhkInput" value="">
+      </div>
+
+      <div class="field">
+        <label>Room preference <span style="color:#e53e3e">*</span></label>
+        <div class="chips" data-chip-group="roomPreference" data-required="true">
+          <% ["Private Room","Shared Room","Either"].forEach(function(o){ %>
+            <div class="chip" data-value="<%= o %>"><%= o %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="roomPreference" id="roomPreferenceInput" value="">
+      </div>
+
+      <div class="field">
+        <label>I need <span style="color:#e53e3e">*</span></label>
+        <div class="chips" data-chip-group="needType" data-required="true">
+          <% ["Room in Shared Flat","Entire Flat","Either"].forEach(function(o){ %>
+            <div class="chip" data-value="<%= o %>"><%= o %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="needType" id="needTypeInput" value="">
+      </div>
+    </div>
+
+    <!-- STEP 2 — Location & Budget -->
+    <div class="wiz-step" data-step="2">
+      <h2>Location &amp; budget</h2>
+      <p class="step-sub">Add every area you'd consider — the more you add, the more matches you'll see.</p>
+
+      <div class="field">
+        <label>City <span style="color:#e53e3e">*</span></label>
+        <select name="city" required>
+          <option value="">Select city</option>
+          <% cities.forEach(function(c){ %><option value="<%= c %>"><%= c %></option><% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Preferred area(s) <span style="color:#e53e3e">*</span></label>
+        <div class="area-tag-input" id="areaTagBox">
+          <input type="text" id="areaTagText" placeholder="Type an area and press Enter (e.g. Powai)">
+        </div>
+        <div class="hint">Example: Powai, Chandivali, Vikhroli, Ghatkopar</div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Near college <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="nearCollege" placeholder="e.g. IIT Bombay">
+        </div>
+        <div class="field">
+          <label>Nearby landmark <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="landmark">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Minimum budget <span style="color:#e53e3e">*</span></label>
+          <input type="number" name="budgetMin" placeholder="e.g. 10000" min="0" required>
+        </div>
+        <div class="field">
+          <label>Maximum budget <span style="color:#e53e3e">*</span></label>
+          <input type="number" name="budgetMax" placeholder="e.g. 13000" min="0" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Deposit preference</label>
+        <select name="depositPreference">
+          <option value="Flexible">Flexible</option>
+          <option value="Up to 1 month">Up to 1 month</option>
+          <option value="Up to 2 months">Up to 2 months</option>
+          <option value="Up to 3 months">Up to 3 months</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Move-in</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="moveInMode" value="immediate" checked onchange="toggleMoveInDate()"> Immediately</label>
+          <label class="radio-opt"><input type="radio" name="moveInMode" value="15days" onchange="toggleMoveInDate()"> Within 15 days</label>
+          <label class="radio-opt"><input type="radio" name="moveInMode" value="1month" onchange="toggleMoveInDate()"> Within 1 month</label>
+          <label class="radio-opt"><input type="radio" name="moveInMode" value="date" onchange="toggleMoveInDate()"> Specific Date</label>
+        </div>
+        <div class="field" id="moveInDateWrap" style="display:none; margin-top:10px;">
+          <input type="date" name="moveInDate">
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 — Preferences -->
+    <div class="wiz-step" data-step="3">
+      <h2>Your preferences</h2>
+      <p class="step-sub">Just for accommodation compatibility.</p>
+
+      <div class="field">
+        <label>Your gender <span style="color:#e53e3e">*</span></label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="gender" value="male" required> Male</label>
+          <label class="radio-opt"><input type="radio" name="gender" value="female"> Female</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>You are a <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+        <select name="occupation">
+          <option value="">Select (optional)</option>
+          <option value="Student">Student</option>
+          <option value="Working Professional">Working Professional</option>
+          <option value="Intern">Intern</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Food preference</label>
+        <select name="food">
+          <option value="No Preference">No Preference</option>
+          <option value="Vegetarian">Vegetarian</option>
+          <option value="Non-Vegetarian">Non-Vegetarian</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Lifestyle <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+        <div class="chips" data-chip-group="lifestyle" data-multi="true">
+          <% ["Non-Smoker","Non-Drinker","No Pets","Pet Friendly","Quiet Lifestyle","Social","Early Riser","Night Owl"].forEach(function(l){ %>
+            <div class="chip" data-value="<%= l %>"><%= l %></div>
+          <% }) %>
+        </div>
+        <input type="hidden" name="lifestyle[]" id="lifestyleInput" value="">
+      </div>
+    </div>
+
+    <!-- STEP 4 — About You -->
+    <div class="wiz-step" data-step="4">
+      <h2>About you</h2>
+      <p class="step-sub">Optional, but a short intro helps flat owners get to know you.</p>
+
+      <div class="field">
+        <label>Short introduction <span style="font-weight:400;color:var(--muted-light)">(optional, max 300 characters)</span></label>
+        <textarea name="intro" rows="3" maxlength="300" placeholder="Moving to Mumbai for work and looking for a clean private room near Powai."></textarea>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Company <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="company">
+        </div>
+        <div class="field">
+          <label>College / University <span style="font-weight:400;color:var(--muted-light)">(optional)</span></label>
+          <input type="text" name="college">
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 — Contact & Review -->
+    <div class="wiz-step" data-step="5">
+      <h2>Contact &amp; review</h2>
+      <p class="step-sub">Your phone number is never shown publicly.</p>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Phone <span style="color:#e53e3e">*</span></label>
+          <input type="text" name="phone" id="phoneInput" placeholder="10-digit mobile number" maxlength="10" required>
+        </div>
+        <div class="field">
+          <label>WhatsApp</label>
+          <input type="text" name="whatsapp" id="whatsappInput" placeholder="10-digit WhatsApp number" maxlength="10">
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;color:var(--ink-mid)">
+            <input type="checkbox" id="sameAsPhone" name="sameAsPhone" checked onchange="toggleSamePhone()">
+            <label for="sameAsPhone" style="margin:0;font-weight:500">Same as phone</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Preferred contact method</label>
+        <select name="preferredMethod">
+          <option value="HostelNode Messages">HostelNode Messages</option>
+          <option value="WhatsApp">WhatsApp</option>
+          <option value="Both">Both</option>
+        </select>
+      </div>
+
+      <h2 style="margin-top:8px">Listing preview</h2>
+      <div class="preview-card">
+        <div class="preview-body">
+          <span class="preview-badge">👤 FLATMATE</span>
+          <div class="pv-title" id="pvTitle">Looking for a Flat</div>
+          <div class="pv-loc" id="pvLoc">—</div>
+          <div class="pv-price" id="pvPrice">₹—–₹—/month</div>
+          <div class="pv-meta" id="pvMeta">Move-in —</div>
+          <div class="pv-tags" id="pvTags"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wiz-nav">
+      <div>
+        <button type="button" class="wiz-btn ghost" id="btnBack" onclick="wizBack()" style="display:none"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button type="button" class="wiz-btn link" onclick="saveDraft()"><i class="fa-regular fa-floppy-disk"></i> Save Draft</button>
+        <button type="button" class="wiz-btn primary" id="btnNext" onclick="wizNext()">Next <i class="fa-solid fa-arrow-right"></i></button>
+        <button type="button" class="wiz-btn primary" id="btnPublish" onclick="publishListing()" style="display:none">Publish Listing <i class="fa-solid fa-check"></i></button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+const TOTAL_STEPS = 5;
+let currentStep = 1;
+let preferredAreas = [];
+
+/* ── Chip selectors ── */
+document.querySelectorAll('[data-chip-group]').forEach(function(group) {
+  const isMulti = group.dataset.multi === 'true';
+  const hiddenInput = document.getElementById(group.dataset.chipGroup + 'Input');
+  group.querySelectorAll('.chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      if (isMulti) {
+        chip.classList.toggle('selected');
+      } else {
+        group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+      }
+      if (hiddenInput) {
+        if (isMulti) {
+          hiddenInput.value = [...group.querySelectorAll('.chip.selected')].map(c => c.dataset.value).join(',');
+        } else {
+          hiddenInput.value = chip.dataset.value;
+        }
+      }
+    });
+  });
+});
+
+/* ── Preferred areas tag input ── */
+const areaTagText = document.getElementById('areaTagText');
+areaTagText.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && this.value.trim()) {
+    e.preventDefault();
+    addAreaTag(this.value.trim());
+    this.value = '';
+  }
+});
+function addAreaTag(val) {
+  if (preferredAreas.includes(val)) return;
+  preferredAreas.push(val);
+  renderAreaTags();
+}
+function removeAreaTag(idx) {
+  preferredAreas.splice(idx, 1);
+  renderAreaTags();
+}
+function renderAreaTags() {
+  document.querySelectorAll('.area-tag').forEach(t => t.remove());
+  preferredAreas.forEach((a, idx) => {
+    const span = document.createElement('span');
+    span.className = 'area-tag';
+    span.innerHTML = `${a} <button type="button" onclick="removeAreaTag(${idx})">✕</button>`;
+    areaTagText.parentElement.insertBefore(span, areaTagText);
+  });
+  document.querySelectorAll('input[name="preferredAreas[]"]').forEach(i => i.remove());
+  preferredAreas.forEach(a => {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden'; hidden.name = 'preferredAreas[]'; hidden.value = a;
+    document.getElementById('needForm').appendChild(hidden);
+  });
+  // area = first preferred area (top-level `area` field used by search/cards)
+  const existingArea = document.querySelector('input[name="area"]');
+  if (existingArea) existingArea.remove();
+  if (preferredAreas.length) {
+    const areaHidden = document.createElement('input');
+    areaHidden.type = 'hidden'; areaHidden.name = 'area'; areaHidden.value = preferredAreas[0];
+    document.getElementById('needForm').appendChild(areaHidden);
+  }
+}
+
+function toggleMoveInDate() {
+  document.getElementById('moveInDateWrap').style.display =
+    document.querySelector('input[name="moveInMode"]:checked').value === 'date' ? 'block' : 'none';
+}
+function toggleSamePhone() {
+  const same = document.getElementById('sameAsPhone').checked;
+  document.getElementById('whatsappInput').disabled = same;
+  if (same) document.getElementById('whatsappInput').value = '';
+}
+
+/* ── Wizard navigation ── */
+function showStep(n) {
+  document.querySelectorAll('.wiz-step').forEach(s => s.classList.toggle('active', parseInt(s.dataset.step) === n));
+  document.querySelectorAll('.pstep').forEach(function(p) {
+    const idx = parseInt(p.dataset.pstep);
+    p.classList.toggle('active', idx === n);
+    p.classList.toggle('done', idx < n);
+  });
+  document.getElementById('btnBack').style.display = n > 1 ? 'inline-flex' : 'none';
+  document.getElementById('btnNext').style.display = n < TOTAL_STEPS ? 'inline-flex' : 'none';
+  document.getElementById('btnPublish').style.display = n === TOTAL_STEPS ? 'inline-flex' : 'none';
+  if (n === TOTAL_STEPS) updatePreview();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(n) {
+  const errors = [];
+  if (n === 1) {
+    if (!document.getElementById('bhkInput').value) errors.push('Please select a flat type.');
+    if (!document.getElementById('roomPreferenceInput').value) errors.push('Please select a room preference.');
+    if (!document.getElementById('needTypeInput').value) errors.push('Please select what you need.');
+  }
+  if (n === 2) {
+    if (!document.querySelector('[name="city"]').value) errors.push('Please select a city.');
+    if (!preferredAreas.length) errors.push('Please add at least one preferred area.');
+    const min = document.querySelector('[name="budgetMin"]').value;
+    const max = document.querySelector('[name="budgetMax"]').value;
+    if (!min || !max) errors.push('Please enter your budget range.');
+    else if (parseInt(min) > parseInt(max)) errors.push('Minimum budget cannot be more than maximum budget.');
+  }
+  if (n === 3) {
+    if (!document.querySelector('input[name="gender"]:checked')) errors.push('Please select your gender.');
+  }
+  if (n === 5) {
+    const phone = document.getElementById('phoneInput').value.trim();
+    if (!/^[6-9]\d{9}$/.test(phone)) errors.push('Please enter a valid 10-digit phone number.');
+  }
+  return errors;
+}
+
+function showErrors(errors) {
+  const box = document.getElementById('wizErrors');
+  const list = document.getElementById('wizErrorList');
+  if (!errors.length) { box.classList.remove('show'); return; }
+  list.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
+  box.classList.add('show');
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function wizNext() {
+  const errors = validateStep(currentStep);
+  if (errors.length) { showErrors(errors); return; }
+  showErrors([]);
+  currentStep = Math.min(currentStep + 1, TOTAL_STEPS);
+  showStep(currentStep);
+}
+function wizBack() {
+  currentStep = Math.max(currentStep - 1, 1);
+  showStep(currentStep);
+}
+
+function updatePreview() {
+  const bhk = document.getElementById('bhkInput').value;
+  const roomPref = document.getElementById('roomPreferenceInput').value;
+  const city = document.querySelector('[name="city"]').value || '—';
+  const min = document.querySelector('[name="budgetMin"]').value || '—';
+  const max = document.querySelector('[name="budgetMax"]').value || '—';
+  const moveInMode = document.querySelector('input[name="moveInMode"]:checked').value;
+  const moveInLabels = { immediate: 'Immediately', '15days': 'Within 15 days', '1month': 'Within 1 month', date: document.querySelector('[name="moveInDate"]').value || 'Flexible' };
+
+  document.getElementById('pvTitle').textContent = `Looking for a Flat — ${bhk || '—'} BHK · ${roomPref || '—'}`;
+  document.getElementById('pvLoc').textContent = `${preferredAreas.join(', ') || '—'}, ${city}`;
+  document.getElementById('pvPrice').textContent = `₹${Number(min).toLocaleString('en-IN')}–₹${Number(max).toLocaleString('en-IN')}/month`;
+  document.getElementById('pvMeta').textContent = 'Move-in: ' + moveInLabels[moveInMode];
+
+  const gender = document.querySelector('input[name="gender"]:checked')?.value || '';
+  const occupation = document.querySelector('[name="occupation"]').selectedOptions[0]?.text || '';
+  document.getElementById('pvTags').innerHTML = [gender, occupation].filter(Boolean).map(t => `<span>${t}</span>`).join('');
+}
+
+/* ── Save draft / Publish ── */
+function buildFormData() { return new FormData(document.getElementById('needForm')); }
+
+async function saveDraft() {
+  const btn = event.target.closest('button');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Saving…';
+  try {
+    const res = await fetch('/flatmate/create/draft', { method: 'POST', body: buildFormData() });
+    const data = await res.json();
+    btn.disabled = false; btn.innerHTML = original;
+    if (data.success) {
+      document.getElementById('draftIdField').value = data.draftId;
+      showErrors([]);
+      alert('Draft saved! You can come back to finish this listing anytime.');
+    } else {
+      showErrors([data.error || 'Could not save draft.']);
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    showErrors(['Network error — please try again.']);
+  }
+}
+
+async function publishListing() {
+  const errors = validateStep(5);
+  if (errors.length) { showErrors(errors); return; }
+
+  const btn = document.getElementById('btnPublish');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Publishing…';
+  try {
+    const res = await fetch('/flatmate/create/publish', { method: 'POST', body: buildFormData() });
+    const data = await res.json();
+    if (data.success) {
+      window.location.href = data.redirect;
+    } else {
+      btn.disabled = false; btn.innerHTML = original;
+      showErrors(data.errors || [data.error || 'Something went wrong.']);
+      if (data.draftId) document.getElementById('draftIdField').value = data.draftId;
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    showErrors(['Network error — please try again.']);
+  }
+}
+
+showStep(1);
+</script>
+</body>
+</html>

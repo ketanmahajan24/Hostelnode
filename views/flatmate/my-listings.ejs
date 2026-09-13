@@ -1,0 +1,191 @@
+<!-- my-listings.ejs — HostelNode Flatmate: My Listings -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Listings | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .ml-wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 80px; }
+    .ml-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .ml-head h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); }
+    .ml-new-btn { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; padding: 10px 20px; border-radius: 999px; font-size: 13.5px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-green); }
+
+    .ml-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; }
+    .ml-tab { flex-shrink: 0; padding: 9px 18px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--card-bg); font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .ml-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .ml-tab .cnt { opacity: .65; font-weight: 500; margin-left: 4px; }
+
+    .ml-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 14px; }
+    .ml-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .ml-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+    .ml-badge.have { background: #dcfce7; color: #087a3c; }
+    .ml-badge.need { background: #dbeafe; color: #1d4ed8; }
+    .ml-title { font-size: 15px; font-weight: 700; color: var(--ink); margin: 8px 0 2px; }
+    .ml-loc { font-size: 12.5px; color: var(--muted); }
+    .ml-price { font-size: 14px; font-weight: 700; color: var(--ink); margin-top: 8px; }
+
+    .ml-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px; }
+    .ml-status.active { background: var(--green-light); color: var(--green-dark); }
+    .ml-status.pending { background: #fffbeb; color: #92400e; }
+    .ml-status.draft { background: #f1f5f9; color: #475569; }
+    .ml-status.paused { background: #fef3c7; color: #92400e; }
+    .ml-status.closed { background: var(--bg2); color: var(--muted); }
+    .ml-status.rejected { background: #fef2f2; color: #c53030; }
+    .ml-status.suspended { background: #fef2f2; color: #c53030; }
+
+    .ml-stats { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .ml-stats b { color: var(--ink); }
+    .ml-rejection { font-size: 12px; color: #c53030; background: #fef2f2; border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
+
+    .ml-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .ml-btn { padding: 8px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 700; border: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .ml-btn.view { background: var(--bg2); color: var(--ink-mid); }
+    .ml-btn.edit { background: #eaf1ff; color: #2563eb; }
+    .ml-btn.pause { background: #fef3c7; color: #92400e; }
+    .ml-btn.reactivate { background: var(--green-light); color: var(--green-dark); }
+    .ml-btn.close { background: var(--bg2); color: #c53030; }
+    .ml-btn.delete { background: #fef2f2; color: #c53030; }
+    .ml-btn.continue { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; }
+
+    .ml-empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .ml-empty i { font-size: 2rem; color: var(--border-dark); display: block; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<div class="ml-wrap">
+  <div class="ml-head">
+    <h1>My Listings</h1>
+    <a href="/flatmate" class="ml-new-btn"><i class="fa-solid fa-plus"></i> Post New Listing</a>
+  </div>
+
+  <%
+    const groupOf = (s) => {
+      if (s === 'ACTIVE') return 'active';
+      if (s === 'PENDING' || s === 'DRAFT') return 'pending';
+      return 'closed'; // CLOSED, PAUSED, REJECTED, SUSPENDED
+    };
+    const counts = { all: listings.length, active: 0, pending: 0, closed: 0 };
+    listings.forEach(l => counts[groupOf(l.status)]++);
+  %>
+
+  <div class="ml-tabs" id="mlTabs">
+    <button class="ml-tab active" data-group="all" onclick="setMlFilter('all', this)">All <span class="cnt">(<%= counts.all %>)</span></button>
+    <button class="ml-tab" data-group="active" onclick="setMlFilter('active', this)">Active <span class="cnt">(<%= counts.active %>)</span></button>
+    <button class="ml-tab" data-group="pending" onclick="setMlFilter('pending', this)">Pending <span class="cnt">(<%= counts.pending %>)</span></button>
+    <button class="ml-tab" data-group="closed" onclick="setMlFilter('closed', this)">Closed <span class="cnt">(<%= counts.closed %>)</span></button>
+  </div>
+
+  <div id="mlList">
+    <% if (!listings || listings.length === 0) { %>
+      <div class="ml-empty">
+        <i class="fa-regular fa-folder-open"></i>
+        <p>You haven't posted any listings yet.</p>
+      </div>
+    <% } %>
+
+    <% listings.forEach(function(l) { %>
+      <%
+        const isHave = l.type === 'HAVE_FLAT';
+        const statusClass = l.status.toLowerCase();
+        const statusLabels = { ACTIVE:'🟢 Active', PENDING:'🟡 Pending Review', DRAFT:'📝 Draft', PAUSED:'⏸ Paused', CLOSED:'⚪ Closed', REJECTED:'❌ Rejected', SUSPENDED:'🚫 Suspended' };
+      %>
+      <div class="ml-card" data-group="<%= groupOf(l.status) %>">
+        <div class="ml-card-top">
+          <span class="ml-badge <%= isHave ? 'have' : 'need' %>"><%= isHave ? '🏠 FLAT' : '👤 FLATMATE' %></span>
+          <span class="ml-status <%= statusClass %>"><%= statusLabels[l.status] || l.status %></span>
+        </div>
+
+        <div class="ml-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
+        <div class="ml-loc"><i class="fa-solid fa-location-dot"></i> <%= l.area %>, <%= l.city %></div>
+
+        <% if (isHave) { %>
+          <div class="ml-price">₹<%= (l.have?.rentMonthly || 0).toLocaleString('en-IN') %>/month</div>
+        <% } else { %>
+          <div class="ml-price">₹<%= (l.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (l.need?.budgetMax || 0).toLocaleString('en-IN') %>/month</div>
+        <% } %>
+
+        <% if (l.status === 'ACTIVE' || l.status === 'PAUSED') { %>
+          <div class="ml-stats">
+            <span><b><%= l.requestCount %></b> request<%= l.requestCount===1?'':'s' %></span>
+            <span><b><%= l.connectedCount %></b> connected</span>
+            <span><b><%= l.views || 0 %></b> views</span>
+          </div>
+        <% } %>
+
+        <% if (l.status === 'REJECTED' && l.rejectionReason) { %>
+          <div class="ml-rejection"><i class="fa-solid fa-circle-exclamation"></i> <%= l.rejectionReason %></div>
+        <% } %>
+
+        <div class="ml-actions">
+          <% if (l.status === 'DRAFT') { %>
+            <a class="ml-btn continue" href="/flatmate/create/<%= isHave ? 'have' : 'need' %>?draft=<%= l._id %>">Continue Editing</a>
+            <button class="ml-btn delete" onclick="deleteListing('<%= l._id %>', this)">Delete</button>
+
+          <% } else { %>
+            <% if (l.slug && l.status !== 'PENDING' && l.status !== 'REJECTED') { %>
+              <a class="ml-btn view" href="/flatmate/<%= l.slug %>">View</a>
+            <% } %>
+            <a class="ml-btn edit" href="/flatmate/create/<%= isHave ? 'have' : 'need' %>?draft=<%= l._id %>">Edit</a>
+
+            <% if (l.status === 'ACTIVE') { %>
+              <button class="ml-btn pause" onclick="listingAction('<%= l._id %>','pause',this)">Pause</button>
+              <button class="ml-btn close" onclick="listingAction('<%= l._id %>','close',this,true)">Close</button>
+            <% } else if (l.status === 'PAUSED') { %>
+              <button class="ml-btn reactivate" onclick="listingAction('<%= l._id %>','reactivate',this)">Reactivate</button>
+              <button class="ml-btn close" onclick="listingAction('<%= l._id %>','close',this,true)">Close</button>
+            <% } else if (l.status === 'PENDING') { %>
+              <button class="ml-btn close" onclick="listingAction('<%= l._id %>','close',this,true)">Withdraw</button>
+            <% } %>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+function setMlFilter(group, btn) {
+  document.querySelectorAll('.ml-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#mlList .ml-card').forEach(card => {
+    card.style.display = (group === 'all' || card.dataset.group === group) ? '' : 'none';
+  });
+}
+
+async function listingAction(id, action, btn, confirmFirst) {
+  if (confirmFirst && !confirm('Are you sure? This listing will stop receiving new requests. Existing connections will not be affected.')) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch('/flatmate/listing/' + id + '/' + action, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) window.location.reload();
+    else { alert(data.error || 'Something went wrong.'); btn.disabled = false; }
+  } catch (err) { alert('Network error — please try again.'); btn.disabled = false; }
+}
+
+async function deleteListing(id, btn) {
+  if (!confirm('Delete this draft? This cannot be undone.')) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch('/flatmate/listing/' + id + '/delete', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) window.location.reload();
+    else { alert(data.error || 'Could not delete draft.'); btn.disabled = false; }
+  } catch (err) { alert('Network error — please try again.'); btn.disabled = false; }
+}
+</script>
+</body>
+</html>

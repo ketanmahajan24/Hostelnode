@@ -43,6 +43,7 @@ const studentRouter     = require("./routes/studentRoutes");
 const adminRouter       = require("./routes/adminRoutes");
 const cityRouter        = require("./routes/cityRoutes");
 const flatmateRouter    = require("./routes/flatmateRoutes");
+const messagesRouter    = require("./routes/messagesRoutes");
 const sitemapRouter     = require("./routes/sitemapRoute");
 const waBot             = require("./app-wa-bot");
 
@@ -95,6 +96,7 @@ const UPLOAD_BASE = "/secure_uploads";
 app.use("/student-images", express.static(path.join(UPLOAD_BASE, "students")));
 app.use("/profile-image",  express.static(path.join(UPLOAD_BASE, "profiles")));
 app.use("/listing-images", express.static(path.join(UPLOAD_BASE, "listings")));
+app.use("/flatmate-images", express.static(path.join(UPLOAD_BASE, "flatmate")));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ════════════════════════════════════════════════════════════
@@ -115,6 +117,7 @@ app.use("/student",     studentRouter);
 app.use("/findHostels", findHostelsRouter);
 app.use("/city",        cityRouter);
 app.use("/flatmate",    flatmateRouter);
+app.use("/messages",    messagesRouter);
 app.use("/",            sitemapRouter);
 app.use("/",            publicRoutes);
 
@@ -221,4 +224,4 @@ cron.schedule("0 0 * * *", async () => {
 const PORT = process.env.PORT || 6060;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-});
+});   

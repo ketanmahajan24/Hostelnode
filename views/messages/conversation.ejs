@@ -1,0 +1,232 @@
+<!-- conversation.ejs — HostelNode Messages chat thread -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= conversation ? 'Chat' : 'Conversation' %> | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .chat-wrap { max-width: 640px; margin: 0 auto; padding: 16px 16px 0; display: flex; flex-direction: column; height: calc(100vh - 70px); }
+    .chat-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .chat-header-left { display: flex; align-items: center; gap: 12px; }
+    .chat-back { color: var(--muted); font-size: 16px; text-decoration: none; }
+    .chat-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), #00c264); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .chat-name { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .chat-status { font-size: 11.5px; }
+    .chat-status.active { color: var(--green-dark); }
+    .chat-status.closed { color: var(--muted); }
+    .chat-menu-btn { background: var(--bg2); border: none; width: 32px; height: 32px; border-radius: 50%; color: var(--muted); position: relative; }
+    .chat-menu-dropdown {
+      position: absolute; top: 40px; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: var(--shadow-md); min-width: 190px; z-index: 100; display: none; overflow: hidden;
+    }
+    .chat-menu-dropdown.open { display: block; }
+    .chat-menu-dropdown a, .chat-menu-dropdown button {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; font-size: 13px; text-align: left;
+      background: none; border: none; color: var(--ink-mid); text-decoration: none; cursor: pointer;
+    }
+    .chat-menu-dropdown a:hover, .chat-menu-dropdown button:hover { background: var(--bg2); }
+    .chat-menu-dropdown .danger { color: #c53030; }
+
+    .chat-listing-card { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin: 14px 0; font-size: 12.5px; }
+    .chat-listing-card a { color: var(--green-dark); font-weight: 700; text-decoration: none; font-size: 12px; }
+
+    .chat-thread { flex: 1; overflow-y: auto; padding: 16px 4px; display: flex; flex-direction: column; gap: 10px; }
+    .bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.5; }
+    .bubble.mine { align-self: flex-end; background: var(--green); color: #fff; border-bottom-right-radius: 4px; }
+    .bubble.theirs { align-self: flex-start; background: var(--card-bg); border: 1px solid var(--border); color: var(--ink); border-bottom-left-radius: 4px; }
+    .bubble .time { display: block; font-size: 10px; opacity: .65; margin-top: 4px; }
+
+    .chat-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 0; }
+
+    .chat-input-row { display: flex; gap: 10px; padding: 12px 0 16px; border-top: 1px solid var(--border); }
+    .chat-input-row textarea { flex: 1; border: 1.5px solid var(--border); border-radius: 16px; padding: 11px 14px; font-size: 13.5px; font-family: inherit; resize: none; outline: none; }
+    .chat-input-row textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+    .chat-send-btn { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; flex-shrink: 0; }
+    .chat-closed-note { text-align: center; padding: 16px; color: var(--muted); font-size: 12.5px; background: var(--bg2); border-radius: 12px; margin: 12px 0 16px; }
+
+    .not-found { text-align: center; padding: 80px 20px; }
+    .not-found i { font-size: 2.4rem; color: var(--border-dark); }
+
+    /* Remove connection confirm modal */
+    .rm-overlay { position: fixed; inset: 0; background: rgba(10,22,40,.55); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .rm-overlay.open { opacity: 1; pointer-events: all; }
+    .rm-box { background: #fff; border-radius: 18px; max-width: 380px; padding: 22px; }
+    .rm-box h3 { font-family: var(--font-d); font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+    .rm-box ul { font-size: 12.5px; color: var(--muted); padding-left: 18px; margin-bottom: 16px; }
+    .rm-box ul li { margin-bottom: 4px; }
+    .rm-actions { display: flex; gap: 10px; }
+    .rm-actions button { flex: 1; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; }
+    .rm-actions .cancel { background: var(--bg2); color: var(--ink-mid); }
+    .rm-actions .confirm { background: #c53030; color: #fff; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<% if (!conversation) { %>
+  <div class="not-found">
+    <i class="fa-solid fa-lock"></i>
+    <h2 style="font-family:var(--font-d);margin:16px 0 8px">Conversation not found</h2>
+    <p style="color:var(--muted);font-size:13.5px">This conversation doesn't exist, or you don't have access to it.</p>
+    <a href="/messages" style="color:var(--green-dark);font-weight:700">&larr; Back to Messages</a>
+  </div>
+<% } else { %>
+
+<div class="chat-wrap">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <a href="/messages" class="chat-back"><i class="fa-solid fa-arrow-left"></i></a>
+      <div class="chat-avatar"><%= (counterpart?.firstName || 'H')[0] %></div>
+      <div>
+        <div class="chat-name"><%= counterpart?.firstName || 'HostelNode User' %></div>
+        <div class="chat-status <%= conversation.status === 'active' ? 'active' : 'closed' %>">
+          <%= conversation.status === 'active' ? '🟢 Connected' : '⚪ Connection ended' %>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative">
+      <button class="chat-menu-btn" onclick="toggleChatMenu()"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+      <div class="chat-menu-dropdown" id="chatMenu">
+        <% if (conversation.listing) { %>
+          <a href="/flatmate/<%= conversation.listing.slug %>"><i class="fa-solid fa-house"></i> View Listing</a>
+        <% } %>
+        <% if (conversation.status === 'active' && connection) { %>
+          <button class="danger" onclick="openRemoveModal()"><i class="fa-solid fa-user-slash"></i> Remove Connection</button>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <% if (conversation.listing) { %>
+    <div class="chat-listing-card">
+      <span>
+        <%= conversation.listingModel === 'FlatmateListing'
+          ? conversation.listing.bhk + ' BHK · ' + conversation.listing.area + ', ' + conversation.listing.city
+          : (conversation.listing.title || 'Listing') %>
+      </span>
+      <a href="/flatmate/<%= conversation.listing.slug %>">View Listing</a>
+    </div>
+  <% } %>
+
+  <div class="chat-thread" id="chatThread">
+    <% if (!messages || messages.length === 0) { %>
+      <div class="chat-empty">No messages yet — say hello 👋</div>
+    <% } %>
+    <% messages.forEach(function(m) { %>
+      <div class="bubble <%= m.sender.toString() === viewerId ? 'mine' : 'theirs' %>">
+        <%= m.text %>
+        <span class="time"><%= new Date(m.createdAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }) %></span>
+      </div>
+    <% }) %>
+  </div>
+
+  <% if (conversation.status === 'active') { %>
+    <div class="chat-input-row">
+      <textarea id="chatInput" rows="1" placeholder="Type a message…" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+      <button class="chat-send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  <% } else { %>
+    <div class="chat-closed-note">This connection has ended. You can no longer send messages.</div>
+  <% } %>
+</div>
+
+<!-- Remove Connection confirmation -->
+<div class="rm-overlay" id="rmOverlay" onclick="if(event.target===this) closeRemoveModal()">
+  <div class="rm-box">
+    <h3>Remove Connection?</h3>
+    <p style="font-size:13px;color:var(--muted-light);margin-bottom:10px">You will no longer be connected with <%= counterpart?.firstName || 'this user' %>.</p>
+    <ul>
+      <li>You won't be able to send new messages</li>
+      <li>Private profile information will no longer be available</li>
+      <li>This connection will be removed</li>
+      <li>Your existing conversation will be closed</li>
+    </ul>
+    <div class="rm-actions">
+      <button class="cancel" onclick="closeRemoveModal()">Cancel</button>
+      <button class="confirm" onclick="removeConnection()">Remove Connection</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+const CONVERSATION_ID = "<%= conversation._id %>";
+const CONNECTION_ID = <%- connection ? JSON.stringify(connection._id.toString()) : 'null' %>;
+let lastMessageTime = <%- messages.length ? JSON.stringify(messages[messages.length-1].createdAt) : 'null' %>;
+
+const thread = document.getElementById('chatThread');
+thread.scrollTop = thread.scrollHeight;
+
+function toggleChatMenu() {
+  document.getElementById('chatMenu').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.chat-menu-btn') && !e.target.closest('.chat-menu-dropdown')) {
+    document.getElementById('chatMenu')?.classList.remove('open');
+  }
+});
+
+function openRemoveModal() { document.getElementById('rmOverlay').classList.add('open'); toggleChatMenu(); }
+function closeRemoveModal() { document.getElementById('rmOverlay').classList.remove('open'); }
+
+async function removeConnection() {
+  try {
+    const res = await fetch('/messages/connection/' + CONNECTION_ID + '/remove', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) window.location.reload();
+    else alert(data.error || 'Could not remove connection.');
+  } catch (err) { alert('Network error — please try again.'); }
+}
+
+function appendBubble(msg) {
+  const div = document.createElement('div');
+  div.className = 'bubble ' + (msg.mine ? 'mine' : 'theirs');
+  const time = new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  div.innerHTML = msg.text.replace(/</g,'&lt;') + '<span class="time">' + time + '</span>';
+  thread.appendChild(div);
+  thread.scrollTop = thread.scrollHeight;
+  lastMessageTime = msg.createdAt;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  try {
+    const res = await fetch('/messages/' + CONVERSATION_ID + '/messages', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }),
+    });
+    const data = await res.json();
+    if (data.success) appendBubble(data.message);
+    else alert(data.error || 'Could not send message.');
+  } catch (err) { alert('Network error — please try again.'); }
+}
+
+/* Lightweight polling (no socket.io in this project) — check for new
+   messages from the other side every 4s. */
+setInterval(async function () {
+  try {
+    const qs = lastMessageTime ? '?after=' + encodeURIComponent(lastMessageTime) : '';
+    const res = await fetch('/messages/' + CONVERSATION_ID + '/poll' + qs);
+    const data = await res.json();
+    if (data.success && data.messages.length) {
+      data.messages.forEach(function(m) { if (!m.mine) appendBubble(m); });
+    }
+  } catch (err) { /* silent — network hiccups shouldn't spam the user */ }
+}, 4000);
+</script>
+
+<% } %>
+</body>
+</html>
