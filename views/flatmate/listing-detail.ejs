@@ -331,6 +331,13 @@ function closeConnectModal() {
   document.body.style.overflow = '';
 }
 
+// Cards elsewhere on the site (Featured, search results) link "Request to
+// Talk" to /flatmate/<slug>#request — land here with the connect modal
+// already open, instead of the hash doing nothing.
+if (window.location.hash === '#request' && document.getElementById('connectBtn')) {
+  openConnectModal();
+}
+
 async function sendConnectRequest(listingId) {
   const btn = document.getElementById('rcSendBtn');
   const alertBox = document.getElementById('rcAlert');

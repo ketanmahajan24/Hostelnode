@@ -575,10 +575,10 @@
     <% if (featuredListings && featuredListings.length > 0) { %>
       <% featuredListings.forEach(function(l, i) { %>
         <div class="hn-flatmate-row-card-wrap">
-          <div class="hn-flatmate-card" data-type="<%= l.type %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="window.location.href='/flatmate/<%= l._id %>'">
+          <div class="hn-flatmate-card" data-type="<%= l.type %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="window.location.href='/flatmate/<%= l.slug %>'">
             <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>">
               <% if (l.type === 'have') { %>
-                <img src="<%= (l.images && l.images[0]) || '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
+                <img src="<%= (l.images && l.images[0]) ? '/flatmate-images/' + l.images[0] : '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat available in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
               <% } else { %>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                 <span>Looking for a flat</span>
@@ -605,7 +605,7 @@
               <% } %>
               <div class="hn-flatmate-card-footer">
                 <div class="hn-flatmate-poster">Posted by <%= l.postedBy %></div>
-                <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">Request to Talk</button>
+                <button class="hn-flatmate-talk-btn" onclick="event.stopPropagation(); requestToTalk('<%= l.slug %>')">Request to Talk</button>
               </div>
             </div>
           </div>

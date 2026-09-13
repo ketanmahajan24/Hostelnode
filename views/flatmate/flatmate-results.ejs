@@ -193,14 +193,14 @@
       <% if (listings && listings.length > 0) { %>
         <% listings.forEach(function(l) { %>
 
-          <div class="r-card" onclick="viewListing('<%= l._id %>')">
+          <div class="r-card" onclick="viewListing('<%= l.slug %>')">
 
             <!-- Image slider (have) / icon placeholder (need) -->
             <div class="r-card-img">
               <% if (l.type === 'have' && l.images && l.images.length > 0) { %>
                 <% l.images.forEach(function(img, i) { %>
                   <div class="slide <%= i===0?'active':'' %>">
-                    <img src="<%= img %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
+                    <img src="/flatmate-images/<%= img %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
                   </div>
                 <% }) %>
                 <% if (l.images.length > 1) { %>
@@ -271,7 +271,7 @@
 
               <div class="btn-wrap">
                 <button class="btn-see-more"
-                  onclick="event.stopPropagation(); requestToTalk('<%= l._id %>')">
+                  onclick="event.stopPropagation(); requestToTalk('<%= l.slug %>')">
                   <span class="btn-gloss"></span>
                   <span class="btn-sheen"></span>
                   <span class="btn-inner">
