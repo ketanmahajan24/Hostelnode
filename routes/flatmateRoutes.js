@@ -104,24 +104,57 @@ async function buildRequestStatusMap(viewerId, listingDocs) {
   const ownListingIds = new Set(
     listingDocs.filter((l) => l.student?._id?.toString() === viewerId).map((l) => l._id.toString())
   );
+  // Which owner does each (non-own) listing belong to? Needed so an
+  // accepted connection with that person — made via ANY listing between
+  // them — correctly carries over to every other listing of theirs too.
+  const ownerIdByListing = {};
+  listingDocs.forEach((l) => {
+    const key = l._id.toString();
+    if (!ownListingIds.has(key)) ownerIdByListing[key] = l.student?._id?.toString();
+  });
+  const otherOwnerIds = [...new Set(Object.values(ownerIdByListing).filter(Boolean))];
 
-  const connections = await FlatmateConnection.find({
-    requester: viewerId,
-    receiverListing: { $in: listingIds },
-  }).sort({ createdAt: -1 });
+  const [listingScopedConnections, acceptedWithOwners] = await Promise.all([
+    FlatmateConnection.find({
+      requester: viewerId,
+      receiverListing: { $in: listingIds },
+    }).sort({ createdAt: -1 }),
+    otherOwnerIds.length
+      ? FlatmateConnection.find({
+          status: "accepted",
+          $or: [
+            { requester: viewerId, receiver: { $in: otherOwnerIds } },
+            { requester: { $in: otherOwnerIds }, receiver: viewerId },
+          ],
+        })
+      : [],
+  ]);
 
-  // Keep only the most recent connection per listing (already sorted desc).
+  // Person-level: for each owner, is there ANY accepted connection at all
+  // (regardless of which of their listings it was made on)? This takes
+  // priority — being accepted once shouldn't require re-requesting on
+  // their other listings.
+  const acceptedConnectionByOwner = {};
+  acceptedWithOwners.forEach((c) => {
+    const otherPartyId = c.requester.toString() === viewerId ? c.receiver.toString() : c.requester.toString();
+    if (!acceptedConnectionByOwner[otherPartyId]) acceptedConnectionByOwner[otherPartyId] = c;
+  });
+
+  // Listing-level fallback: the viewer's own pending/declined/etc. history
+  // scoped to this specific listing (a pending request is inherently
+  // about one listing, not the person as a whole).
   const latestByListing = {};
-  connections.forEach((c) => {
+  listingScopedConnections.forEach((c) => {
     const key = c.receiverListing.toString();
     if (!latestByListing[key]) latestByListing[key] = c;
   });
 
-  const acceptedConnectionIds = Object.values(latestByListing)
-    .filter((c) => c.status === "accepted")
-    .map((c) => c._id);
-  const conversations = acceptedConnectionIds.length
-    ? await Conversation.find({ connection: { $in: acceptedConnectionIds } })
+  const relevantConnectionIds = [
+    ...Object.values(acceptedConnectionByOwner).map((c) => c._id),
+    ...Object.values(latestByListing).filter((c) => c.status === "accepted").map((c) => c._id),
+  ];
+  const conversations = relevantConnectionIds.length
+    ? await Conversation.find({ connection: { $in: relevantConnectionIds } })
     : [];
   const conversationByConnection = {};
   conversations.forEach((cv) => { conversationByConnection[cv.connection.toString()] = cv._id.toString(); });
@@ -134,7 +167,11 @@ async function buildRequestStatusMap(viewerId, listingDocs) {
       map[key] = { status: "own", connectionId: null, conversationId: null };
       return;
     }
-    const conn = latestByListing[key];
+
+    const ownerId = ownerIdByListing[key];
+    const personLevelConn = ownerId ? acceptedConnectionByOwner[ownerId] : null;
+    const conn = personLevelConn || latestByListing[key];
+
     if (!conn) {
       map[key] = { status: "none", connectionId: null, conversationId: null };
       return;
@@ -1067,7 +1104,7 @@ router.get("/:slug", async (req, res) => {
     if (!listing) {
       return res.status(404).render("flatmate/listing-detail", {
         listing: null, isOwner: false, cta: null, connection: null, seo: null,
-        mapData: null, googleMapsApiKey: null, isSaved: false,
+        mapData: null, googleMapsApiKey: null, isSaved: false, conversationId: null,
       });
     }
 
@@ -1078,10 +1115,29 @@ router.get("/:slug", async (req, res) => {
     // never needs one to see their own listing's private fields.
     let connection = null;
     if (viewerId && !isOwner) {
+      // First: are these two people already connected via ANY listing
+      // between them (either direction — either could have sent the
+      // original request)? Being accepted once should carry over to every
+      // listing between the same two people — you shouldn't have to
+      // re-request just because you're viewing their other listing.
       connection = await FlatmateConnection.findOne({
-        requester: viewerId,
-        receiverListing: listing._id,
-      }).sort({ createdAt: -1 }).lean();
+        status: "accepted",
+        $or: [
+          { requester: viewerId, receiver: listing.student },
+          { requester: listing.student, receiver: viewerId },
+        ],
+      }).sort({ updatedAt: -1 }).lean();
+
+      // Otherwise, fall back to whatever the viewer's own history is on
+      // THIS specific listing (a pending request they sent, a decline,
+      // a cancellation, etc.) — this part stays listing-scoped, since a
+      // pending request is inherently about one specific listing.
+      if (!connection) {
+        connection = await FlatmateConnection.findOne({
+          requester: viewerId,
+          receiverListing: listing._id,
+        }).sort({ createdAt: -1 }).lean();
+      }
     }
 
     const canSeePrivate = isOwner || (connection && connection.status === "accepted");
@@ -1151,8 +1207,16 @@ router.get("/:slug", async (req, res) => {
 
     const savedSet = await buildSavedSet(viewerId, [listing]);
 
+    // If connected, resolve the real conversation so "Chat Now" actually
+    // goes somewhere.
+    let conversationId = null;
+    if (connection && connection.status === "accepted") {
+      const conv = await Conversation.findOne({ connection: connection._id }).select("_id").lean();
+      conversationId = conv ? conv._id.toString() : null;
+    }
+
     res.render("flatmate/listing-detail", {
-      listing, isOwner, cta, connection,
+      listing, isOwner, cta, connection, conversationId,
       isSaved: savedSet.has(listing._id.toString()),
       seo: buildListingSeo(listing),
       mapData,
