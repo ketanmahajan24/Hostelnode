@@ -213,9 +213,13 @@ async function computeNearbyCache(lat, lng) {
   // a legitimately-empty result. The caller should NOT stamp this as
   // successfully cached, or a fixable problem (like a wrong IP restriction)
   // would get permanently stuck — nothing would ever retry it.
+  // "complete" = at least one category worked (distinguishes a total outage
+  // from a genuine result). "allSucceeded" = every single category's API
+  // call worked — this is the real signal for "nothing left to retry."
   const complete = successCount > 0;
+  const allSucceeded = successCount === attemptCount;
 
-  return { cache, complete, successCount, attemptCount };
+  return { cache, complete, allSucceeded, successCount, attemptCount };
 }
 
 module.exports = { searchNearby, computeRoute, reverseGeocode, computeNearbyCache, NEARBY_CATEGORY_TYPES, haversineMeters };

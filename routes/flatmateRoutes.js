@@ -634,11 +634,13 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
     let listing;
     let coordsBeforeSave = { lat: null, lng: null };
     let cacheAgeBeforeSave = null;
+    let cacheCompleteBeforeSave = false;
     if (req.body.draftId) {
       listing = await FlatmateListing.findOne({ _id: req.body.draftId, student: req.student.id });
       if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
       coordsBeforeSave = { lat: listing.coordinates?.lat ?? null, lng: listing.coordinates?.lng ?? null };
       cacheAgeBeforeSave = listing.nearbyCacheAt;
+      cacheCompleteBeforeSave = listing.nearbyCacheComplete;
       Object.assign(listing, fields);
     } else {
       listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT" });
@@ -677,30 +679,36 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
 
     // Auto-sync nearby places the moment a pin exists or moves — this is
     // what makes "Nearby Highlights" appear for every viewer with zero
-    // clicks. Only recompute when the pin is new/changed or never cached
-    // before — not on every republish of an unrelated field, which would
-    // waste 10 Places API calls for no reason. Fire-and-forget so publish
-    // itself is never slowed down waiting on Google.
+    // clicks. Recompute when the pin is new/changed, never attempted
+    // before, OR the last attempt didn't get all 10 categories (a
+    // transient key/IP/quota issue shouldn't leave some categories
+    // permanently missing). Fire-and-forget so publish itself is never
+    // slowed down waiting on Google.
     const pinChanged = listing.coordinates?.lat !== coordsBeforeSave.lat || listing.coordinates?.lng !== coordsBeforeSave.lng;
     const hasValidPin = listing.coordinates?.lat != null && listing.coordinates?.lng != null;
-    if (hasValidPin && (pinChanged || !cacheAgeBeforeSave)) {
+    const existingCache = listing.nearbyCache || {};
+    if (hasValidPin && (pinChanged || !cacheAgeBeforeSave || !cacheCompleteBeforeSave)) {
       setImmediate(async () => {
         try {
           const { computeNearbyCache } = require("../utils/googleMaps");
           const result = await computeNearbyCache(listing.coordinates.lat, listing.coordinates.lng);
 
           if (result.complete) {
+            // Merge, don't overwrite — if this attempt moved the pin, start
+            // fresh; otherwise keep any previously-successful categories
+            // that this attempt might have missed for an unrelated reason.
+            const mergedCache = pinChanged ? result.cache : { ...existingCache, ...result.cache };
             await FlatmateListing.updateOne(
               { _id: listing._id },
-              { $set: { nearbyCache: result.cache, nearbyCacheAt: new Date() } }
+              { $set: { nearbyCache: mergedCache, nearbyCacheAt: new Date(), nearbyCacheComplete: result.allSucceeded } }
             );
-            console.log(`✅ Nearby places cached for listing ${listing._id} (${result.successCount}/${result.attemptCount} categories succeeded)`);
+            console.log(`✅ Nearby places cached for listing ${listing._id} (${result.successCount}/${result.attemptCount} categories succeeded${result.allSucceeded ? "" : " — will retry the rest on next publish"})`);
           } else {
             // Every category failed at the API-call level (e.g. a key/IP
-            // restriction issue) — do NOT stamp nearbyCacheAt. Leaving it
-            // unset means the next publish/edit will correctly retry this,
-            // instead of a fixable problem getting permanently stuck as
-            // "successfully cached empty."
+            // restriction issue) — do NOT stamp nearbyCacheAt or
+            // nearbyCacheComplete. Leaving them unset/false means the next
+            // publish/edit will correctly retry this, instead of a fixable
+            // problem getting permanently stuck.
             console.error(`🔴 Nearby cache computation completely failed for listing ${listing._id} — will retry on next publish.`);
           }
         } catch (e) {

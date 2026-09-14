@@ -80,6 +80,11 @@ const flatmateListingSchema = new mongoose.Schema({
   // the /nearby endpoint's own responses.
   nearbyCache: { type: mongoose.Schema.Types.Mixed, default: null },
   nearbyCacheAt: { type: Date, default: null },
+  // true only when ALL 10 categories succeeded on the last attempt — a
+  // partial success (e.g. 7/10, some blocked by a transient key/IP issue)
+  // stays eligible for retry on the next publish rather than getting
+  // permanently stuck missing the other 3.
+  nearbyCacheComplete: { type: Boolean, default: false },
 
   /* ── SHARED DISPLAY/FILTER FIELDS (both types) ── */
   bhk: { type: Number, required: true, min: 1, max: 4 }, // 4 = "4 BHK+"
