@@ -186,21 +186,36 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
 async function computeNearbyCache(lat, lng) {
   const categories = Object.keys(NEARBY_CATEGORY_TYPES);
   const cache = {};
+  let successCount = 0; // categories where the API call itself succeeded (even if 0 places found)
+  let attemptCount = 0;
 
   for (const category of categories) {
+    attemptCount++;
     try {
       const result = await searchNearby(lat, lng, category);
-      if (result.success && result.places && result.places.length) {
-        const top = result.places[0]; // already sorted by distance in searchNearby
-        cache[category] = { name: top.name, distanceMeters: top.distanceMeters, address: top.address, lat: top.lat, lng: top.lng };
+      if (result.success) {
+        successCount++;
+        if (result.places && result.places.length) {
+          const top = result.places[0]; // already sorted by distance in searchNearby
+          cache[category] = { name: top.name, distanceMeters: top.distanceMeters, address: top.address, lat: top.lat, lng: top.lng };
+        }
+      } else {
+        console.error(`computeNearbyCache: ${category} returned an error:`, result.error);
       }
     } catch (err) {
-      // One category failing shouldn't stop the others from being cached.
-      console.error(`computeNearbyCache: ${category} failed:`, err.message);
+      // One category failing shouldn't stop the others from being attempted.
+      console.error(`computeNearbyCache: ${category} threw:`, err.message);
     }
   }
 
-  return cache;
+  // If EVERY category failed at the API-call level (auth/key/network issue —
+  // not just "no places of that type nearby"), this is a real failure, not
+  // a legitimately-empty result. The caller should NOT stamp this as
+  // successfully cached, or a fixable problem (like a wrong IP restriction)
+  // would get permanently stuck — nothing would ever retry it.
+  const complete = successCount > 0;
+
+  return { cache, complete, successCount, attemptCount };
 }
 
 module.exports = { searchNearby, computeRoute, reverseGeocode, computeNearbyCache, NEARBY_CATEGORY_TYPES, haversineMeters };

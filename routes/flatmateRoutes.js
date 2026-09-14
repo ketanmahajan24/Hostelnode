@@ -687,12 +687,22 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
       setImmediate(async () => {
         try {
           const { computeNearbyCache } = require("../utils/googleMaps");
-          const cache = await computeNearbyCache(listing.coordinates.lat, listing.coordinates.lng);
-          await FlatmateListing.updateOne(
-            { _id: listing._id },
-            { $set: { nearbyCache: cache, nearbyCacheAt: new Date() } }
-          );
-          console.log(`✅ Nearby places cached for listing ${listing._id}`);
+          const result = await computeNearbyCache(listing.coordinates.lat, listing.coordinates.lng);
+
+          if (result.complete) {
+            await FlatmateListing.updateOne(
+              { _id: listing._id },
+              { $set: { nearbyCache: result.cache, nearbyCacheAt: new Date() } }
+            );
+            console.log(`✅ Nearby places cached for listing ${listing._id} (${result.successCount}/${result.attemptCount} categories succeeded)`);
+          } else {
+            // Every category failed at the API-call level (e.g. a key/IP
+            // restriction issue) — do NOT stamp nearbyCacheAt. Leaving it
+            // unset means the next publish/edit will correctly retry this,
+            // instead of a fixable problem getting permanently stuck as
+            // "successfully cached empty."
+            console.error(`🔴 Nearby cache computation completely failed for listing ${listing._id} — will retry on next publish.`);
+          }
         } catch (e) {
           console.error("Nearby cache computation failed (non-critical):", e.message);
         }
