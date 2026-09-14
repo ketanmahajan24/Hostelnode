@@ -45,6 +45,8 @@
     .gallery-badge { position: absolute; top: 14px; left: 14px; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #fff; }
     .gallery-badge.have { background: rgba(9,184,80,.92); }
     .gallery-badge.need { background: rgba(37,99,235,.92); }
+    .gallery-save-btn { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.92); border: none; color: #94a3a8; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    .gallery-save-btn.saved { color: #e53e3e; }
     .gallery-thumbs { display: flex; gap: 8px; padding: 10px; background: #fff; overflow-x: auto; }
     .gallery-thumbs img { width: 74px; height: 56px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; flex-shrink: 0; }
     .gallery-thumbs img.active { border-color: var(--green); }
@@ -67,7 +69,8 @@
     .kv .v { color: var(--ink); font-weight: 600; margin-top: 2px; }
 
     .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
-    .tag { background: var(--bg2); color: var(--ink-mid); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
+    .tag { background: var(--bg2); color: var(--ink-mid); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
+    .tag i { color: var(--green); font-size: 11px; }
 
     .desc-text { font-size: 13.5px; color: var(--ink-mid); line-height: 1.7; }
 
@@ -146,6 +149,11 @@
       <span class="gallery-badge <%= listing.type === 'HAVE_FLAT' ? 'have' : 'need' %>">
         <%= listing.type === 'HAVE_FLAT' ? '🏠 FLAT' : '👤 FLATMATE' %>
       </span>
+      <% if (!isOwner) { %>
+        <button class="gallery-save-btn <%= isSaved ? 'saved' : '' %>" onclick="toggleDetailSave(event, this, '<%= listing._id %>')" aria-label="Save to properties" aria-pressed="<%= isSaved ? 'true' : 'false' %>">
+          <i class="fa-<%= isSaved ? 'solid' : 'regular' %> fa-heart" aria-hidden="true"></i>
+        </button>
+      <% } %>
     </div>
     <% if (listing.type === 'HAVE_FLAT' && listing.images && listing.images.length > 1) { %>
       <div class="gallery-thumbs">
@@ -205,9 +213,23 @@
 
   <!-- Amenities (HAVE only) -->
   <% if (listing.type === 'HAVE_FLAT' && listing.have?.amenities && listing.have.amenities.length) { %>
+    <%
+      const amenityIcons = {
+        'WiFi': 'wifi', 'AC': 'snowflake', 'Washing Machine': 'shirt', 'Geyser': 'fire-flame-simple',
+        'Refrigerator': 'kitchen-set', 'Bed': 'bed', 'Wardrobe': 'box-archive', 'Study Table': 'book',
+        'Sofa': 'couch', 'Dining Table': 'utensils', 'TV': 'tv', 'Microwave': 'kitchen-set',
+        'RO Water': 'droplet', 'Power Backup': 'bolt', 'Lift': 'elevator', 'Parking': 'car',
+        'CCTV': 'camera', 'Security': 'shield-halved', 'Balcony': 'building', 'Gym': 'dumbbell',
+        'Swimming Pool': 'person-swimming', 'Housekeeping': 'broom',
+      };
+    %>
     <div class="section">
       <h3>Amenities</h3>
-      <div class="tag-row"><% listing.have.amenities.forEach(function(a){ %><span class="tag"><%= a %></span><% }) %></div>
+      <div class="tag-row">
+        <% listing.have.amenities.forEach(function(a){ %>
+          <span class="tag"><i class="fa-solid fa-<%= amenityIcons[a] || 'check' %>" aria-hidden="true"></i> <%= a %></span>
+        <% }) %>
+      </div>
     </div>
   <% } %>
 
@@ -320,6 +342,26 @@ function switchGalleryImage(filename, thumbEl) {
   document.getElementById('galleryMainImg').src = '/flatmate-images/' + filename;
   document.querySelectorAll('.gallery-thumbs img').forEach(i => i.classList.remove('active'));
   thumbEl.classList.add('active');
+}
+
+async function toggleDetailSave(e, btn, listingId) {
+  e.stopPropagation();
+  try {
+    const res = await fetch('/student/saved/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingType: 'flatmate', listingId }),
+    });
+    if (res.redirected || res.status === 401) {
+      window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    const data = await res.json();
+    if (data.success) {
+      btn.classList.toggle('saved', data.saved);
+      btn.setAttribute('aria-pressed', data.saved ? 'true' : 'false');
+      btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+    }
+  } catch (err) { /* silent — non-critical action */ }
 }
 
 function openConnectModal() {

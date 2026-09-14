@@ -1,0 +1,146 @@
+<!-- savedProperties.ejs — HostelNode Saved Properties (PG/Hostel + Flatmate, unified) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saved Properties | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .sp-wrap { max-width: 900px; margin: 0 auto; padding: 24px 20px 80px; }
+    .sp-head h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); }
+    .sp-head p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .sp-tabs { display: flex; gap: 8px; margin: 20px 0; }
+    .sp-tab { padding: 9px 18px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--card-bg); font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer; }
+    .sp-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+    .sp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    @media (max-width: 900px) { .sp-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .sp-grid { grid-template-columns: 1fr; } }
+
+    .sp-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; text-decoration: none; display: block; transition: box-shadow .15s, transform .15s; }
+    .sp-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+    .sp-card-img { aspect-ratio: 4/3; background: var(--bg2); position: relative; }
+    .sp-card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .sp-card-badge { position: absolute; top: 10px; left: 10px; font-size: 10.5px; font-weight: 800; padding: 4px 10px; border-radius: 999px; color: #fff; }
+    .sp-card-badge.pg { background: rgba(9,184,80,.92); }
+    .sp-card-badge.have { background: rgba(9,184,80,.92); }
+    .sp-card-badge.need { background: rgba(37,99,235,.92); }
+    .sp-unsave-btn { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.92); border: none; color: #e53e3e; display: flex; align-items: center; justify-content: center; }
+    .sp-card-body { padding: 12px 14px; }
+    .sp-card-title { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+    .sp-card-loc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .sp-card-price { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-top: 8px; }
+
+    .sp-empty { text-align: center; padding: 60px 20px; color: var(--muted); grid-column: 1/-1; }
+    .sp-empty i { font-size: 2rem; color: var(--border-dark); display: block; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<div class="sp-wrap">
+  <div class="sp-head">
+    <h1>Saved Properties</h1>
+    <p><%= totalSaved %> saved <%= totalSaved === 1 ? 'property' : 'properties' %></p>
+  </div>
+
+  <div class="sp-tabs" id="spTabs">
+    <button class="sp-tab active" data-group="all" onclick="setSpFilter('all', this)">All (<%= totalSaved %>)</button>
+    <button class="sp-tab" data-group="pg" onclick="setSpFilter('pg', this)">PGs &amp; Hostels (<%= pgListings.length %>)</button>
+    <button class="sp-tab" data-group="flatmate" onclick="setSpFilter('flatmate', this)">Flatmates (<%= flatmateListings.length %>)</button>
+  </div>
+
+  <div class="sp-grid" id="spGrid">
+    <% if (totalSaved === 0) { %>
+      <div class="sp-empty">
+        <i class="fa-regular fa-heart"></i>
+        <p>No saved properties yet. Tap the heart on any listing to save it here.</p>
+      </div>
+    <% } %>
+
+    <% pgListings.forEach(function(l) { %>
+      <div class="sp-card-wrap" data-group="pg">
+        <a class="sp-card" href="/hostel/<%= l.slug %>">
+          <div class="sp-card-img">
+            <img src="<%= (l.images && l.images[0]) ? '/listing-images/' + l.images[0] : '/images/placeholder.jpg' %>" alt="<%= l.title %>" loading="lazy">
+            <span class="sp-card-badge pg">PG</span>
+            <button class="sp-unsave-btn" onclick="event.preventDefault(); unsave('pg','<%= l._id %>', this)" aria-label="Remove from saved"><i class="fa-solid fa-heart"></i></button>
+          </div>
+          <div class="sp-card-body">
+            <div class="sp-card-title"><%= l.title %></div>
+            <div class="sp-card-loc"><%= l.location?.city || '' %></div>
+            <div class="sp-card-price">₹<%= (l.startingPrice || 0).toLocaleString('en-IN') %>/mo</div>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+
+    <% flatmateListings.forEach(function(l) { %>
+      <% const isHave = l.type === 'HAVE_FLAT'; %>
+      <div class="sp-card-wrap" data-group="flatmate">
+        <a class="sp-card" href="/flatmate/<%= l.slug %>">
+          <div class="sp-card-img">
+            <% if (isHave && l.images && l.images[0]) { %>
+              <img src="/flatmate-images/<%= l.images[0] %>" alt="<%= l.bhk %> BHK <%= l.roomType %>" loading="lazy">
+            <% } else { %>
+              <img src="/images/placeholder.jpg" alt="<%= l.bhk %> BHK <%= l.roomType %>" loading="lazy">
+            <% } %>
+            <span class="sp-card-badge <%= isHave ? 'have' : 'need' %>"><%= isHave ? '🏠 FLAT' : '👤 FLATMATE' %></span>
+            <button class="sp-unsave-btn" onclick="event.preventDefault(); unsave('flatmate','<%= l._id %>', this)" aria-label="Remove from saved"><i class="fa-solid fa-heart"></i></button>
+          </div>
+          <div class="sp-card-body">
+            <div class="sp-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
+            <div class="sp-card-loc"><%= l.area %>, <%= l.city %></div>
+            <% if (isHave) { %>
+              <div class="sp-card-price">₹<%= (l.have?.rentMonthly || 0).toLocaleString('en-IN') %>/mo</div>
+            <% } else { %>
+              <div class="sp-card-price">₹<%= (l.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (l.need?.budgetMax || 0).toLocaleString('en-IN') %></div>
+            <% } %>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+</div>
+
+<script>
+function setSpFilter(group, btn) {
+  document.querySelectorAll('.sp-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#spGrid .sp-card-wrap').forEach(card => {
+    card.style.display = (group === 'all' || card.dataset.group === group) ? '' : 'none';
+  });
+}
+
+async function unsave(listingType, listingId, btn) {
+  btn.disabled = true;
+  try {
+    const res = await fetch('/student/saved/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingType, listingId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.closest('.sp-card-wrap').remove();
+    } else {
+      btn.disabled = false;
+      alert(data.error || 'Could not remove from saved.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    alert('Network error — please try again.');
+  }
+}
+</script>
+</body>
+</html>

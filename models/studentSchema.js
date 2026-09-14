@@ -114,6 +114,18 @@ const studentSchema = new mongoose.Schema({
     ref: "Listing"
   }],
 
+  /* ── SAVED PROPERTIES (PG/Hostel + Flatmate, unified) ──
+     New, type-aware replacement for the PG-only `wishlist` array above.
+     `wishlist` is kept as-is (never removed) so existing data/behavior
+     isn't lost — see scripts/migrateWishlistToSavedProperties.js for the
+     one-time backfill, and routes/studentRoutes.js's wishlist toggle,
+     which now dual-writes here too. */
+  savedProperties: [{
+    listingType: { type: String, enum: ["pg", "flatmate"], required: true },
+    listingId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    savedAt: { type: Date, default: Date.now },
+  }],
+
   /* ── STATUS ── */
   isProfileComplete: {
     type: Boolean,

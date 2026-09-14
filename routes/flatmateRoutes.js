@@ -39,6 +39,7 @@ const fs       = require("fs");
 
 const FlatmateListing = require("../models/FlatmateListing");
 const FlatmateConnection = require("../models/FlatmateConnection");
+const Conversation = require("../models/Conversation");
 const Block = require("../models/Block");
 
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
@@ -64,6 +65,77 @@ function requireStudent(req, res, next) {
     res.clearCookie("studentToken");
     return res.redirect(`/student/login?next=${encodeURIComponent(req.originalUrl)}`);
   }
+}
+
+// Like requireStudent, but never blocks — just sets req.student when a
+// valid session exists, for pages guests can browse (the /flatmate card
+// grid needs to know who's viewing WITHOUT forcing a login).
+function optionalAuth(req, res, next) {
+  const token = req.cookies?.studentToken;
+  if (!token) return next();
+  try {
+    req.student = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    // invalid/expired token on an optional route — just proceed as a guest
+  }
+  next();
+}
+
+// Batch-computes, for one viewer, the request status against a set of
+// listings — one query total, not one per card. Returns a map:
+//   listingId -> { status: 'none'|'pending'|'accepted'|'rejected'|'own',
+//                  connectionId, conversationId }
+async function buildRequestStatusMap(viewerId, listingDocs) {
+  const map = {};
+  if (!viewerId) return map;
+
+  const listingIds = listingDocs.map((l) => l._id);
+  const ownListingIds = new Set(
+    listingDocs.filter((l) => l.student?._id?.toString() === viewerId).map((l) => l._id.toString())
+  );
+
+  const connections = await FlatmateConnection.find({
+    requester: viewerId,
+    receiverListing: { $in: listingIds },
+  }).sort({ createdAt: -1 });
+
+  // Keep only the most recent connection per listing (already sorted desc).
+  const latestByListing = {};
+  connections.forEach((c) => {
+    const key = c.receiverListing.toString();
+    if (!latestByListing[key]) latestByListing[key] = c;
+  });
+
+  const acceptedConnectionIds = Object.values(latestByListing)
+    .filter((c) => c.status === "accepted")
+    .map((c) => c._id);
+  const conversations = acceptedConnectionIds.length
+    ? await Conversation.find({ connection: { $in: acceptedConnectionIds } })
+    : [];
+  const conversationByConnection = {};
+  conversations.forEach((cv) => { conversationByConnection[cv.connection.toString()] = cv._id.toString(); });
+
+  const normalize = { pending: "pending", accepted: "accepted", declined: "rejected" };
+
+  listingDocs.forEach((l) => {
+    const key = l._id.toString();
+    if (ownListingIds.has(key)) {
+      map[key] = { status: "own", connectionId: null, conversationId: null };
+      return;
+    }
+    const conn = latestByListing[key];
+    if (!conn) {
+      map[key] = { status: "none", connectionId: null, conversationId: null };
+      return;
+    }
+    map[key] = {
+      status: normalize[conn.status] || "none", // cancelled/ended -> re-requestable
+      connectionId: conn._id.toString(),
+      conversationId: conn.status === "accepted" ? conversationByConnection[conn._id.toString()] || null : null,
+    };
+  });
+
+  return map;
 }
 
 /* ─────────────────────────────────────────────
@@ -211,6 +283,9 @@ function validateForPublish(fields, type) {
     if (!fields.need.budgetMin || !fields.need.budgetMax || fields.need.budgetMin > fields.need.budgetMax) {
       errors.push("Please enter a valid budget range.");
     }
+    if (!fields.need.preferredAreas || fields.need.preferredAreas.length === 0) {
+      errors.push("Please add at least one preferred area.");
+    }
   }
   return errors;
 }
@@ -234,7 +309,7 @@ function formatMoveIn(doc) {
   return fmt(doc.need?.moveInDate) || "Flexible";
 }
 
-function toCardViewModel(doc) {
+function toCardViewModel(doc, requestInfo, isSaved) {
   const isHave = doc.type === "HAVE_FLAT";
   return {
     _id: doc._id.toString(),
@@ -251,7 +326,25 @@ function toCardViewModel(doc) {
     rent: isHave ? doc.have?.rentMonthly : undefined,
     budgetMin: !isHave ? doc.need?.budgetMin : undefined,
     budgetMax: !isHave ? doc.need?.budgetMax : undefined,
+    requestStatus: requestInfo ? requestInfo.status : "none",
+    connectionId: requestInfo ? requestInfo.connectionId : null,
+    conversationId: requestInfo ? requestInfo.conversationId : null,
+    isSaved: !!isSaved,
   };
+}
+
+// One query for all cards' saved state, not one per card.
+async function buildSavedSet(viewerId, listingDocs) {
+  if (!viewerId) return new Set();
+  const Student = require("../models/studentSchema");
+  const student = await Student.findById(viewerId).select("savedProperties").lean();
+  if (!student) return new Set();
+  const ids = new Set(
+    student.savedProperties
+      .filter((sp) => sp.listingType === "flatmate")
+      .map((sp) => sp.listingId.toString())
+  );
+  return ids;
 }
 
 // Normalize the roomType filter chip value ("private"/"shared") to the
@@ -268,7 +361,7 @@ function roomTypeFilterValue(rt) {
    query param is present, redirect to /flatmate/results — the landing
    page itself never shows a filtered grid.
 ───────────────────────────────────────────── */
-router.get("/", async (req, res) => {
+router.get("/", optionalAuth, async (req, res) => {
   try {
     const hasFilters = ["location", "gender", "type", "budget", "bhk"].some(
       key => req.query[key] && String(req.query[key]).trim() && req.query[key] !== "any"
@@ -285,7 +378,9 @@ router.get("/", async (req, res) => {
       .limit(8)
       .populate("student", "firstName")
       .lean();
-    const featuredListings = featuredDocs.map(toCardViewModel);
+    const statusMap = await buildRequestStatusMap(req.student?.id, featuredDocs);
+    const savedSet = await buildSavedSet(req.student?.id, featuredDocs);
+    const featuredListings = featuredDocs.map((doc) => toCardViewModel(doc, statusMap[doc._id.toString()], savedSet.has(doc._id.toString())));
 
     const cityAgg = await FlatmateListing.aggregate([
       { $match: { status: "ACTIVE" } },
@@ -314,7 +409,7 @@ router.get("/", async (req, res) => {
    vs need.budgetMax), so sorting/filtering by budget needs a
    computed field.
 ───────────────────────────────────────────── */
-router.get("/results", async (req, res) => {
+router.get("/results", optionalAuth, async (req, res) => {
   try {
     const {
       location = "", gender = "", type = "", budget = "", bhk = "",
@@ -376,7 +471,9 @@ router.get("/results", async (req, res) => {
     );
 
     const rawListings = await FlatmateListing.aggregate(pipeline);
-    const listings = rawListings.map(toCardViewModel);
+    const statusMap = await buildRequestStatusMap(req.student?.id, rawListings);
+    const savedSet = await buildSavedSet(req.student?.id, rawListings);
+    const listings = rawListings.map((doc) => toCardViewModel(doc, statusMap[doc._id.toString()], savedSet.has(doc._id.toString())));
 
     res.render("flatmate/flatmate-results", {
       listings,
@@ -830,8 +927,11 @@ router.get("/:slug", async (req, res) => {
       FlatmateListing.updateOne({ _id: listing._id }, { $inc: { views: 1 } }).catch(() => {});
     }
 
+    const savedSet = await buildSavedSet(viewerId, [listing]);
+
     res.render("flatmate/listing-detail", {
       listing, isOwner, cta, connection,
+      isSaved: savedSet.has(listing._id.toString()),
       seo: buildListingSeo(listing),
     });
   } catch (err) {

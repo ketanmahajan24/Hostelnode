@@ -167,6 +167,7 @@
         <label>Preferred area(s) <span style="color:#e53e3e">*</span></label>
         <div class="area-tag-input" id="areaTagBox">
           <input type="text" id="areaTagText" placeholder="Type an area and press Enter (e.g. Powai)">
+          <button type="button" id="areaTagAddBtn" onclick="commitAreaTagInput()" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;flex-shrink:0">+ Add</button>
         </div>
         <div class="hint">Example: Powai, Chandivali, Vikhroli, Ghatkopar</div>
       </div>
@@ -343,6 +344,7 @@
 const TOTAL_STEPS = 5;
 let currentStep = 1;
 let preferredAreas = [];
+const DRAFT_DATA = <%- JSON.stringify(draft || null).replace(/</g, "\\u003c") %>;
 
 /* ── Chip selectors ── */
 document.querySelectorAll('[data-chip-group]').forEach(function(group) {
@@ -376,6 +378,10 @@ areaTagText.addEventListener('keydown', function(e) {
     this.value = '';
   }
 });
+function commitAreaTagInput() {
+  const val = areaTagText.value.trim();
+  if (val) { addAreaTag(val); areaTagText.value = ''; }
+}
 function addAreaTag(val) {
   if (preferredAreas.includes(val)) return;
   preferredAreas.push(val);
@@ -469,6 +475,7 @@ function showErrors(errors) {
 }
 
 function wizNext() {
+  if (currentStep === 2) commitAreaTagInput(); // catch anything typed but not yet Entered
   const errors = validateStep(currentStep);
   if (errors.length) { showErrors(errors); return; }
   showErrors([]);
@@ -546,6 +553,87 @@ async function publishListing() {
   }
 }
 
+/* ── HYDRATE FORM FROM EXISTING DRAFT/LISTING (fixes: editing a NEED_FLAT
+   listing previously loaded a blank form — including preferred areas,
+   which is why "Please add at least one preferred area" could fire even
+   though the student had already chosen some in an earlier session) ── */
+function setChipSelected(groupName, value) {
+  const group = document.querySelector('[data-chip-group="' + groupName + '"]');
+  const hidden = document.getElementById(groupName + 'Input');
+  if (!group || value === undefined || value === null || value === '') return;
+  group.querySelectorAll('.chip').forEach(function (chip) {
+    if (chip.dataset.value === String(value)) chip.classList.add('selected');
+  });
+  if (hidden) hidden.value = value;
+}
+function setMultiChipSelected(groupName, values) {
+  const group = document.querySelector('[data-chip-group="' + groupName + '"]');
+  const hidden = document.getElementById(groupName + 'Input');
+  if (!group || !Array.isArray(values) || !values.length) return;
+  group.querySelectorAll('.chip').forEach(function (chip) {
+    if (values.includes(chip.dataset.value)) chip.classList.add('selected');
+  });
+  if (hidden) hidden.value = values.join(',');
+}
+function setFieldValue(name, value) {
+  if (value === undefined || value === null || value === '') return;
+  const el = document.querySelector('[name="' + name + '"]');
+  if (el) el.value = value;
+}
+function setRadioValue(name, value) {
+  if (!value) return;
+  const el = document.querySelector('input[name="' + name + '"][value="' + value + '"]');
+  if (el) el.checked = true;
+}
+
+function hydrateForm(d) {
+  if (!d) return;
+
+  setChipSelected('bhk', d.bhk);
+  setChipSelected('roomPreference', d.roomType);
+  setChipSelected('needType', d.need && d.need.needType);
+  setMultiChipSelected('lifestyle', d.lifestyle);
+
+  setFieldValue('city', d.city);
+  setFieldValue('landmark', d.landmark);
+  setFieldValue('nearCollege', d.nearCollege);
+  setFieldValue('budgetMin', d.need && d.need.budgetMin);
+  setFieldValue('budgetMax', d.need && d.need.budgetMax);
+  setFieldValue('depositPreference', d.need && d.need.depositPreference);
+  setFieldValue('occupation', d.occupation);
+  setFieldValue('food', d.food);
+  setFieldValue('intro', d.need && d.need.intro);
+  setFieldValue('company', d.about && d.about.company);
+  setFieldValue('college', d.about && d.about.college);
+  setFieldValue('phone', d.contact && d.contact.phone);
+
+  setRadioValue('gender', d.gender);
+
+  if (d.need && d.need.moveInMode) {
+    setRadioValue('moveInMode', d.need.moveInMode);
+    if (d.need.moveInMode === 'date' && d.need.moveInDate) {
+      setFieldValue('moveInDate', new Date(d.need.moveInDate).toISOString().slice(0, 10));
+      toggleMoveInDate();
+    }
+  }
+
+  // Preferred areas — the actual bug: this widget never loaded existing data.
+  if (d.need && Array.isArray(d.need.preferredAreas) && d.need.preferredAreas.length) {
+    preferredAreas = d.need.preferredAreas.slice();
+    renderAreaTags();
+  }
+
+  // WhatsApp: only show as "different" if it's genuinely different from the phone.
+  const phone = (d.contact && d.contact.phone) || '';
+  const whatsapp = (d.contact && d.contact.whatsapp) || '';
+  if (whatsapp && whatsapp !== phone) {
+    document.getElementById('sameAsPhone').checked = false;
+    document.getElementById('whatsappInput').disabled = false;
+    document.getElementById('whatsappInput').value = whatsapp;
+  }
+}
+
+hydrateForm(DRAFT_DATA);
 showStep(1);
 </script>
 </body>

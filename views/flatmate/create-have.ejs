@@ -280,9 +280,19 @@
 
       <div class="field">
         <label>Amenities</label>
+        <%
+          const amenityIcons = {
+            'WiFi': 'wifi', 'AC': 'snowflake', 'Washing Machine': 'shirt', 'Geyser': 'fire-flame-simple',
+            'Refrigerator': 'kitchen-set', 'Bed': 'bed', 'Wardrobe': 'box-archive', 'Study Table': 'book',
+            'Sofa': 'couch', 'Dining Table': 'utensils', 'TV': 'tv', 'Microwave': 'kitchen-set',
+            'RO Water': 'droplet', 'Power Backup': 'bolt', 'Lift': 'elevator', 'Parking': 'car',
+            'CCTV': 'camera', 'Security': 'shield-halved', 'Balcony': 'building', 'Gym': 'dumbbell',
+            'Swimming Pool': 'person-swimming', 'Housekeeping': 'broom',
+          };
+        %>
         <div class="chips" data-chip-group="amenities" data-multi="true">
           <% ["WiFi","AC","Washing Machine","Geyser","Refrigerator","Bed","Wardrobe","Study Table","Sofa","Dining Table","TV","Microwave","RO Water","Power Backup","Lift","Parking","CCTV","Security","Balcony","Gym","Swimming Pool","Housekeeping"].forEach(function(a){ %>
-            <div class="chip" data-value="<%= a %>"><%= a %></div>
+            <div class="chip" data-value="<%= a %>"><i class="fa-solid fa-<%= amenityIcons[a] || 'check' %>" aria-hidden="true"></i> <%= a %></div>
           <% }) %>
         </div>
         <input type="hidden" name="amenities[]" id="amenitiesInput" value="">
@@ -432,6 +442,7 @@
 const TOTAL_STEPS = 6;
 let currentStep = 1;
 let selectedFiles = [];
+const DRAFT_DATA = <%- JSON.stringify(draft || null).replace(/</g, "\\u003c") %>;
 
 /* ── Chip selectors (single + multi) ── */
 document.querySelectorAll('[data-chip-group]').forEach(function(group) {
@@ -642,6 +653,93 @@ async function publishListing() {
   }
 }
 
+/* ── HYDRATE FORM FROM EXISTING DRAFT/LISTING ── */
+function setChipSelected(groupName, value) {
+  const group = document.querySelector('[data-chip-group="' + groupName + '"]');
+  const hidden = document.getElementById(groupName + 'Input');
+  if (!group || value === undefined || value === null || value === '') return;
+  group.querySelectorAll('.chip').forEach(function (chip) {
+    if (chip.dataset.value === String(value)) chip.classList.add('selected');
+  });
+  if (hidden) hidden.value = value;
+}
+function setMultiChipSelected(groupName, values) {
+  const group = document.querySelector('[data-chip-group="' + groupName + '"]');
+  const hidden = document.getElementById(groupName + 'Input');
+  if (!group || !Array.isArray(values) || !values.length) return;
+  group.querySelectorAll('.chip').forEach(function (chip) {
+    if (values.includes(chip.dataset.value)) chip.classList.add('selected');
+  });
+  if (hidden) hidden.value = values.join(',');
+}
+function setFieldValue(name, value) {
+  if (value === undefined || value === null || value === '') return;
+  const el = document.querySelector('[name="' + name + '"]');
+  if (el) el.value = value;
+}
+function setRadioValue(name, value) {
+  if (!value) return;
+  const el = document.querySelector('input[name="' + name + '"][value="' + value + '"]');
+  if (el) el.checked = true;
+}
+
+function hydrateForm(d) {
+  if (!d) return;
+
+  setChipSelected('bhk', d.bhk);
+  setChipSelected('roomType', d.roomType);
+  setChipSelected('availabilityType', d.have && d.have.availabilityType);
+  setMultiChipSelected('amenities', d.have && d.have.amenities);
+  setMultiChipSelected('lifestyle', d.lifestyle);
+
+  setFieldValue('availableSpots', d.have && d.have.availableSpots);
+  setFieldValue('furnishing', d.have && d.have.furnishing);
+  setFieldValue('description', d.description);
+  setFieldValue('city', d.city);
+  setFieldValue('area', d.area);
+  setFieldValue('landmark', d.landmark);
+  setFieldValue('nearCollege', d.nearCollege);
+  setFieldValue('address', d.address);
+  setFieldValue('rentMonthly', d.have && d.have.rentMonthly);
+  setFieldValue('occupation', d.occupation);
+  setFieldValue('food', d.food);
+  setFieldValue('occupantsCount', d.have && d.have.occupantsCount);
+  setFieldValue('occupantsType', d.have && d.have.occupantsType);
+  setFieldValue('company', d.about && d.about.company);
+  setFieldValue('college', d.about && d.about.college);
+  setFieldValue('phone', d.contact && d.contact.phone);
+
+  if (d.have) {
+    if (!d.have.depositNegotiable) setFieldValue('depositAmount', d.have.depositAmount);
+    else { document.getElementById('depositNegotiable').checked = true; document.getElementById('depositAmountInput').disabled = true; }
+
+    if (d.have.availableFromMode === 'date' && d.have.availableFromDate) {
+      setRadioValue('availableFromMode', 'date');
+      setFieldValue('availableFromDate', new Date(d.have.availableFromDate).toISOString().slice(0, 10));
+      toggleAvailDate();
+    }
+
+    setRadioValue('maintenance', d.have.maintenance);
+    if (d.have.maintenance === 'Separate' && d.have.maintenanceAmount) {
+      setFieldValue('maintenanceAmount', d.have.maintenanceAmount);
+      toggleMaintenance();
+    }
+  }
+
+  // Stored as lowercase male/female/any; the radio's values are capitalized labels.
+  const genderLabel = { male: 'Male', female: 'Female', any: 'No Preference' }[d.gender];
+  if (genderLabel) setRadioValue('preferredGender', genderLabel);
+
+  const phone = (d.contact && d.contact.phone) || '';
+  const whatsapp = (d.contact && d.contact.whatsapp) || '';
+  if (whatsapp && whatsapp !== phone) {
+    document.getElementById('sameAsPhone').checked = false;
+    document.getElementById('whatsappInput').disabled = false;
+    document.getElementById('whatsappInput').value = whatsapp;
+  }
+}
+
+hydrateForm(DRAFT_DATA);
 showStep(1);
 </script>
 </body>

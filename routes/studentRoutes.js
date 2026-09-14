@@ -13,6 +13,7 @@ const Student       = require("../models/studentSchema");    // adjust path
 const { generateToken, jwtStudentAuth } = require("../Middlewares/jwtAuth"); // adjust path
 
 const Listing = require("../models/listingProperty");    // adjust path
+const FlatmateListing = require("../models/FlatmateListing");
 const { scoreLead } = require("../utils/leadScoring");
 const { logSearch } = require("../utils/searchLogger");
 
@@ -488,6 +489,19 @@ router.post("/wishlist/toggle/:listingId", jwtStudentAuth, async (req, res) => {
       student.wishlist.push(listingId);
     }
 
+    // Dual-write into the new unified savedProperties list so this same
+    // PG save also shows up on the new Saved Properties page — existing
+    // PG pages that call this route are completely unaffected; the
+    // response shape below is unchanged.
+    const savedIdx = student.savedProperties.findIndex(
+      (sp) => sp.listingType === "pg" && sp.listingId.toString() === listingId
+    );
+    if (alreadySaved && savedIdx !== -1) {
+      student.savedProperties.splice(savedIdx, 1);
+    } else if (!alreadySaved && savedIdx === -1) {
+      student.savedProperties.push({ listingType: "pg", listingId });
+    }
+
     await student.save();
 
     res.json({
@@ -499,6 +513,100 @@ router.post("/wishlist/toggle/:listingId", jwtStudentAuth, async (req, res) => {
   } catch (err) {
     //console.error("Wishlist toggle error:", err);
     res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+/* ============================================================
+   SAVED PROPERTIES (unified PG/Hostel + Flatmate)
+   New system — "My Wishlist" is renamed "Saved Properties" everywhere
+   in the UI. Both listing types are supported without a second,
+   duplicate save-system: one array, one toggle route, one page.
+============================================================ */
+
+/* POST /student/saved/toggle
+   body: { listingType: "pg"|"flatmate", listingId }
+   Never trusts the client beyond the type/id pair — actual listing
+   existence is verified server-side against the real collection. */
+router.post("/saved/toggle", jwtStudentAuth, async (req, res) => {
+  try {
+    const student = await Student.findById(req.student.id);
+    if (!student) return res.status(401).json({ success: false, error: "Not logged in" });
+
+    const { listingType, listingId } = req.body;
+    if (!["pg", "flatmate"].includes(listingType) || !listingId) {
+      return res.status(400).json({ success: false, error: "Invalid request." });
+    }
+
+    const Model = listingType === "pg" ? Listing : FlatmateListing;
+    const exists = await Model.exists({ _id: listingId });
+    if (!exists) return res.status(404).json({ success: false, error: "Listing not found." });
+
+    const idx = student.savedProperties.findIndex(
+      (sp) => sp.listingType === listingType && sp.listingId.toString() === listingId
+    );
+
+    let saved;
+    if (idx !== -1) {
+      student.savedProperties.splice(idx, 1);
+      saved = false;
+    } else {
+      student.savedProperties.push({ listingType, listingId });
+      saved = true;
+    }
+
+    // Keep the legacy PG `wishlist` array in sync too, so any existing
+    // PG-only code reading `student.wishlist` directly still sees this
+    // toggle reflected there (only relevant for listingType "pg").
+    if (listingType === "pg") {
+      const alreadyInLegacy = student.wishlist.some((id) => id.toString() === listingId);
+      if (saved && !alreadyInLegacy) student.wishlist.push(listingId);
+      if (!saved && alreadyInLegacy) student.wishlist = student.wishlist.filter((id) => id.toString() !== listingId);
+    }
+
+    await student.save();
+    res.json({ success: true, saved, savedCount: student.savedProperties.length });
+  } catch (err) {
+    console.error("Saved property toggle error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+/* GET /student/saved — the "Saved Properties" page, both types together */
+router.get("/saved", jwtStudentAuth, async (req, res) => {
+  try {
+    const student = await Student.findById(req.student.id);
+    if (!student) return res.redirect("/student/login");
+
+    const pgIds = student.savedProperties.filter((sp) => sp.listingType === "pg").map((sp) => sp.listingId);
+    const flatmateIds = student.savedProperties.filter((sp) => sp.listingType === "flatmate").map((sp) => sp.listingId);
+
+    const [pgListings, flatmateListings] = await Promise.all([
+      Listing.find({ _id: { $in: pgIds } })
+        .select("title slug gender propertyType location images startingPrice rooms amenities rating reviewCount views isVerified"),
+      FlatmateListing.find({ _id: { $in: flatmateIds } })
+        .select("type slug bhk roomType city area gender have need images status")
+        .populate("student", "firstName"),
+    ]);
+
+    // Gracefully drop any saved-but-since-deleted listings, rather than crashing.
+    const savedAtByPg = Object.fromEntries(
+      student.savedProperties.filter((sp) => sp.listingType === "pg").map((sp) => [sp.listingId.toString(), sp.savedAt])
+    );
+    const savedAtByFlatmate = Object.fromEntries(
+      student.savedProperties.filter((sp) => sp.listingType === "flatmate").map((sp) => [sp.listingId.toString(), sp.savedAt])
+    );
+
+    res.render("student/savedProperties.ejs", {
+      student,
+      pgListings,
+      flatmateListings,
+      savedAtByPg,
+      savedAtByFlatmate,
+      totalSaved: pgListings.length + flatmateListings.length,
+    });
+  } catch (err) {
+    console.error("Saved properties page error:", err);
+    res.status(500).send("Server Error");
   }
 });
 

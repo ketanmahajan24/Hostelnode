@@ -41,6 +41,13 @@
     .r-need-placeholder span { font-size: 12px; font-weight: 700; }
 
     .r-posted-by { font-size: 12px; color: #888; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .muted-see-more { background: #f1f5f2 !important; box-shadow: none !important; cursor: default !important; }
+    .muted-see-more .btn-inner { color: #6b7a72 !important; justify-content: center; }
+    .muted-see-more:hover { transform: none !important; }
+    .r-card-img { touch-action: pan-y; }
+    .r-slide-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; z-index: 3; }
+    .r-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.55); transition: all .15s ease; }
+    .r-dot.active { background: #fff; width: 14px; border-radius: 3px; }
     .r-posted-by i { color: var(--green); font-size: 11px; }
   </style>
 </head>
@@ -193,10 +200,10 @@
       <% if (listings && listings.length > 0) { %>
         <% listings.forEach(function(l) { %>
 
-          <div class="r-card" onclick="viewListing('<%= l.slug %>')">
+          <div class="r-card" data-slug="<%= l.slug %>" onclick="rCardNavigate(event, this)">
 
             <!-- Image slider (have) / icon placeholder (need) -->
-            <div class="r-card-img">
+            <div class="r-card-img" data-swipe-card>
               <% if (l.type === 'have' && l.images && l.images.length > 0) { %>
                 <% l.images.forEach(function(img, i) { %>
                   <div class="slide <%= i===0?'active':'' %>">
@@ -204,12 +211,15 @@
                   </div>
                 <% }) %>
                 <% if (l.images.length > 1) { %>
-                  <button class="slide-btn prev" onclick="slide(event,this,-1)" aria-label="Previous photo">
+                  <button class="slide-btn prev" onclick="event.stopPropagation(); slide(event,this,-1)" aria-label="Previous photo">
                     <i class="fa-solid fa-chevron-left"></i>
                   </button>
-                  <button class="slide-btn next" onclick="slide(event,this,1)" aria-label="Next photo">
+                  <button class="slide-btn next" onclick="event.stopPropagation(); slide(event,this,1)" aria-label="Next photo">
                     <i class="fa-solid fa-chevron-right"></i>
                   </button>
+                  <div class="r-slide-dots">
+                    <% l.images.forEach(function(_, di) { %><span class="r-dot <%= di===0?'active':'' %>"></span><% }) %>
+                  </div>
                 <% } %>
               <% } else { %>
                 <div class="slide active">
@@ -224,8 +234,8 @@
                 <%= l.type === 'have' ? '🏠 FLAT' : '👤 FLATMATE' %>
               </span>
 
-              <button class="r-wish" onclick="flatWishToggle(event,this)" aria-label="Save to wishlist" aria-pressed="false">
-                <i class="fa-regular fa-heart"></i>
+              <button class="r-wish <%= l.isSaved ? 'saved' : '' %>" onclick="flatWishToggle(event,this,'<%= l._id %>')" aria-label="Save to wishlist" aria-pressed="<%= l.isSaved ? 'true' : 'false' %>">
+                <i class="fa-<%= l.isSaved ? 'solid' : 'regular' %> fa-heart"></i>
               </button>
 
               <div class="r-dist">
@@ -270,18 +280,38 @@
               </div>
 
               <div class="btn-wrap">
-                <button class="btn-see-more"
-                  onclick="event.stopPropagation(); requestToTalk('<%= l.slug %>')">
-                  <span class="btn-gloss"></span>
-                  <span class="btn-sheen"></span>
-                  <span class="btn-inner">
-                    <span class="dot"></span>
-                    <span class="btn-label">Request to Talk</span>
-                    <span class="btn-arrow">
-                      <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
+                <% if (l.requestStatus === 'own') { %>
+                  <button class="btn-see-more muted-see-more" disabled>
+                    <span class="btn-inner"><span class="btn-label">Your Listing</span></span>
+                  </button>
+                <% } else if (l.requestStatus === 'pending') { %>
+                  <button class="btn-see-more muted-see-more" disabled>
+                    <span class="btn-inner"><span class="btn-label"><i class="fa-solid fa-clock"></i> Request Sent</span></span>
+                  </button>
+                <% } else if (l.requestStatus === 'accepted') { %>
+                  <a class="btn-see-more" href="/messages/<%= l.conversationId %>" onclick="event.stopPropagation()">
+                    <span class="btn-gloss"></span>
+                    <span class="btn-sheen"></span>
+                    <span class="btn-inner">
+                      <span class="dot"></span>
+                      <span class="btn-label"><i class="fa-solid fa-comment"></i> Chat Now</span>
+                      <span class="btn-arrow"><i class="fa-solid fa-arrow-right" style="font-size:11px"></i></span>
                     </span>
-                  </span>
-                </button>
+                  </a>
+                <% } else { %>
+                  <button class="btn-see-more" data-listing-id="<%= l._id %>"
+                    onclick="event.stopPropagation(); sendCardRequest('<%= l._id %>', this)">
+                    <span class="btn-gloss"></span>
+                    <span class="btn-sheen"></span>
+                    <span class="btn-inner">
+                      <span class="dot"></span>
+                      <span class="btn-label">Send Request</span>
+                      <span class="btn-arrow">
+                        <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
+                      </span>
+                    </span>
+                  </button>
+                <% } %>
               </div>
             </div>
           </div>
@@ -366,22 +396,105 @@
   }
 
   // ── View listing ─────────────────────────────────────
-  function viewListing(id) { window.location.href = '/flatmate/' + id; }
-
-  // ── Request to Talk (stub — wires to modal once backend exists) ──
-  function requestToTalk(id) {
-    window.location.href = '/flatmate/' + id + '#request';
+  function rCardNavigate(e, cardEl) {
+    if (cardEl.dataset.swiped === 'true') { cardEl.dataset.swiped = 'false'; return; } // swipe, not a tap
+    window.location.href = '/flatmate/' + cardEl.dataset.slug;
   }
 
-  // ── Wishlist (local-only for now — no Flatmate wishlist backend
-  //    exists yet, so this intentionally does NOT call the hostel
-  //    /student/wishlist endpoint, to avoid mixing the two features) ──
-  function flatWishToggle(e, btn) {
+  // Touch swipe for the image slider — same click-vs-swipe discrimination
+  // as the Featured cards on /flatmate, so a swipe never accidentally
+  // navigates to the listing.
+  document.querySelectorAll('[data-swipe-card]').forEach(function (wrap) {
+    let startX = 0, startY = 0, dragging = false;
+    const THRESHOLD = 30;
+
+    wrap.addEventListener('touchstart', function (e) {
+      if (!e.touches[0]) return;
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragging = true;
+    }, { passive: true });
+
+    wrap.addEventListener('touchmove', function (e) {
+      if (!dragging || !e.touches[0]) return;
+      const dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) e.preventDefault();
+    }, { passive: false });
+
+    wrap.addEventListener('touchend', function (e) {
+      if (!dragging) return;
+      dragging = false;
+      const dx = (e.changedTouches[0] ? e.changedTouches[0].clientX : startX) - startX;
+      if (Math.abs(dx) < THRESHOLD) return; // a tap — let navigation proceed
+      const cardEl = wrap.closest('.r-card');
+      if (cardEl) cardEl.dataset.swiped = 'true';
+      const slides = [...wrap.querySelectorAll('.slide')];
+      const dots = [...wrap.querySelectorAll('.r-dot')];
+      if (slides.length < 2) return;
+      const idx = slides.findIndex(s => s.classList.contains('active'));
+      slides[idx].classList.remove('active');
+      dots[idx]?.classList.remove('active');
+      const next = (idx + (dx < 0 ? 1 : -1) + slides.length) % slides.length;
+      slides[next].classList.add('active');
+      dots[next]?.classList.add('active');
+    });
+  });
+
+  // ── Send Request (no modal — one-click, same backend endpoint the
+  //    detail page's modal uses) ──
+  async function sendCardRequest(listingId, btn) {
+    if (btn.disabled) return; // guard against double-click/duplicate requests
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    try {
+      const res = await fetch('/flatmate/connect', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, message: '' }),
+      });
+      if (res.redirected || res.status === 401) {
+        window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        btn.classList.add('muted-see-more');
+        btn.innerHTML = '<span class="btn-inner"><span class="btn-label"><i class="fa-solid fa-clock"></i> Request Sent</span></span>';
+        btn.disabled = true; // stays disabled — status is now server-confirmed "pending"
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        showToast(data.error || 'Could not send request.');
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = original;
+      showToast('Network error — please try again.');
+    }
+  }
+
+  // ── Wishlist (real — persists via /student/saved/toggle, the new
+  //    unified Saved Properties system) ──
+  async function flatWishToggle(e, btn, listingId) {
     e.stopPropagation();
-    const saved = btn.classList.toggle('saved');
-    btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
-    btn.querySelector('i').className = saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
-    showToast(saved ? '❤️ Saved to wishlist' : '🤍 Removed from wishlist');
+    try {
+      const res = await fetch('/student/saved/toggle', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingType: 'flatmate', listingId }),
+      });
+      if (res.redirected || res.status === 401) {
+        window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        btn.classList.toggle('saved', data.saved);
+        btn.setAttribute('aria-pressed', data.saved ? 'true' : 'false');
+        btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+        showToast(data.saved ? '❤️ Saved to your properties' : '🤍 Removed from saved');
+      } else {
+        showToast(data.error || 'Could not update saved properties.');
+      }
+    } catch (err) {
+      showToast('Network error — please try again.');
+    }
   }
 
   // ── Image slider ─────────────────────────────────────
@@ -389,9 +502,13 @@
     e.stopPropagation();
     const wrap   = btn.closest('.r-card-img');
     const slides = [...wrap.querySelectorAll('.slide')];
+    const dots   = [...wrap.querySelectorAll('.r-dot')];
     let idx = slides.findIndex(s => s.classList.contains('active'));
     slides[idx].classList.remove('active');
-    slides[(idx + dir + slides.length) % slides.length].classList.add('active');
+    dots[idx]?.classList.remove('active');
+    idx = (idx + dir + slides.length) % slides.length;
+    slides[idx].classList.add('active');
+    dots[idx]?.classList.add('active');
   }
 
   // ── Mobile filter ────────────────────────────────────
