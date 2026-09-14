@@ -610,6 +610,73 @@ router.get("/saved", jwtStudentAuth, async (req, res) => {
   }
 });
 
+/* ============================================================
+   RECENTLY VIEWED (PG/Hostel + Flatmate, unified — max 5)
+   Actual view-tracking (trackView, capped+deduped) happens in
+   routes/public.js (PG) and routes/flatmateRoutes.js (Flatmate) via
+   the shared utils/recentlyViewed.js helper — this page only reads
+   and manages what's already been recorded.
+============================================================ */
+router.get("/recently-viewed", jwtStudentAuth, async (req, res) => {
+  try {
+    const RecentlyViewed = require("../models/RecentlyViewed");
+    const FlatmateListing = require("../models/FlatmateListing");
+
+    const entries = await RecentlyViewed.find({ student: req.student.id }).sort({ viewedAt: -1 });
+
+    const pgIds = entries.filter((e) => e.listingType === "pg").map((e) => e.listingId);
+    const flatmateIds = entries.filter((e) => e.listingType === "flatmate").map((e) => e.listingId);
+
+    const [pgDocs, flatmateDocs] = await Promise.all([
+      Listing.find({ _id: { $in: pgIds } })
+        .select("title slug images startingPrice location"),
+      FlatmateListing.find({ _id: { $in: flatmateIds } })
+        .select("type slug bhk roomType city area have need images"),
+    ]);
+    const pgById = Object.fromEntries(pgDocs.map((d) => [d._id.toString(), d]));
+    const flatmateById = Object.fromEntries(flatmateDocs.map((d) => [d._id.toString(), d]));
+
+    // Preserve most-recent-first order; gracefully skip any entry whose
+    // underlying listing has since been deleted, rather than crashing.
+    const items = entries
+      .map((e) => {
+        const listing = e.listingType === "pg" ? pgById[e.listingId.toString()] : flatmateById[e.listingId.toString()];
+        if (!listing) return null;
+        return { recentId: e._id.toString(), listingType: e.listingType, listing, viewedAt: e.viewedAt };
+      })
+      .filter(Boolean);
+
+    res.render("student/recentlyViewed.ejs", { student, items });
+  } catch (err) {
+    console.error("Recently viewed page error:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
+/* POST /student/recently-viewed/:id/remove — remove one entry from history
+   (this only deletes viewing history, never the underlying saved property
+   or the listing itself). */
+router.post("/recently-viewed/:id/remove", jwtStudentAuth, async (req, res) => {
+  try {
+    const RecentlyViewed = require("../models/RecentlyViewed");
+    await RecentlyViewed.deleteOne({ _id: req.params.id, student: req.student.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+/* POST /student/recently-viewed/clear — clear all history for this student */
+router.post("/recently-viewed/clear", jwtStudentAuth, async (req, res) => {
+  try {
+    const RecentlyViewed = require("../models/RecentlyViewed");
+    await RecentlyViewed.deleteMany({ student: req.student.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
 // /-----------------------------------------------------------------------/
 /* ============================================================
    POST /student/review/:listingId

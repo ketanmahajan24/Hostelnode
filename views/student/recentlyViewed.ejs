@@ -1,0 +1,122 @@
+<!-- recentlyViewed.ejs — HostelNode Recently Viewed (PG/Hostel + Flatmate, unified) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recently Viewed | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .rv-wrap { max-width: 780px; margin: 0 auto; padding: 24px 20px 80px; }
+    .rv-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .rv-head h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); }
+    .rv-head p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .rv-clear-all { background: none; border: 1.5px solid var(--border); color: #c53030; padding: 8px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+
+    .rv-row { display: flex; align-items: center; gap: 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; margin-top: 14px; text-decoration: none; }
+    .rv-row-img { width: 84px; height: 64px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--bg2); position: relative; }
+    .rv-row-img img { width: 100%; height: 100%; object-fit: cover; }
+    .rv-row-badge { position: absolute; top: 4px; left: 4px; font-size: 9px; font-weight: 800; color: #fff; padding: 2px 6px; border-radius: 999px; }
+    .rv-row-badge.pg { background: rgba(9,184,80,.92); }
+    .rv-row-badge.have { background: rgba(9,184,80,.92); }
+    .rv-row-badge.need { background: rgba(37,99,235,.92); }
+    .rv-row-body { flex: 1; min-width: 0; }
+    .rv-row-title { font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rv-row-loc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .rv-row-price { font-size: 13px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+    .rv-row-remove { background: var(--bg2); border: none; width: 30px; height: 30px; border-radius: 50%; color: var(--muted); flex-shrink: 0; }
+
+    .rv-empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .rv-empty i { font-size: 2rem; color: var(--border-dark); display: block; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<div class="rv-wrap">
+  <div class="rv-head">
+    <div>
+      <h1>Recently Viewed</h1>
+      <p><%= items.length %> listing<%= items.length===1?'':'s' %> in your history</p>
+    </div>
+    <% if (items.length > 0) { %>
+      <button class="rv-clear-all" onclick="clearAllRecent()">Clear all recently viewed</button>
+    <% } %>
+  </div>
+
+  <div id="rvList">
+    <% if (items.length === 0) { %>
+      <div class="rv-empty">
+        <i class="fa-regular fa-clock"></i>
+        <p>Nothing here yet. Listings you view will show up here.</p>
+      </div>
+    <% } %>
+
+    <% items.forEach(function(item) { %>
+      <% const isPg = item.listingType === 'pg'; const l = item.listing; %>
+      <div class="rv-row-wrap" style="display:flex;align-items:center;gap:10px">
+        <a class="rv-row" style="flex:1" href="<%= isPg ? '/hostel/' + l.slug : '/flatmate/' + l.slug %>">
+          <div class="rv-row-img">
+            <% if (isPg) { %>
+              <img src="<%= (l.images && l.images[0]) ? '/listing-images/' + l.images[0] : '/images/placeholder.jpg' %>" alt="<%= l.title %>">
+              <span class="rv-row-badge pg">PG</span>
+            <% } else { %>
+              <% const isHave = l.type === 'HAVE_FLAT'; %>
+              <img src="<%= (isHave && l.images && l.images[0]) ? '/flatmate-images/' + l.images[0] : '/images/placeholder.jpg' %>" alt="<%= l.bhk %> BHK">
+              <span class="rv-row-badge <%= isHave ? 'have' : 'need' %>"><%= isHave ? 'FLAT' : 'FLATMATE' %></span>
+            <% } %>
+          </div>
+          <div class="rv-row-body">
+            <% if (isPg) { %>
+              <div class="rv-row-title"><%= l.title %></div>
+              <div class="rv-row-loc"><%= l.location?.city || '' %></div>
+              <% if (l.startingPrice) { %><div class="rv-row-price">₹<%= l.startingPrice.toLocaleString('en-IN') %>/mo</div><% } %>
+            <% } else { %>
+              <% const isHave = l.type === 'HAVE_FLAT'; %>
+              <div class="rv-row-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
+              <div class="rv-row-loc"><%= l.area %>, <%= l.city %></div>
+              <% if (isHave) { %>
+                <div class="rv-row-price">₹<%= (l.have?.rentMonthly||0).toLocaleString('en-IN') %>/mo</div>
+              <% } else { %>
+                <div class="rv-row-price">₹<%= (l.need?.budgetMin||0).toLocaleString('en-IN') %>&ndash;₹<%= (l.need?.budgetMax||0).toLocaleString('en-IN') %></div>
+              <% } %>
+            <% } %>
+          </div>
+        </a>
+        <button class="rv-row-remove" onclick="removeRecent('<%= item.recentId %>', this)" aria-label="Remove from history"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    <% }) %>
+  </div>
+</div>
+
+<script>
+async function removeRecent(id, btn) {
+  btn.disabled = true;
+  try {
+    const res = await fetch('/student/recently-viewed/' + id + '/remove', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) btn.closest('.rv-row-wrap').remove();
+    else { btn.disabled = false; alert(data.error || 'Could not remove.'); }
+  } catch (err) { btn.disabled = false; alert('Network error — please try again.'); }
+}
+
+async function clearAllRecent() {
+  if (!confirm('Clear all recently viewed? This only removes your viewing history — saved properties and listings themselves are not affected.')) return;
+  try {
+    const res = await fetch('/student/recently-viewed/clear', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) window.location.reload();
+    else alert(data.error || 'Could not clear history.');
+  } catch (err) { alert('Network error — please try again.'); }
+}
+</script>
+</body>
+</html>

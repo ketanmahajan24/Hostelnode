@@ -72,6 +72,40 @@
     .tag { background: var(--bg2); color: var(--ink-mid); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
     .tag i { color: var(--green); font-size: 11px; }
 
+    /* Location / Map */
+    .map-approx-note { font-size: 12px; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .flatmate-map { width: 100%; height: 280px; border-radius: 14px; background: var(--bg2); overflow: hidden; }
+    .map-unavailable { height: 280px; border-radius: 14px; background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--muted); }
+    .map-unavailable i { font-size: 28px; color: var(--border-dark); }
+    .map-unavailable button { background: var(--ink); color: #fff; border: none; padding: 8px 18px; border-radius: 999px; font-size: 12.5px; font-weight: 700; margin-top: 4px; }
+
+    .nearby-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .nearby-cat-btn { background: var(--bg2); border: 1.5px solid transparent; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); cursor: pointer; transition: all .15s; }
+    .nearby-cat-btn:hover { border-color: var(--green-border); }
+    .nearby-cat-btn.active { background: var(--green); color: #fff; }
+
+    .nearby-results { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .nearby-result-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg2); border-radius: 12px; cursor: pointer; transition: background .15s; }
+    .nearby-result-item:hover { background: var(--green-light); }
+    .nearby-result-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .nearby-result-addr { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .nearby-result-dist { font-size: 12px; font-weight: 700; color: var(--green-dark); white-space: nowrap; margin-left: 10px; }
+    .nearby-empty, .nearby-loading, .nearby-error { text-align: center; padding: 16px; font-size: 12.5px; color: var(--muted); }
+
+    .route-panel { margin-top: 14px; border: 1px solid var(--border); border-radius: 14px; padding: 16px; background: var(--card-bg); }
+    .route-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .route-panel-title { font-size: 11px; color: var(--muted-light); text-transform: uppercase; letter-spacing: .3px; }
+    .route-panel-dest { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+    .route-panel-close { background: var(--bg2); border: none; width: 28px; height: 28px; border-radius: 50%; color: var(--muted); }
+    .route-mode-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .route-mode-tab { flex: 1; padding: 9px; border-radius: 10px; border: 1.5px solid var(--border); background: #fff; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; }
+    .route-mode-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .route-result { font-size: 13px; color: var(--ink-mid); }
+    .route-result .route-stat-row { display: flex; align-items: center; gap: 16px; }
+    .route-result .route-stat { display: flex; flex-direction: column; }
+    .route-result .route-stat .val { font-size: 18px; font-weight: 700; color: var(--ink); }
+    .route-result .route-stat .lbl { font-size: 11px; color: var(--muted); }
+
     .desc-text { font-size: 13.5px; color: var(--ink-mid); line-height: 1.7; }
 
     .private-box { border: 1.5px dashed var(--border); border-radius: 12px; padding: 16px; text-align: center; }
@@ -233,6 +267,61 @@
     </div>
   <% } %>
 
+  <!-- Location / Map (HAVE_FLAT only — a NEED_FLAT listing is about
+       preferred areas, not one pinned property) -->
+  <% if (listing.type === 'HAVE_FLAT') { %>
+  <div class="section">
+    <h3><i class="fa-solid fa-location-dot" style="font-size:13px;color:var(--muted-light)"></i> Location</h3>
+    <p class="map-approx-note">
+      <% if (mapData.precise) { %>
+        <i class="fa-solid fa-circle-check" style="color:var(--green)"></i> Exact location — you're connected with this listing's owner.
+      <% } else { %>
+        <i class="fa-solid fa-lock"></i> Approximate area shown. The exact pin becomes available once your connection request is accepted.
+      <% } %>
+    </p>
+
+    <div id="mapUnavailable" class="map-unavailable" style="display:none">
+      <i class="fa-solid fa-map"></i>
+      <p>Map is temporarily unavailable.</p>
+      <button onclick="initFlatmateMap()">Retry</button>
+    </div>
+    <div id="flatmateMap" class="flatmate-map"></div>
+
+    <!-- Nearby categories -->
+    <div class="nearby-categories">
+      <button class="nearby-cat-btn" data-category="metro" onclick="loadNearby('metro', this)">🚇 Metro</button>
+      <button class="nearby-cat-btn" data-category="hospital" onclick="loadNearby('hospital', this)">🏥 Hospital</button>
+      <button class="nearby-cat-btn" data-category="college" onclick="loadNearby('college', this)">🎓 College</button>
+      <button class="nearby-cat-btn" data-category="grocery" onclick="loadNearby('grocery', this)">🛒 Grocery</button>
+      <button class="nearby-cat-btn" data-category="food" onclick="loadNearby('food', this)">🍽️ Food</button>
+      <button class="nearby-cat-btn" data-category="pharmacy" onclick="loadNearby('pharmacy', this)">💊 Pharmacy</button>
+      <button class="nearby-cat-btn" data-category="gym" onclick="loadNearby('gym', this)">🏋️ Gym</button>
+      <button class="nearby-cat-btn" data-category="atm" onclick="loadNearby('atm', this)">🏧 ATM</button>
+      <button class="nearby-cat-btn" data-category="movies" onclick="loadNearby('movies', this)">🎬 Movies</button>
+      <button class="nearby-cat-btn" data-category="clubs" onclick="loadNearby('clubs', this)">🌳 Clubs</button>
+    </div>
+
+    <div id="nearbyResults" class="nearby-results" style="display:none"></div>
+
+    <!-- Route panel -->
+    <div id="routePanel" class="route-panel" style="display:none">
+      <div class="route-panel-head">
+        <div>
+          <div class="route-panel-title">Route to</div>
+          <div class="route-panel-dest" id="routeDestName">—</div>
+        </div>
+        <button class="route-panel-close" onclick="closeRoutePanel()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="route-mode-tabs">
+        <button class="route-mode-tab active" data-mode="driving" onclick="loadRoute('driving', this)">🚗 Driving</button>
+        <button class="route-mode-tab" data-mode="walking" onclick="loadRoute('walking', this)">🚶 Walking</button>
+        <button class="route-mode-tab" data-mode="transit" onclick="loadRoute('transit', this)">🚌 Transit</button>
+      </div>
+      <div id="routeResult" class="route-result">Loading…</div>
+    </div>
+  </div>
+  <% } %>
+
   <!-- Preferences -->
   <div class="section">
     <h3>Flatmate preferences</h3>
@@ -338,6 +427,166 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 <script>
+/* ── LOCATION / MAP ── */
+const LISTING_SLUG = <%- JSON.stringify(listing.slug) %>;
+const MAP_DATA = <%- JSON.stringify(mapData || null) %>;
+const GOOGLE_MAPS_KEY = <%- JSON.stringify(googleMapsApiKey || null) %>;
+let flatmateMap = null;
+let flatmateMarker = null;
+let destMarker = null;
+let routePolyline = null;
+let currentDestination = null;
+let mapLoaded = false;
+
+function showMapUnavailable() {
+  document.getElementById('flatmateMap').style.display = 'none';
+  document.getElementById('mapUnavailable').style.display = 'flex';
+}
+
+function loadGoogleMapsScript() {
+  if (!GOOGLE_MAPS_KEY || !MAP_DATA) { showMapUnavailable(); return; }
+  // If the script fails to load or the key is invalid, Google never calls
+  // our callback — this timeout catches that case so the page never hangs
+  // on a blank map container.
+  setTimeout(function () { if (!mapLoaded) showMapUnavailable(); }, 6000);
+
+  const script = document.createElement('script');
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_MAPS_KEY) + '&libraries=geometry&callback=initFlatmateMap&loading=async';
+  script.async = true;
+  script.onerror = showMapUnavailable;
+  document.head.appendChild(script);
+}
+
+function initFlatmateMap() {
+  mapLoaded = true;
+  const el = document.getElementById('flatmateMap');
+  if (!el || !MAP_DATA) return;
+  flatmateMap = new google.maps.Map(el, {
+    center: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+    zoom: MAP_DATA.zoom,
+    disableDefaultUI: true,
+    zoomControl: true,
+  });
+  flatmateMarker = new google.maps.Marker({
+    position: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+    map: flatmateMap,
+    title: MAP_DATA.precise ? 'This property' : 'Approximate area',
+  });
+  if (!MAP_DATA.precise) {
+    // Visually reinforce that this is an area, not a pinpointed address.
+    new google.maps.Circle({
+      map: flatmateMap,
+      center: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+      radius: 3000,
+      fillColor: '#09b850', fillOpacity: 0.08,
+      strokeColor: '#09b850', strokeOpacity: 0.3, strokeWeight: 1,
+    });
+  }
+}
+window.initFlatmateMap = initFlatmateMap;
+loadGoogleMapsScript();
+
+/* ── NEARBY PLACES ── */
+async function loadNearby(category, btn) {
+  document.querySelectorAll('.nearby-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  closeRoutePanel();
+
+  const box = document.getElementById('nearbyResults');
+  box.style.display = 'block';
+  box.innerHTML = '<div class="nearby-loading">Finding nearby places…</div>';
+
+  try {
+    const res = await fetch('/flatmate/' + LISTING_SLUG + '/nearby?category=' + encodeURIComponent(category));
+    const data = await res.json();
+    if (!data.success) {
+      box.innerHTML = '<div class="nearby-error">' + (data.error || 'Could not load nearby places.') + '</div>';
+      return;
+    }
+    if (!data.places || !data.places.length) {
+      box.innerHTML = '<div class="nearby-empty">No nearby places found in this category.</div>';
+      return;
+    }
+    box.innerHTML = data.places.map(function (p, i) {
+      const distText = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' m' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
+      return '<div class="nearby-result-item" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
+        '<div><div class="nearby-result-name">' + escapeHtml(p.name) + '</div>' +
+        (p.address ? '<div class="nearby-result-addr">' + escapeHtml(p.address) + '</div>' : '') + '</div>' +
+        '<div class="nearby-result-dist">' + distText + '</div></div>';
+    }).join('');
+  } catch (err) {
+    box.innerHTML = '<div class="nearby-error">Network error — please try again.</div>';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ── ROUTE PANEL ── */
+function openRoutePanel(place) {
+  currentDestination = place;
+  document.getElementById('routePanel').style.display = 'block';
+  document.getElementById('routeDestName').textContent = place.name;
+  document.querySelectorAll('.route-mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.route-mode-tab[data-mode="driving"]').classList.add('active');
+  loadRoute('driving');
+  document.getElementById('routePanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (flatmateMap && place.lat && place.lng) {
+    if (destMarker) destMarker.setMap(null);
+    destMarker = new google.maps.Marker({
+      position: { lat: place.lat, lng: place.lng }, map: flatmateMap,
+      title: place.name, icon: { url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+    });
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: MAP_DATA.lat, lng: MAP_DATA.lng });
+    bounds.extend({ lat: place.lat, lng: place.lng });
+    flatmateMap.fitBounds(bounds);
+  }
+}
+
+function closeRoutePanel() {
+  document.getElementById('routePanel').style.display = 'none';
+  currentDestination = null;
+  if (destMarker) { destMarker.setMap(null); destMarker = null; }
+  if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+}
+
+async function loadRoute(mode, tabBtn) {
+  if (!currentDestination) return;
+  if (tabBtn) {
+    document.querySelectorAll('.route-mode-tab').forEach(t => t.classList.remove('active'));
+    tabBtn.classList.add('active');
+  }
+  const resultEl = document.getElementById('routeResult');
+  resultEl.textContent = 'Loading…';
+
+  try {
+    const res = await fetch('/flatmate/' + LISTING_SLUG + '/route?destLat=' + currentDestination.lat + '&destLng=' + currentDestination.lng + '&mode=' + mode);
+    const data = await res.json();
+    if (!data.success) {
+      resultEl.innerHTML = '<div class="nearby-error">' + (data.error || 'No route available for this mode.') + '</div>';
+      if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+      return;
+    }
+    const km = (data.distanceMeters / 1000).toFixed(1);
+    const mins = Math.round(data.durationSeconds / 60);
+    resultEl.innerHTML = '<div class="route-stat-row">' +
+      '<div class="route-stat"><span class="val">' + km + ' km</span><span class="lbl">Distance</span></div>' +
+      '<div class="route-stat"><span class="val">' + mins + ' min</span><span class="lbl">Duration</span></div>' +
+      '</div>';
+
+    if (flatmateMap && data.polyline && google.maps.geometry) {
+      if (routePolyline) routePolyline.setMap(null);
+      const path = google.maps.geometry.encoding.decodePath(data.polyline);
+      routePolyline = new google.maps.Polyline({ path, strokeColor: '#09b850', strokeWeight: 4, map: flatmateMap });
+    }
+  } catch (err) {
+    resultEl.innerHTML = '<div class="nearby-error">Network error — please try again.</div>';
+  }
+}
+
 function switchGalleryImage(filename, thumbEl) {
   document.getElementById('galleryMainImg').src = '/flatmate-images/' + filename;
   document.querySelectorAll('.gallery-thumbs img').forEach(i => i.classList.remove('active'));

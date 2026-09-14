@@ -65,9 +65,10 @@ const flatmateListingSchema = new mongoose.Schema({
   },
 
   coordinates: {
-    lat: { type: Number, default: null },
-    lng: { type: Number, default: null },
+    lat: { type: Number, default: null, select: false }, // exact coords can pinpoint the address just like address text — same protection
+    lng: { type: Number, default: null, select: false },
   },
+  placeId: { type: String, default: null, select: false }, // Google Place ID, same privacy tier as coordinates
 
   /* ── SHARED DISPLAY/FILTER FIELDS (both types) ── */
   bhk: { type: Number, required: true, min: 1, max: 4 }, // 4 = "4 BHK+"

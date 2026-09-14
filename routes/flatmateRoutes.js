@@ -44,6 +44,16 @@ const Conversation = require("../models/Conversation");
 const Block = require("../models/Block");
 
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
+
+// WhatsApp template names for Flatmate notifications — these are NOT yet
+// approved Meta templates; they must be created in Meta Business Manager
+// before these notifications will actually send (see PHASE-A notes for the
+// exact body text/variables to submit for approval). Configurable via env
+// so the template name can change without a code deploy.
+const FLATMATE_WA_TEMPLATES = {
+  requestReceived: process.env.WA_TEMPLATE_FLATMATE_REQUEST || "hostelnode_flatmate_request",
+  requestAccepted: process.env.WA_TEMPLATE_FLATMATE_ACCEPTED || "hostelnode_flatmate_accepted",
+};
 const RESULTS_PAGE_SIZE = 9;
 
 /* ─────────────────────────────────────────────
@@ -526,12 +536,12 @@ router.get("/create/have", requireStudent, async (req, res) => {
     if (req.query.draft) {
       draft = await FlatmateListing.findOne({
         _id: req.query.draft, student: req.student.id, type: "HAVE_FLAT",
-      }).select("+contact.phone +contact.whatsapp +address").lean();
+      }).select("+contact.phone +contact.whatsapp +address +coordinates.lat +coordinates.lng +placeId").lean();
     }
     // Always a fresh DB lookup — never trust the JWT payload for something
     // that could have changed since the token was issued.
     const me = await Student.findById(req.student.id).select("phone");
-    res.render("flatmate/create-have", { draft, cities: CITIES, verifiedPhone: me?.phone || "" });
+    res.render("flatmate/create-have", { draft, cities: CITIES, verifiedPhone: me?.phone || "", googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || null });
   } catch (err) {
     console.error("Flatmate create/have error:", err);
     res.status(500).send("Something went wrong loading the form. Please try again.");
@@ -547,7 +557,7 @@ router.get("/create/need", requireStudent, async (req, res) => {
     if (req.query.draft) {
       draft = await FlatmateListing.findOne({
         _id: req.query.draft, student: req.student.id, type: "NEED_FLAT",
-      }).select("+contact.phone +contact.whatsapp +address").lean();
+      }).select("+contact.phone +contact.whatsapp +address +coordinates.lat +coordinates.lng +placeId").lean();
     }
     const me = await Student.findById(req.student.id).select("phone");
     res.render("flatmate/create-need", { draft, cities: CITIES, verifiedPhone: me?.phone || "" });
@@ -824,6 +834,32 @@ router.post("/connect", requireStudent, async (req, res) => {
       status: "pending",
     });
 
+    // WhatsApp notify the listing owner — non-critical: the request is
+    // already saved above regardless of whether this succeeds. Uses the
+    // existing utils/leadWhatsapp.js template-message sender (the same
+    // one studentRoutes.js already uses for PG enquiry notifications),
+    // since a business-initiated message like this needs an approved
+    // Meta template, not a plain-text session message.
+    setImmediate(async () => {
+      try {
+        const { sendTemplateMessage } = require("../utils/leadWhatsapp");
+        const [requesterDoc, receiverDoc] = await Promise.all([
+          Student.findById(req.student.id).select("firstName"),
+          Student.findById(listing.student).select("phone"),
+        ]);
+        if (!receiverDoc?.phone) return;
+        const result = await sendTemplateMessage(
+          receiverDoc.phone,
+          FLATMATE_WA_TEMPLATES.requestReceived,
+          [requesterDoc?.firstName || "Someone", `${listing.bhk} BHK · ${listing.area}, ${listing.city}`]
+        );
+        if (result.success) console.log(`✅ Flatmate request WA notify → ${receiverDoc.phone}`);
+        else console.error("🔴 Flatmate request WA notify failed:", result.error);
+      } catch (e) {
+        console.error("WA flatmate-request notify failed (non-critical):", e.message);
+      }
+    });
+
     res.json({ success: true, connectionId: connection._id.toString() });
   } catch (err) {
     console.error("Flatmate connect error:", err);
@@ -872,6 +908,85 @@ router.post("/feedback", async (req, res) => {
 });
 
 /* ─────────────────────────────────────────────
+   NEARBY PLACES  →  GET /flatmate/:slug/nearby?category=metro
+   Public (no auth required) — uses the listing's coordinates
+   server-side to compute results, but the response never includes
+   those coordinates, only nearby place names/distances/ratings. That's
+   the same privacy trade-off real-estate sites make everywhere:
+   "nearby amenities" without revealing the exact address.
+───────────────────────────────────────────── */
+router.get("/:slug/nearby", async (req, res) => {
+  try {
+    const { searchNearby } = require("../utils/googleMaps");
+    const category = req.query.category;
+
+    const listing = await FlatmateListing.findOne({ slug: req.params.slug })
+      .select("+coordinates.lat +coordinates.lng");
+    if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
+    if (listing.coordinates?.lat == null || listing.coordinates?.lng == null) {
+      return res.json({ success: false, error: "This listing doesn't have a pinned location yet." });
+    }
+
+    const result = await searchNearby(listing.coordinates.lat, listing.coordinates.lng, category);
+    res.json(result);
+  } catch (err) {
+    console.error("Nearby places error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   ROUTE TO NEARBY PLACE  →  GET /flatmate/:slug/route
+   ?destLat=&destLng=&mode=driving|walking|transit
+   Same privacy note as /nearby above — the listing's coordinates are
+   used as the route origin server-side, never returned to the client.
+───────────────────────────────────────────── */
+router.get("/:slug/route", async (req, res) => {
+  try {
+    const { computeRoute } = require("../utils/googleMaps");
+    const { destLat, destLng, mode } = req.query;
+
+    const listing = await FlatmateListing.findOne({ slug: req.params.slug })
+      .select("+coordinates.lat +coordinates.lng");
+    if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
+    if (listing.coordinates?.lat == null || listing.coordinates?.lng == null) {
+      return res.json({ success: false, error: "This listing doesn't have a pinned location yet." });
+    }
+    const dLat = parseFloat(destLat), dLng = parseFloat(destLng);
+    if (!Number.isFinite(dLat) || !Number.isFinite(dLng)) {
+      return res.status(400).json({ success: false, error: "Invalid destination coordinates." });
+    }
+
+    const result = await computeRoute(listing.coordinates.lat, listing.coordinates.lng, dLat, dLng, mode);
+    res.json(result);
+  } catch (err) {
+    console.error("Route computation error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
+   REVERSE GEOCODE  →  GET /flatmate/geocode/reverse?lat=&lng=
+   Used by the create wizard's map-pin picker when a student drags the
+   marker, to auto-fill a readable area/city. Auth-gated since it's
+   part of the authenticated creation flow, not a public utility.
+───────────────────────────────────────────── */
+router.get("/geocode/reverse", requireStudent, async (req, res) => {
+  try {
+    const { reverseGeocode } = require("../utils/googleMaps");
+    const lat = parseFloat(req.query.lat), lng = parseFloat(req.query.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ success: false, error: "Invalid coordinates." });
+    }
+    const result = await reverseGeocode(lat, lng);
+    res.json(result);
+  } catch (err) {
+    console.error("Reverse geocode route error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
+/* ─────────────────────────────────────────────
    LISTING DETAIL  →  GET /flatmate/:slug
    MUST be the last GET route in this file — it's a catch-all single
    path segment, so anything registered after it would be shadowed.
@@ -891,6 +1006,7 @@ router.get("/:slug", async (req, res) => {
     if (!listing) {
       return res.status(404).render("flatmate/listing-detail", {
         listing: null, isOwner: false, cta: null, connection: null, seo: null,
+        mapData: null, googleMapsApiKey: null, isSaved: false,
       });
     }
 
@@ -911,11 +1027,33 @@ router.get("/:slug", async (req, res) => {
 
     if (canSeePrivate) {
       const withPrivate = await FlatmateListing.findOne({ slug: req.params.slug })
-        .select("+contact.phone +contact.whatsapp +address")
+        .select("+contact.phone +contact.whatsapp +address +coordinates.lat +coordinates.lng +placeId")
         .lean();
       listing.contact = withPrivate.contact;
       listing.address = withPrivate.address;
+      listing.coordinates = withPrivate.coordinates;
+      listing.placeId = withPrivate.placeId;
     }
+
+    // Map data: precise pin once private access is granted (owner or an
+    // accepted connection); otherwise an approximate, city-level center
+    // only — the exact coordinates are select:false and were never even
+    // fetched above unless canSeePrivate, so there's nothing to leak here.
+    const CITY_CENTERS = {
+      "Mumbai": { lat: 19.0760, lng: 72.8777 },
+      "Navi Mumbai": { lat: 19.0330, lng: 73.0297 },
+      "Pune": { lat: 18.5204, lng: 73.8567 },
+      "Bengaluru": { lat: 12.9716, lng: 77.5946 },
+      "Delhi NCR": { lat: 28.7041, lng: 77.1025 },
+      "Hyderabad": { lat: 17.3850, lng: 78.4867 },
+    };
+    const hasPreciseCoords = canSeePrivate && listing.coordinates?.lat != null && listing.coordinates?.lng != null;
+    const mapData = {
+      precise: hasPreciseCoords,
+      lat: hasPreciseCoords ? listing.coordinates.lat : (CITY_CENTERS[listing.city]?.lat ?? 20.5937),
+      lng: hasPreciseCoords ? listing.coordinates.lng : (CITY_CENTERS[listing.city]?.lng ?? 78.9629),
+      zoom: hasPreciseCoords ? 15 : 12,
+    };
 
     // CTA state machine (see spec section 50 / doc7 section 8)
     let cta = "connect";
@@ -936,12 +1074,20 @@ router.get("/:slug", async (req, res) => {
       FlatmateListing.updateOne({ _id: listing._id }, { $inc: { views: 1 } }).catch(() => {});
     }
 
+    // Recently Viewed (logged-in students only, and not the owner viewing
+    // their own listing — non-blocking, non-critical)
+    if (viewerId && !isOwner) {
+      require("../utils/recentlyViewed").trackView(viewerId, "flatmate", listing._id);
+    }
+
     const savedSet = await buildSavedSet(viewerId, [listing]);
 
     res.render("flatmate/listing-detail", {
       listing, isOwner, cta, connection,
       isSaved: savedSet.has(listing._id.toString()),
       seo: buildListingSeo(listing),
+      mapData,
+      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || null,
     });
   } catch (err) {
     console.error("Flatmate detail route error:", err);

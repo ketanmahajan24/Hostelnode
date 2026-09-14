@@ -57,6 +57,11 @@ router.get("/hostel/:slug", optionalStudentAuth, async (req, res) => {
 
     if (!listing) return res.status(404).send("Hostel not found");
 
+    // Recently Viewed (logged-in students only — non-blocking, non-critical)
+    if (student) {
+      require("../utils/recentlyViewed").trackView(student._id, "pg", listing._id);
+    }
+
     // ── WA LEAD — logged in student ne dekha ──
     if (student) {
       await logSearch({

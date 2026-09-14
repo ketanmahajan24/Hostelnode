@@ -31,6 +31,10 @@ const Message            = require("../models/Message");
 const Notification       = require("../models/Notification");
 const Block              = require("../models/Block");
 const Report             = require("../models/Report");
+const Student            = require("../models/studentSchema");
+const FlatmateListing    = require("../models/FlatmateListing");
+
+const FLATMATE_WA_TEMPLATE_ACCEPTED = process.env.WA_TEMPLATE_FLATMATE_ACCEPTED || "hostelnode_flatmate_accepted";
 
 /* ── Auth — same contract as flatmateRoutes.js's requireStudent, defined
    locally so this file has no cross-file coupling. ── */
@@ -162,6 +166,32 @@ router.post("/connection/:id/accept", requireStudent, async (req, res) => {
       relatedConnection: connection._id,
       relatedConversation: conversation._id,
     }).catch(() => {});
+
+    // WhatsApp notify the requester — fires exactly once, only on this
+    // actual pending->accepted transition (the guard above already
+    // prevents a second accept call from reaching this code at all).
+    // Non-critical: acceptance has already been fully saved above
+    // regardless of whether this notification succeeds.
+    setImmediate(async () => {
+      try {
+        const { sendTemplateMessage } = require("../utils/leadWhatsapp");
+        const [requesterDoc, receiverDoc, listing] = await Promise.all([
+          Student.findById(connection.requester).select("phone"),
+          Student.findById(connection.receiver).select("firstName"),
+          FlatmateListing.findById(connection.receiverListing).select("bhk area city"),
+        ]);
+        if (!requesterDoc?.phone) return;
+        const result = await sendTemplateMessage(
+          requesterDoc.phone,
+          FLATMATE_WA_TEMPLATE_ACCEPTED,
+          [receiverDoc?.firstName || "The listing owner", listing ? `${listing.bhk} BHK · ${listing.area}, ${listing.city}` : "your requested listing"]
+        );
+        if (result.success) console.log(`✅ Flatmate acceptance WA notify → ${requesterDoc.phone}`);
+        else console.error("🔴 Flatmate acceptance WA notify failed:", result.error);
+      } catch (e) {
+        console.error("WA flatmate-accepted notify failed (non-critical):", e.message);
+      }
+    });
 
     res.json({ success: true, conversationId: conversation._id.toString() });
   } catch (err) {

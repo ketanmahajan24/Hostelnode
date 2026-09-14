@@ -69,6 +69,11 @@
     .verified-tag { margin-left: auto; background: var(--green); color: #fff; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
 
     /* Photo upload */
+    .pin-map { width: 100%; height: 220px; border-radius: 12px; background: var(--bg2); margin-top: 10px; }
+    .pin-map-unavailable { height: 220px; border-radius: 12px; background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--muted); margin-top: 10px; text-align: center; padding: 0 20px; }
+    .pin-map-unavailable i { font-size: 24px; color: var(--border-dark); }
+    .pin-map-unavailable p { font-size: 12px; }
+
     .photo-drop {
       border: 2px dashed var(--border); border-radius: 14px; padding: 28px; text-align: center; cursor: pointer;
       transition: border-color .15s, background .15s; background: var(--bg2);
@@ -241,6 +246,20 @@
         <label>Full address <span style="font-weight:400;color:var(--muted-light)">(private — only shared after you accept a connection)</span></label>
         <textarea name="address" rows="2" placeholder="Flat/House no., building, street..."></textarea>
         <div class="hint"><i class="fa-solid fa-lock"></i> This is never shown on your public listing.</div>
+      </div>
+
+      <div class="field">
+        <label>Property Location <span style="font-weight:400;color:var(--muted-light)">(optional, but strongly recommended — helps flatmates find you)</span></label>
+        <input type="text" id="pinSearchBox" placeholder="Search for your building or area…">
+        <div id="pinMapUnavailable" class="pin-map-unavailable" style="display:none">
+          <i class="fa-solid fa-map"></i>
+          <p>Map is temporarily unavailable — you can still publish without a pinned location.</p>
+        </div>
+        <div id="pinMap" class="pin-map"></div>
+        <div class="hint"><i class="fa-solid fa-arrows-up-down-left-right"></i> Drag the pin to fine-tune the exact spot. Only the approximate area is ever shown publicly.</div>
+        <input type="hidden" name="lat" id="pinLat" value="<%= draft && draft.coordinates ? draft.coordinates.lat||'' : '' %>">
+        <input type="hidden" name="lng" id="pinLng" value="<%= draft && draft.coordinates ? draft.coordinates.lng||'' : '' %>">
+        <input type="hidden" name="placeId" id="pinPlaceId" value="<%= draft ? draft.placeId||'' : '' %>">
       </div>
     </div>
 
@@ -502,6 +521,7 @@ function showStep(n) {
   document.getElementById('btnNext').style.display = n < TOTAL_STEPS ? 'inline-flex' : 'none';
   document.getElementById('btnPublish').style.display = n === TOTAL_STEPS ? 'inline-flex' : 'none';
   if (n === TOTAL_STEPS) updatePreview();
+  if (n === 2) onLocationStepShown();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -742,6 +762,102 @@ function hydrateForm(d) {
     document.getElementById('whatsappInput').disabled = false;
     document.getElementById('whatsappInput').value = whatsapp;
   }
+
+  // Existing pinned location (editing a listing that already has one) —
+  // the hidden lat/lng/placeId inputs are already prefilled server-side
+  // via EJS; this just remembers it so the map centers there once it loads.
+  if (d.coordinates && d.coordinates.lat != null && d.coordinates.lng != null) {
+    pinInitialCenter = { lat: d.coordinates.lat, lng: d.coordinates.lng, hasExisting: true };
+  }
+}
+
+/* ── PROPERTY LOCATION MAP-PIN PICKER ── */
+const GOOGLE_MAPS_KEY = <%- JSON.stringify(googleMapsApiKey || null) %>;
+let pinMap = null, pinMarker = null, pinAutocomplete = null, pinMapLoaded = false, pinScriptRequested = false;
+let pinInitialCenter = { lat: 20.5937, lng: 78.9629, hasExisting: false }; // India centroid fallback
+
+function showPinMapUnavailable() {
+  const mapEl = document.getElementById('pinMap');
+  if (mapEl) mapEl.style.display = 'none';
+  const fallback = document.getElementById('pinMapUnavailable');
+  if (fallback) fallback.style.display = 'flex';
+}
+
+// Lazy-init: only load/create the map the first time the Location step is
+// actually shown (a Google Map created inside a display:none container
+// renders blank), and just resize+recenter on subsequent visits.
+function onLocationStepShown() {
+  if (!GOOGLE_MAPS_KEY) { showPinMapUnavailable(); return; }
+  if (pinMapLoaded && pinMap) {
+    google.maps.event.trigger(pinMap, 'resize');
+    pinMap.setCenter(pinMarker.getPosition());
+    return;
+  }
+  if (pinScriptRequested) return;
+  pinScriptRequested = true;
+
+  setTimeout(function () { if (!pinMapLoaded) showPinMapUnavailable(); }, 6000);
+
+  const script = document.createElement('script');
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_MAPS_KEY) + '&libraries=places&callback=initPinMap&loading=async';
+  script.async = true;
+  script.onerror = showPinMapUnavailable;
+  document.head.appendChild(script);
+}
+
+function initPinMap() {
+  pinMapLoaded = true;
+  const mapEl = document.getElementById('pinMap');
+  if (!mapEl) return;
+
+  const center = { lat: pinInitialCenter.lat, lng: pinInitialCenter.lng };
+  pinMap = new google.maps.Map(mapEl, {
+    center, zoom: pinInitialCenter.hasExisting ? 16 : 5,
+    disableDefaultUI: true, zoomControl: true,
+  });
+  pinMarker = new google.maps.Marker({ position: center, map: pinMap, draggable: true });
+
+  google.maps.event.addListener(pinMarker, 'dragend', function () {
+    const pos = pinMarker.getPosition();
+    setPinCoordinates(pos.lat(), pos.lng(), null);
+    reverseGeocodePin(pos.lat(), pos.lng());
+  });
+
+  pinAutocomplete = new google.maps.places.Autocomplete(document.getElementById('pinSearchBox'), {
+    fields: ['geometry', 'place_id', 'name'],
+  });
+  pinAutocomplete.addListener('place_changed', function () {
+    const place = pinAutocomplete.getPlace();
+    if (!place.geometry || !place.geometry.location) return;
+    const lat = place.geometry.location.lat(), lng = place.geometry.location.lng();
+    pinMap.setCenter({ lat, lng });
+    pinMap.setZoom(16);
+    pinMarker.setPosition({ lat, lng });
+    setPinCoordinates(lat, lng, place.place_id || null);
+    reverseGeocodePin(lat, lng);
+  });
+}
+window.initPinMap = initPinMap;
+
+function setPinCoordinates(lat, lng, placeId) {
+  document.getElementById('pinLat').value = lat;
+  document.getElementById('pinLng').value = lng;
+  if (placeId) document.getElementById('pinPlaceId').value = placeId;
+}
+
+// Convenience only — auto-fills the Area field from the pinned spot so
+// the student doesn't have to type it separately. Never overwrites a
+// value they've already typed themselves.
+async function reverseGeocodePin(lat, lng) {
+  const areaField = document.querySelector('[name="area"]');
+  if (areaField && areaField.value.trim()) return;
+  try {
+    const res = await fetch('/flatmate/geocode/reverse?lat=' + lat + '&lng=' + lng);
+    const data = await res.json();
+    if (data.success && areaField && !areaField.value.trim()) {
+      areaField.value = data.area || '';
+    }
+  } catch (err) { /* silent — pin coordinates are already saved regardless */ }
 }
 
 hydrateForm(DRAFT_DATA);
