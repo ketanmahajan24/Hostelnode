@@ -60,6 +60,8 @@
     /* Contact/private-info box — Flatmate-only concept (PG shows contact
        directly since PG has no accept/decline relationship gate) */
     .fm-private-box { border: 1.5px dashed var(--border); border-radius: var(--radius-md); padding: 16px; }
+    .fm-contact-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .fm-contact-actions > a { flex: 1; min-width: 160px; }
     .fm-private-box.locked { color: var(--muted); font-size: 0.85rem; text-align: center; }
     .fm-private-box.locked i { font-size: 20px; color: var(--muted-light); display: block; margin-bottom: 8px; }
     .fm-private-row { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: var(--ink); margin-bottom: 8px; }
@@ -89,15 +91,20 @@
     .fm-nearby-result-addr { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
     .fm-nearby-result-dist { font-size: 0.75rem; font-weight: 700; color: var(--green-dark); white-space: nowrap; margin-left: 10px; }
     .fm-nearby-empty, .fm-nearby-loading, .fm-nearby-error { text-align: center; padding: 16px; font-size: 0.8rem; color: var(--muted); }
-    .fm-route-panel { margin-top: 14px; border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 16px; background: var(--white); }
-    .fm-route-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .fm-route-panel { margin-top: 14px; border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px; background: var(--white); box-shadow: var(--shadow-sm); animation: fmFadeSlideUp .25s ease; }
+    .fm-route-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .fm-route-panel-title { font-size: 0.7rem; color: var(--muted-light); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
-    .fm-route-panel-dest { font-size: 0.92rem; font-weight: 700; color: var(--ink); margin-top: 2px; }
-    .fm-route-panel-close { background: var(--bg2); border: none; width: 28px; height: 28px; border-radius: 50%; color: var(--muted); }
-    .fm-route-mode-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-    .fm-route-mode-tab { flex: 1; padding: 9px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: #fff; font-size: 0.78rem; font-weight: 700; color: var(--muted); cursor: pointer; }
-    .fm-route-mode-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
-    .fm-route-result .fm-route-stat-row { display: flex; align-items: center; gap: 16px; }
+    .fm-route-panel-dest { font-size: 0.98rem; font-weight: 700; color: var(--ink); margin-top: 2px; font-family: var(--font-d); }
+    .fm-route-panel-close { background: var(--bg2); border: none; width: 30px; height: 30px; border-radius: 50%; color: var(--muted); transition: all .15s; }
+    .fm-route-panel-close:hover { background: #fee2e2; color: #dc2626; }
+    .fm-route-mode-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .fm-route-mode-tab { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: #fff; font-size: 0.78rem; font-weight: 700; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .fm-route-mode-tab:hover { border-color: var(--green-border); background: var(--green-light); }
+    .fm-route-mode-tab.active { background: var(--green); border-color: var(--green); color: #fff; box-shadow: var(--shadow-green); }
+    .fm-route-result .fm-route-stat-row { display: flex; align-items: center; gap: 12px; }
+    .fm-route-result .fm-route-stat { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; text-align: center; }
+    @keyframes fmFadeSlideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { .fm-route-panel { animation: none; } }
     .fm-route-result .fm-route-stat .val { font-size: 1.1rem; font-weight: 700; color: var(--ink); font-family: var(--font-d); }
     .fm-route-result .fm-route-stat .lbl { font-size: 0.68rem; color: var(--muted); }
 
@@ -236,11 +243,16 @@
             'CCTV': 'camera', 'Security': 'shield-halved', 'Balcony': 'building', 'Gym': 'dumbbell',
             'Swimming Pool': 'person-swimming', 'Housekeeping': 'broom',
           };
+          // Defensive: some existing listings were saved before the
+          // amenity-chip bug fix, with multiple values joined into one
+          // comma-string stored as a single array element. Flatten those
+          // here so they display correctly without needing a re-save.
+          const flatAmenities = listing.have.amenities.flatMap(a => typeof a === 'string' && a.includes(',') ? a.split(',').map(s => s.trim()).filter(Boolean) : [a]);
         %>
         <section class="hv-section" id="amenities">
           <h2 class="hv-h2">Amenities</h2>
           <div class="amenities-grid">
-            <% listing.have.amenities.forEach(function(a){ %>
+            <% flatAmenities.forEach(function(a){ %>
               <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-<%= amenityIcons[a] || 'check' %>"></i></div><span class="amenity-label"><%= a %></span></div>
             <% }) %>
           </div>
@@ -254,7 +266,8 @@
           <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i></div><span class="amenity-label"><%= listing.gender === 'any' ? 'No gender preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span></div>
           <% if (listing.occupation) { %><div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-briefcase"></i></div><span class="amenity-label"><%= listing.occupation %></span></div><% } %>
           <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-utensils"></i></div><span class="amenity-label"><%= listing.food %></span></div>
-          <% (listing.lifestyle || []).forEach(function(l){ %>
+          <% const flatLifestyle = (listing.lifestyle || []).flatMap(l => typeof l === 'string' && l.includes(',') ? l.split(',').map(s => s.trim()).filter(Boolean) : [l]); %>
+          <% flatLifestyle.forEach(function(l){ %>
             <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-circle-check"></i></div><span class="amenity-label"><%= l %></span></div>
           <% }) %>
         </div>
@@ -266,7 +279,7 @@
           <h2 class="hv-h2">Location</h2>
           <p class="fm-map-approx-note">
             <% if (mapData.precise) { %>
-              <i class="fa-solid fa-location-dot" style="color:var(--green)"></i> Exact location shown. Full address, phone, and WhatsApp become available once your connection request is accepted.
+              <i class="fa-solid fa-location-dot" style="color:var(--green)"></i> Exact location shown on the map.
             <% } else { %>
               <i class="fa-solid fa-circle-info"></i> This listing doesn't have a pinned location yet.
             <% } %>
@@ -332,22 +345,21 @@
         </section>
       <% } %>
 
-      <!-- CONTACT INFO (Flatmate-only concept — gated behind acceptance) -->
+      <!-- CONTACT INFO — public to everyone -->
       <section class="hv-section">
         <h2 class="hv-h2">Contact Information</h2>
-        <% if (isOwner || (connection && connection.status === 'accepted')) { %>
-          <div class="fm-private-box">
-            <div class="fm-private-row"><i class="fa-solid fa-phone"></i> <%= listing.contact?.phone || 'Not provided' %></div>
-            <% if (listing.contact?.whatsapp) { %><div class="fm-private-row"><i class="fa-brands fa-whatsapp"></i> <%= listing.contact.whatsapp %></div><% } %>
-            <% if (listing.address) { %><div class="fm-private-row"><i class="fa-solid fa-location-dot"></i> <%= listing.address %></div><% } %>
-            <div class="fm-private-row"><i class="fa-solid fa-comment"></i> Prefers <%= listing.contact?.preferredMethod || 'HostelNode Messages' %></div>
-          </div>
-        <% } else { %>
-          <div class="fm-private-box locked">
-            <i class="fa-solid fa-lock"></i>
-            Private profile information — phone, WhatsApp and exact address — becomes available after your connection request is accepted.
-          </div>
+        <div class="fm-contact-actions">
+          <% if (listing.contact?.phone) { %>
+            <a class="bc-btn-call" href="tel:+91<%= listing.contact.phone %>"><i class="fa-solid fa-phone"></i> <%= listing.contact.phone %></a>
+          <% } %>
+          <% if (listing.contact?.whatsapp) { %>
+            <a class="bc-btn-whatsapp" href="https://wa.me/91<%= listing.contact.whatsapp %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+          <% } %>
+        </div>
+        <% if (listing.address) { %>
+          <div class="fm-private-row" style="margin-top:14px"><i class="fa-solid fa-location-dot"></i> <%= listing.address %></div>
         <% } %>
+        <div class="fm-private-row"><i class="fa-solid fa-comment"></i> Prefers <%= listing.contact?.preferredMethod || 'HostelNode Messages' %></div>
       </section>
 
     </div><!-- /hv-left -->
@@ -396,7 +408,7 @@
         </div>
 
         <div class="bc-trust">
-          <div class="trust-item"><i class="fa-solid fa-lock"></i><span>Private until accepted</span></div>
+          <div class="trust-item"><i class="fa-solid fa-circle-check"></i><span>Verified listing</span></div>
           <div class="trust-item"><i class="fa-solid fa-ban"></i><span>Zero broker fee</span></div>
         </div>
         <div class="bc-emi"><i class="fa-solid fa-calendar-days"></i> <%= listing.views || 0 %> views</div>
@@ -515,7 +527,7 @@ async function loadNearby(category, btn) {
     const res = await fetch('/flatmate/' + LISTING_SLUG + '/nearby?category=' + encodeURIComponent(category));
     const data = await res.json();
     if (!data.success) {
-      box.innerHTML = '<div class="nearby-error">' + (data.error || 'Could not load nearby places.') + '</div>';
+      box.innerHTML = '<div class="fm-nearby-error">' + (data.error || 'Could not load nearby places.') + '</div>';
       return;
     }
     if (!data.places || !data.places.length) {
@@ -530,7 +542,7 @@ async function loadNearby(category, btn) {
         '<div class="nearby-result-dist">' + distText + '</div></div>';
     }).join('');
   } catch (err) {
-    box.innerHTML = '<div class="nearby-error">Network error — please try again.</div>';
+    box.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
   }
 }
 
@@ -581,15 +593,15 @@ async function loadRoute(mode, tabBtn) {
     const res = await fetch('/flatmate/' + LISTING_SLUG + '/route?destLat=' + currentDestination.lat + '&destLng=' + currentDestination.lng + '&mode=' + mode);
     const data = await res.json();
     if (!data.success) {
-      resultEl.innerHTML = '<div class="nearby-error">' + (data.error || 'No route available for this mode.') + '</div>';
+      resultEl.innerHTML = '<div class="fm-nearby-error">' + (data.error || 'No route available for this mode.') + '</div>';
       if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
       return;
     }
     const km = (data.distanceMeters / 1000).toFixed(1);
     const mins = Math.round(data.durationSeconds / 60);
-    resultEl.innerHTML = '<div class="route-stat-row">' +
-      '<div class="route-stat"><span class="val">' + km + ' km</span><span class="lbl">Distance</span></div>' +
-      '<div class="route-stat"><span class="val">' + mins + ' min</span><span class="lbl">Duration</span></div>' +
+    resultEl.innerHTML = '<div class="fm-route-stat-row">' +
+      '<div class="fm-route-stat"><span class="val">' + km + ' km</span><span class="lbl">Distance</span></div>' +
+      '<div class="fm-route-stat"><span class="val">' + mins + ' min</span><span class="lbl">Duration</span></div>' +
       '</div>';
 
     if (flatmateMap && data.polyline && google.maps.geometry) {
@@ -598,7 +610,7 @@ async function loadRoute(mode, tabBtn) {
       routePolyline = new google.maps.Polyline({ path, strokeColor: '#09b850', strokeWeight: 4, map: flatmateMap });
     }
   } catch (err) {
-    resultEl.innerHTML = '<div class="nearby-error">Network error — please try again.</div>';
+    resultEl.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
   }
 }
 

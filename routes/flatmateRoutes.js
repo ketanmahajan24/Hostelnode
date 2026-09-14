@@ -244,7 +244,13 @@ function toInt(v, fallback = null) {
 }
 function asArray(v) {
   if (v === undefined || v === null || v === "") return [];
-  return Array.isArray(v) ? v : [v];
+  const arr = Array.isArray(v) ? v : [v];
+  // Defensive: a stale frontend (or any client bypassing it) could still
+  // submit one comma-joined string instead of a real array — split those
+  // apart rather than saving a single garbled entry.
+  return arr.flatMap((item) =>
+    typeof item === "string" && item.includes(",") ? item.split(",").map((s) => s.trim()).filter(Boolean) : [item]
+  );
 }
 
 // Builds the FlatmateListing field set shared by both draft-save and
@@ -1140,26 +1146,17 @@ router.get("/:slug", async (req, res) => {
       }
     }
 
-    const canSeePrivate = isOwner || (connection && connection.status === "accepted");
-
-    // Map location is now shown to everyone once a listing has one pinned —
-    // matches how most property-listing sites work (the map is public;
-    // it's the exact address text, phone, and WhatsApp that stay gated
-    // behind an accepted connection, since those are what make someone
-    // directly contactable/identifiable, not a pin on a map).
-    const withCoords = await FlatmateListing.findOne({ slug: req.params.slug })
-      .select("+coordinates.lat +coordinates.lng +placeId")
+    // Contact info (phone/WhatsApp/address) and exact map coordinates are
+    // now both shown to everyone — an explicit product decision to make
+    // listings fully public rather than gated behind an accepted
+    // connection. Combined into one query since both are always fetched now.
+    const withPrivate = await FlatmateListing.findOne({ slug: req.params.slug })
+      .select("+contact.phone +contact.whatsapp +address +coordinates.lat +coordinates.lng +placeId")
       .lean();
-    listing.coordinates = withCoords.coordinates;
-    listing.placeId = withCoords.placeId;
-
-    if (canSeePrivate) {
-      const withPrivate = await FlatmateListing.findOne({ slug: req.params.slug })
-        .select("+contact.phone +contact.whatsapp +address")
-        .lean();
-      listing.contact = withPrivate.contact;
-      listing.address = withPrivate.address;
-    }
+    listing.contact = withPrivate.contact;
+    listing.address = withPrivate.address;
+    listing.coordinates = withPrivate.coordinates;
+    listing.placeId = withPrivate.placeId;
 
     // Map data: precise pin whenever the listing has one — public now, not
     // gated by connection status. Falls back to an approximate city-level

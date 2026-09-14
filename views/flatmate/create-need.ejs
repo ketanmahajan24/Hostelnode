@@ -354,27 +354,44 @@ let currentStep = 1;
 let preferredAreas = [];
 const DRAFT_DATA = <%- JSON.stringify(draft || null).replace(/</g, "\\u003c") %>;
 
-/* ── Chip selectors ── */
+/* ── Chip selectors (single + multi) ──
+   FIX: multi-select used to join selected values into ONE comma-string in
+   a single hidden input, which the backend then saved as a single garbled
+   array element. Now emits one hidden input per selected value. */
 document.querySelectorAll('[data-chip-group]').forEach(function(group) {
   const isMulti = group.dataset.multi === 'true';
   const hiddenInput = document.getElementById(group.dataset.chipGroup + 'Input');
+  const inputName = hiddenInput ? hiddenInput.name : null;
+
+  function syncMultiHiddenInputs() {
+    if (!hiddenInput || !inputName) return;
+    const values = [...group.querySelectorAll('.chip.selected')].map(c => c.dataset.value);
+    document.querySelectorAll('input[data-multi-for="' + group.dataset.chipGroup + '"]').forEach(el => el.remove());
+    hiddenInput.value = values[0] || '';
+    for (let i = 1; i < values.length; i++) {
+      const extra = document.createElement('input');
+      extra.type = 'hidden';
+      extra.name = inputName;
+      extra.value = values[i];
+      extra.setAttribute('data-multi-for', group.dataset.chipGroup);
+      hiddenInput.insertAdjacentElement('afterend', extra);
+    }
+  }
+
   group.querySelectorAll('.chip').forEach(function(chip) {
     chip.addEventListener('click', function() {
       if (isMulti) {
         chip.classList.toggle('selected');
+        syncMultiHiddenInputs();
       } else {
         group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
         chip.classList.add('selected');
-      }
-      if (hiddenInput) {
-        if (isMulti) {
-          hiddenInput.value = [...group.querySelectorAll('.chip.selected')].map(c => c.dataset.value).join(',');
-        } else {
-          hiddenInput.value = chip.dataset.value;
-        }
+        if (hiddenInput) hiddenInput.value = chip.dataset.value;
       }
     });
   });
+
+  group._syncMultiHiddenInputs = syncMultiHiddenInputs;
 });
 
 /* ── Preferred areas tag input ── */
@@ -572,12 +589,14 @@ function setChipSelected(groupName, value) {
 }
 function setMultiChipSelected(groupName, values) {
   const group = document.querySelector('[data-chip-group="' + groupName + '"]');
-  const hidden = document.getElementById(groupName + 'Input');
   if (!group || !Array.isArray(values) || !values.length) return;
+  // Defensive: split any legacy comma-joined single-element entries from
+  // before this fix, so editing an old listing shows the real values.
+  const flatValues = values.flatMap(v => typeof v === 'string' && v.includes(',') ? v.split(',').map(s => s.trim()) : [v]);
   group.querySelectorAll('.chip').forEach(function (chip) {
-    if (values.includes(chip.dataset.value)) chip.classList.add('selected');
+    if (flatValues.includes(chip.dataset.value)) chip.classList.add('selected');
   });
-  if (hidden) hidden.value = values.join(',');
+  if (group._syncMultiHiddenInputs) group._syncMultiHiddenInputs();
 }
 function setFieldValue(name, value) {
   if (value === undefined || value === null || value === '') return;

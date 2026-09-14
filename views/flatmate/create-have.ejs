@@ -471,28 +471,52 @@ let currentStep = 1;
 let selectedFiles = [];
 const DRAFT_DATA = <%- JSON.stringify(draft || null).replace(/</g, "\\u003c") %>;
 
-/* ── Chip selectors (single + multi) ── */
+/* ── Chip selectors (single + multi) ──
+   FIX: multi-select used to join selected values into ONE comma-string in
+   a single hidden input (e.g. "WiFi,AC,Washing Machine"). Since only one
+   input existed, the server received a single string, not an array — it
+   got saved as ONE array element containing the whole joined string,
+   which is why amenity labels showed up merged together with no icon
+   match. Now emits one hidden input per selected value, all sharing the
+   same name, which is what the backend's array parsing actually expects. */
 document.querySelectorAll('[data-chip-group]').forEach(function(group) {
   const isMulti = group.dataset.multi === 'true';
   const hiddenInput = document.getElementById(group.dataset.chipGroup + 'Input');
+  const inputName = hiddenInput ? hiddenInput.name : null;
+
+  function syncMultiHiddenInputs() {
+    if (!hiddenInput || !inputName) return;
+    const values = [...group.querySelectorAll('.chip.selected')].map(c => c.dataset.value);
+    // Remove any previously-created extra hidden inputs for this field.
+    document.querySelectorAll('input[data-multi-for="' + group.dataset.chipGroup + '"]').forEach(el => el.remove());
+    // The original static input carries the first value (or empty); every
+    // additional selected value gets its own sibling hidden input.
+    hiddenInput.value = values[0] || '';
+    for (let i = 1; i < values.length; i++) {
+      const extra = document.createElement('input');
+      extra.type = 'hidden';
+      extra.name = inputName;
+      extra.value = values[i];
+      extra.setAttribute('data-multi-for', group.dataset.chipGroup);
+      hiddenInput.insertAdjacentElement('afterend', extra);
+    }
+  }
+
   group.querySelectorAll('.chip').forEach(function(chip) {
     chip.addEventListener('click', function() {
       if (isMulti) {
         chip.classList.toggle('selected');
+        syncMultiHiddenInputs();
       } else {
         group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
         chip.classList.add('selected');
-      }
-      if (hiddenInput) {
-        if (isMulti) {
-          const values = [...group.querySelectorAll('.chip.selected')].map(c => c.dataset.value);
-          hiddenInput.value = values.join(',');
-        } else {
-          hiddenInput.value = chip.dataset.value;
-        }
+        if (hiddenInput) hiddenInput.value = chip.dataset.value;
       }
     });
   });
+
+  // Expose for hydrateForm() to call after pre-selecting chips on edit.
+  group._syncMultiHiddenInputs = syncMultiHiddenInputs;
 });
 
 function toggleAvailDate() {
@@ -689,12 +713,16 @@ function setChipSelected(groupName, value) {
 }
 function setMultiChipSelected(groupName, values) {
   const group = document.querySelector('[data-chip-group="' + groupName + '"]');
-  const hidden = document.getElementById(groupName + 'Input');
   if (!group || !Array.isArray(values) || !values.length) return;
+  // Defensive: older listings may have been saved with the pre-fix bug,
+  // where multiple selections got joined into one comma-string stored as
+  // a single array element (e.g. ["WiFi,AC,Washing Machine"]). Split any
+  // such entries apart so editing an old listing shows the real values.
+  const flatValues = values.flatMap(v => typeof v === 'string' && v.includes(',') ? v.split(',').map(s => s.trim()) : [v]);
   group.querySelectorAll('.chip').forEach(function (chip) {
-    if (values.includes(chip.dataset.value)) chip.classList.add('selected');
+    if (flatValues.includes(chip.dataset.value)) chip.classList.add('selected');
   });
-  if (hidden) hidden.value = values.join(',');
+  if (group._syncMultiHiddenInputs) group._syncMultiHiddenInputs();
 }
 function setFieldValue(name, value) {
   if (value === undefined || value === null || value === '') return;
