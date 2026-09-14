@@ -60,6 +60,33 @@
     .listing-price .val { font-family: var(--font-d); font-size: 1.4rem; font-weight: 700; color: var(--ink); }
     .listing-price .label { font-size: 11.5px; color: var(--muted-light); }
 
+    /* ══ TWO-COLUMN LAYOUT WITH STICKY SIDEBAR ══ */
+    .detail-container { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+    .detail-left { min-width: 0; }
+    .detail-right { position: sticky; top: 88px; display: flex; flex-direction: column; gap: 14px; }
+
+    .booking-card, .host-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 18px; box-shadow: var(--shadow-sm);
+    }
+    .bc-price-row { margin-bottom: 12px; }
+    .bc-from { font-size: 11px; color: var(--muted-light); text-transform: uppercase; letter-spacing: .3px; font-weight: 700; }
+    .bc-price { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-top: 2px; }
+    .bc-price span { font-size: 12px; font-weight: 500; color: var(--muted); }
+    .booking-card .cta-bar { padding: 0; margin: 0; border: none; background: none; }
+    .bc-trust { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .bc-trust .trust-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+    .bc-trust .trust-item i { color: var(--green); width: 14px; }
+
+    .host-title { font-size: 11px; font-weight: 700; color: var(--muted-light); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 10px; }
+    .host-card .poster-info { display: flex; align-items: center; gap: 10px; }
+    .host-card .verified-badge { margin-top: 12px; display: inline-flex; }
+
+    @media (max-width: 860px) {
+      .detail-container { grid-template-columns: 1fr; }
+      .detail-right { position: static; }
+    }
+
     .section { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
     .section h3 { font-family: var(--font-d); font-size: 1rem; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
     .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
@@ -132,8 +159,9 @@
     .poster-meta { font-size: 11.5px; color: var(--muted); }
     .verified-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--green-light); color: var(--green-dark); font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
 
-    /* sticky CTA bar (mobile) + inline CTA (desktop) */
-    .cta-bar { position: sticky; bottom: 0; background: #fff; border-top: 1px solid var(--border); padding: 14px 20px; margin: 0 -20px; }
+    /* CTA bar — now always inside the sticky sidebar's booking-card, not a
+       standalone sticky-bottom bar (see .booking-card .cta-bar override above) */
+    .cta-bar { background: none; }
     .cta-btn { width: 100%; padding: 14px; border-radius: 999px; font-size: 14.5px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
     .cta-btn.connect { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; box-shadow: var(--shadow-green); }
     .cta-btn.pending { background: #fffbeb; color: #92400e; border: 1.5px solid #fde68a; cursor: default; }
@@ -180,6 +208,9 @@
     <%= listing.bhk %> BHK <%= listing.roomType %>, <%= listing.area %>
   </div>
 
+  <div class="detail-container">
+  <div class="detail-left">
+
   <!-- Gallery -->
   <div class="gallery">
     <div class="gallery-main">
@@ -213,15 +244,6 @@
     <div>
       <h1><%= listing.bhk %> BHK &middot; <%= listing.roomType %></h1>
       <div class="listing-loc"><i class="fa-solid fa-location-dot"></i> <%= listing.area %>, <%= listing.city %></div>
-    </div>
-    <div class="listing-price">
-      <% if (listing.type === 'HAVE_FLAT') { %>
-        <div class="val">₹<%= (listing.have?.rentMonthly || 0).toLocaleString('en-IN') %></div>
-        <div class="label">per month</div>
-      <% } else { %>
-        <div class="val">₹<%= (listing.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (listing.need?.budgetMax || 0).toLocaleString('en-IN') %></div>
-        <div class="label">budget / month</div>
-      <% } %>
     </div>
   </div>
 
@@ -400,50 +422,77 @@
     <% } %>
   </div>
 
-  <!-- Posted by -->
-  <div class="section poster-row">
-    <div class="poster-info">
-      <div class="poster-avatar"><%= (listing.student?.firstName || 'H')[0] %></div>
-      <div>
-        <div class="poster-name">Posted by <%= listing.student?.firstName || 'HostelNode User' %></div>
-        <div class="poster-meta">
-          <%= new Date(listing.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %>
-          &middot; <%= listing.views || 0 %> views
-        </div>
+  </div><!-- /detail-left -->
+
+  <!-- ══ STICKY RIGHT SIDEBAR ══ -->
+  <div class="detail-right">
+    <div class="booking-card">
+      <div class="bc-price-row">
+        <% if (listing.type === 'HAVE_FLAT') { %>
+          <div><div class="bc-from">Rent</div><div class="bc-price">₹<%= (listing.have?.rentMonthly || 0).toLocaleString('en-IN') %><span>/month</span></div></div>
+        <% } else { %>
+          <div><div class="bc-from">Budget</div><div class="bc-price">₹<%= (listing.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (listing.need?.budgetMax || 0).toLocaleString('en-IN') %><span>/mo</span></div></div>
+        <% } %>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-bar">
+        <% if (cta === 'manage') { %>
+          <a class="cta-btn muted" href="/flatmate/my-listings"><i class="fa-solid fa-gear"></i> This is your listing — Manage it</a>
+          <div class="cta-sub">Status: <%= listing.status %></div>
+
+        <% } else if (cta === 'closed') { %>
+          <button class="cta-btn muted" disabled><i class="fa-solid fa-lock"></i> This listing is no longer available</button>
+
+        <% } else if (cta === 'blocked') { %>
+          <button class="cta-btn muted" disabled>Unavailable</button>
+
+        <% } else if (cta === 'pending_sent') { %>
+          <button class="cta-btn pending" disabled><i class="fa-solid fa-clock"></i> Request Pending</button>
+          <div class="cta-sub"><button onclick="cancelRequest('<%= connection._id %>')">Cancel Request</button></div>
+
+        <% } else if (cta === 'connected') { %>
+          <% if (conversationId) { %>
+            <a class="cta-btn connected" href="/messages/<%= conversationId %>"><i class="fa-solid fa-comment"></i> Chat Now</a>
+          <% } else { %>
+            <button class="cta-btn connected" disabled><i class="fa-solid fa-circle-check"></i> Connected</button>
+            <div class="cta-sub">Visit Messages to start chatting</div>
+          <% } %>
+
+        <% } else if (!isOwner) { %>
+          <% /* cta === 'connect', logged in or not */ %>
+          <% if (typeof student !== 'undefined' && student) { %>
+            <button class="cta-btn connect" id="connectBtn" onclick="openConnectModal()"><i class="fa-solid fa-people-arrows"></i> Request to Connect</button>
+          <% } else { %>
+            <a class="cta-btn connect" href="/student/login?next=<%= encodeURIComponent('/flatmate/' + listing.slug) %>"><i class="fa-solid fa-people-arrows"></i> Request to Connect</a>
+          <% } %>
+        <% } %>
+      </div>
+
+      <div class="bc-trust">
+        <div class="trust-item"><i class="fa-solid fa-lock"></i><span>Private until accepted</span></div>
+        <div class="trust-item"><i class="fa-solid fa-ban"></i><span>Zero broker fee</span></div>
       </div>
     </div>
-    <% if (listing.isVerified) { %><span class="verified-badge"><i class="fa-solid fa-circle-check"></i> Verified</span><% } %>
-  </div>
 
-  <!-- CTA -->
-  <div class="cta-bar">
-    <% if (cta === 'manage') { %>
-      <a class="cta-btn muted" href="/flatmate/my-listings"><i class="fa-solid fa-gear"></i> This is your listing — Manage it</a>
-      <div class="cta-sub">Status: <%= listing.status %></div>
+    <!-- Posted by -->
+    <div class="host-card">
+      <h4 class="host-title">Posted by</h4>
+      <div class="poster-info">
+        <div class="poster-avatar"><%= (listing.student?.firstName || 'H')[0] %></div>
+        <div>
+          <div class="poster-name"><%= listing.student?.firstName || 'HostelNode User' %></div>
+          <div class="poster-meta">
+            <%= new Date(listing.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %>
+            &middot; <%= listing.views || 0 %> views
+          </div>
+        </div>
+      </div>
+      <% if (listing.isVerified) { %><span class="verified-badge"><i class="fa-solid fa-circle-check"></i> Verified</span><% } %>
+    </div>
+  </div><!-- /detail-right -->
 
-    <% } else if (cta === 'closed') { %>
-      <button class="cta-btn muted" disabled><i class="fa-solid fa-lock"></i> This listing is no longer available</button>
-
-    <% } else if (cta === 'blocked') { %>
-      <button class="cta-btn muted" disabled>Unavailable</button>
-
-    <% } else if (cta === 'pending_sent') { %>
-      <button class="cta-btn pending" disabled><i class="fa-solid fa-clock"></i> Request Pending</button>
-      <div class="cta-sub"><button onclick="cancelRequest('<%= connection._id %>')">Cancel Request</button></div>
-
-    <% } else if (cta === 'connected') { %>
-      <button class="cta-btn connected" disabled><i class="fa-solid fa-circle-check"></i> Connected</button>
-      <div class="cta-sub">Messages &amp; chat launching soon</div>
-
-    <% } else if (!isOwner) { %>
-      <% /* cta === 'connect', logged in or not */ %>
-      <% if (typeof student !== 'undefined' && student) { %>
-        <button class="cta-btn connect" id="connectBtn" onclick="openConnectModal()"><i class="fa-solid fa-people-arrows"></i> Request to Connect</button>
-      <% } else { %>
-        <a class="cta-btn connect" href="/student/login?next=<%= encodeURIComponent('/flatmate/' + listing.slug) %>"><i class="fa-solid fa-people-arrows"></i> Request to Connect</a>
-      <% } %>
-    <% } %>
-  </div>
+  </div><!-- /detail-container -->
 
   <!-- Request to Connect modal -->
   <div class="rc-overlay" id="rcOverlay" onclick="if(event.target===this) closeConnectModal()">
