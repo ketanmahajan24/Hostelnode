@@ -270,11 +270,14 @@
       </div>
     <!-- Search Card -->
     <div class="search-card" id="search-card">
-      <div class="search-tabs">
-        <button class="search-tab active" onclick="switchTab(this)">All</button>
-        <button class="search-tab" onclick="switchTab(this)">Hostel</button>
-        <button class="search-tab" onclick="switchTab(this)">PG</button>
-        <button class="search-tab" onclick="switchTab(this)">Flat share</button>
+      <div class="hn-main-toggle" id="mainToggle" role="tablist" aria-label="Search PG/Hostel or Flatmate">
+        <div class="hn-main-toggle-slider" id="mainToggleSlider"></div>
+        <button class="hn-main-toggle-opt active" role="tab" aria-selected="true" onclick="setMainToggle('pg', this)">
+          <i class="fa-solid fa-house" aria-hidden="true"></i> PG &amp; Hostel
+        </button>
+        <button class="hn-main-toggle-opt" role="tab" aria-selected="false" onclick="setMainToggle('flatmate', this)">
+          <i class="fa-solid fa-people-group" aria-hidden="true"></i> Flatmate
+        </button>
       </div>
 
       <form action="/findHostels/results" method="GET" id="heroSearchForm">
@@ -795,11 +798,24 @@ document.addEventListener('click', function () {
 });
 
 /* ===== SEARCH TABS ===== */
-function switchTab(el) {
-  document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  const map = { 'All':'', 'Hostel':'hostel', 'PG':'pg', 'Flat share':'flat' };
-  document.getElementById('propTypeInput').value = map[el.textContent.trim()] || '';
+function setMainToggle(target, btn) {
+  document.querySelectorAll('.hn-main-toggle-opt').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+
+  const slider = document.getElementById('mainToggleSlider');
+  slider.style.transform = target === 'flatmate' ? 'translateX(100%)' : 'translateX(0)';
+
+  if (target === 'flatmate') {
+    // Let the slide animation play briefly before navigating, so the
+    // interaction feels intentional rather than an instant page-jump.
+    setTimeout(function () { window.location.href = '/flatmate'; }, 200);
+  }
+  // 'pg' keeps the user right here — this page's existing search/results
+  // flow is completely unchanged.
 }
 
 /* ===== QUICK CHIPS ===== */

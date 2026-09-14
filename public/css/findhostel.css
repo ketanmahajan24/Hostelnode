@@ -294,6 +294,32 @@ button { font-family: var(--font-b); cursor: pointer; }
 }
 .search-tab.active { background: var(--green); color: #fff; border-color: var(--green); }
 .search-tab:not(.active):hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
+
+/* ── Main search-mode toggle: PG & Hostel / Flatmate — animated segmented
+   control, replaces the old 4-way All/Hostel/PG/Flat-share tabs above. ── */
+.hn-main-toggle {
+  position: relative; display: flex; background: var(--bg2); border-radius: 999px;
+  padding: 4px; max-width: 360px; margin: 0 auto 18px; isolation: isolate;
+}
+.hn-main-toggle-slider {
+  position: absolute; top: 4px; left: 4px; width: calc(50% - 4px); height: calc(100% - 8px);
+  background: linear-gradient(135deg, var(--green), #00c264); border-radius: 999px;
+  transition: transform .32s cubic-bezier(.4,0,.2,1); z-index: 0;
+  box-shadow: 0 4px 14px rgba(9,184,80,.32);
+}
+.hn-main-toggle-opt {
+  position: relative; z-index: 1; flex: 1; padding: 10px 14px; border: none; background: transparent;
+  font-family: var(--font-b); font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer;
+  border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: color .2s ease;
+}
+.hn-main-toggle-opt.active { color: #fff; }
+.hn-main-toggle-opt:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .hn-main-toggle { max-width: 100%; }
+  .hn-main-toggle-opt { font-size: 12.5px; padding: 9px 8px; gap: 5px; }
+}
+
 .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .search-field {
   flex: 1; min-width: 160px;

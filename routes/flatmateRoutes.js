@@ -38,6 +38,7 @@ const crypto   = require("crypto");
 const fs       = require("fs");
 
 const FlatmateListing = require("../models/FlatmateListing");
+const Student = require("../models/studentSchema");
 const FlatmateConnection = require("../models/FlatmateConnection");
 const Conversation = require("../models/Conversation");
 const Block = require("../models/Block");
@@ -202,7 +203,7 @@ function asArray(v) {
 // Builds the FlatmateListing field set shared by both draft-save and
 // publish, from a submitted form body. Does NOT touch `status` or
 // `images` — callers decide those explicitly.
-function buildListingFieldsFromBody(body, type) {
+function buildListingFieldsFromBody(body, type, verifiedPhone) {
   const isHave = type === "HAVE_FLAT";
 
   const fields = {
@@ -224,9 +225,12 @@ function buildListingFieldsFromBody(body, type) {
       college: (body.college || "").trim() || null,
     },
     contact: {
-      phone: (body.phone || "").trim(),
+      // NEVER trust a client-submitted primary phone number — it always
+      // comes from the authenticated student's verified account, looked
+      // up server-side, regardless of anything the form/hidden field sent.
+      phone: verifiedPhone,
       whatsapp: body.sameAsPhone === "on" || body.sameAsPhone === "true"
-        ? (body.phone || "").trim()
+        ? verifiedPhone
         : (body.whatsapp || "").trim() || null,
       preferredMethod: body.preferredMethod || "HostelNode Messages",
     },
@@ -336,7 +340,6 @@ function toCardViewModel(doc, requestInfo, isSaved) {
 // One query for all cards' saved state, not one per card.
 async function buildSavedSet(viewerId, listingDocs) {
   if (!viewerId) return new Set();
-  const Student = require("../models/studentSchema");
   const student = await Student.findById(viewerId).select("savedProperties").lean();
   if (!student) return new Set();
   const ids = new Set(
@@ -525,7 +528,10 @@ router.get("/create/have", requireStudent, async (req, res) => {
         _id: req.query.draft, student: req.student.id, type: "HAVE_FLAT",
       }).select("+contact.phone +contact.whatsapp +address").lean();
     }
-    res.render("flatmate/create-have", { draft, cities: CITIES });
+    // Always a fresh DB lookup — never trust the JWT payload for something
+    // that could have changed since the token was issued.
+    const me = await Student.findById(req.student.id).select("phone");
+    res.render("flatmate/create-have", { draft, cities: CITIES, verifiedPhone: me?.phone || "" });
   } catch (err) {
     console.error("Flatmate create/have error:", err);
     res.status(500).send("Something went wrong loading the form. Please try again.");
@@ -543,7 +549,8 @@ router.get("/create/need", requireStudent, async (req, res) => {
         _id: req.query.draft, student: req.student.id, type: "NEED_FLAT",
       }).select("+contact.phone +contact.whatsapp +address").lean();
     }
-    res.render("flatmate/create-need", { draft, cities: CITIES });
+    const me = await Student.findById(req.student.id).select("phone");
+    res.render("flatmate/create-need", { draft, cities: CITIES, verifiedPhone: me?.phone || "" });
   } catch (err) {
     console.error("Flatmate create/need error:", err);
     res.status(500).send("Something went wrong loading the form. Please try again.");
@@ -559,7 +566,8 @@ router.get("/create/need", requireStudent, async (req, res) => {
 router.post("/create/draft", requireStudent, handleFlatmateUploadError(flatmateUpload.array("photos", 15)), async (req, res) => {
   try {
     const type = req.body.type === "have" ? "HAVE_FLAT" : "NEED_FLAT";
-    const fields = buildListingFieldsFromBody(req.body, type);
+    const me = await Student.findById(req.student.id).select("phone");
+    const fields = buildListingFieldsFromBody(req.body, type, me?.phone || "");
 
     let listing;
     if (req.body.draftId) {
@@ -595,7 +603,8 @@ router.post("/create/draft", requireStudent, handleFlatmateUploadError(flatmateU
 router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmateUpload.array("photos", 15)), async (req, res) => {
   try {
     const type = req.body.type === "have" ? "HAVE_FLAT" : "NEED_FLAT";
-    const fields = buildListingFieldsFromBody(req.body, type);
+    const me = await Student.findById(req.student.id).select("phone");
+    const fields = buildListingFieldsFromBody(req.body, type, me?.phone || "");
 
     let listing;
     if (req.body.draftId) {

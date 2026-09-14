@@ -64,6 +64,9 @@
     .radio-opt input { accent-color: var(--green); width: 16px; height: 16px; }
 
     .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-mid); margin-top: 6px; }
+    .verified-phone-box { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--green-light); border: 1.5px solid var(--green-border); border-radius: 12px; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+    .verified-phone-box i { color: var(--green); }
+    .verified-tag { margin-left: auto; background: var(--green); color: #fff; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
 
     /* Photo upload */
     .photo-drop {
@@ -375,15 +378,20 @@
 
       <div class="row-2">
         <div class="field">
-          <label>Phone <span style="color:#e53e3e">*</span></label>
-          <input type="text" name="phone" id="phoneInput" placeholder="10-digit mobile number" maxlength="10" required>
+          <label>Verified Mobile</label>
+          <div class="verified-phone-box">
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+            <span>+91 <%= verifiedPhone %></span>
+            <span class="verified-tag">Verified</span>
+          </div>
+          <div class="hint">This is your account's verified number and can't be changed here.</div>
         </div>
         <div class="field">
           <label>WhatsApp</label>
-          <input type="text" name="whatsapp" id="whatsappInput" placeholder="10-digit WhatsApp number" maxlength="10">
+          <input type="text" name="whatsapp" id="whatsappInput" placeholder="10-digit WhatsApp number" maxlength="10" disabled>
           <div class="checkbox-row">
             <input type="checkbox" id="sameAsPhone" name="sameAsPhone" checked onchange="toggleSamePhone()">
-            <label for="sameAsPhone" style="margin:0;font-weight:500">Same as phone</label>
+            <label for="sameAsPhone" style="margin:0;font-weight:500">Same as verified mobile</label>
           </div>
         </div>
       </div>
@@ -510,10 +518,6 @@ function validateStep(n) {
   }
   if (n === 3) {
     if (!document.querySelector('[name="rentMonthly"]').value) errors.push('Please enter the monthly rent.');
-  }
-  if (n === 6) {
-    const phone = document.getElementById('phoneInput').value.trim();
-    if (!/^[6-9]\d{9}$/.test(phone)) errors.push('Please enter a valid 10-digit phone number.');
   }
   return errors;
 }
@@ -707,7 +711,8 @@ function hydrateForm(d) {
   setFieldValue('occupantsType', d.have && d.have.occupantsType);
   setFieldValue('company', d.about && d.about.company);
   setFieldValue('college', d.about && d.about.college);
-  setFieldValue('phone', d.contact && d.contact.phone);
+  // phone is no longer a form field — always the account's verified number,
+  // rendered server-side and never submitted/edited here
 
   if (d.have) {
     if (!d.have.depositNegotiable) setFieldValue('depositAmount', d.have.depositAmount);
