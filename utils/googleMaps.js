@@ -176,4 +176,31 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
   return Math.round(2 * R * Math.asin(Math.sqrt(a)));
 }
 
-module.exports = { searchNearby, computeRoute, reverseGeocode, NEARBY_CATEGORY_TYPES, haversineMeters };
+/* computeNearbyCache(lat, lng)
+   Called once per listing (at publish/edit time, or lazily on first view
+   for older listings that predate this cache), not on every page view.
+   One Places API call per category — 10 total, done once — then the
+   single closest result per category is stored on the listing document
+   itself. This is what makes "Nearby Highlights" appear automatically
+   with zero clicks and zero per-view API cost. */
+async function computeNearbyCache(lat, lng) {
+  const categories = Object.keys(NEARBY_CATEGORY_TYPES);
+  const cache = {};
+
+  for (const category of categories) {
+    try {
+      const result = await searchNearby(lat, lng, category);
+      if (result.success && result.places && result.places.length) {
+        const top = result.places[0]; // already sorted by distance in searchNearby
+        cache[category] = { name: top.name, distanceMeters: top.distanceMeters, address: top.address, lat: top.lat, lng: top.lng };
+      }
+    } catch (err) {
+      // One category failing shouldn't stop the others from being cached.
+      console.error(`computeNearbyCache: ${category} failed:`, err.message);
+    }
+  }
+
+  return cache;
+}
+
+module.exports = { searchNearby, computeRoute, reverseGeocode, computeNearbyCache, NEARBY_CATEGORY_TYPES, haversineMeters };

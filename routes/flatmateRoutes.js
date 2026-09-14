@@ -216,6 +216,19 @@ function asArray(v) {
 function buildListingFieldsFromBody(body, type, verifiedPhone) {
   const isHave = type === "HAVE_FLAT";
 
+  // Only HAVE_FLAT has a single property to pin (NEED_FLAT is about
+  // preferred areas, not one address) — validate ranges so a malformed
+  // or malicious submission can't write garbage coordinates.
+  let coordinates = { lat: null, lng: null };
+  let placeId = null;
+  if (isHave) {
+    const lat = parseFloat(body.lat), lng = parseFloat(body.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      coordinates = { lat, lng };
+      placeId = (body.placeId || "").trim() || null;
+    }
+  }
+
   const fields = {
     type,
     city: (body.city || "").trim(),
@@ -223,6 +236,8 @@ function buildListingFieldsFromBody(body, type, verifiedPhone) {
     landmark: (body.landmark || "").trim() || null,
     nearCollege: (body.nearCollege || "").trim() || null,
     address: (body.address || "").trim() || null,
+    coordinates,
+    placeId,
     bhk: toInt(isHave ? body.bhk : body.bhk, null),
     roomType: isHave ? body.roomType : body.roomPreference,
     gender: isHave ? (body.preferredGender === "No Preference" ? "any" : (body.preferredGender || "any").toLowerCase())
@@ -617,9 +632,13 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
     const fields = buildListingFieldsFromBody(req.body, type, me?.phone || "");
 
     let listing;
+    let coordsBeforeSave = { lat: null, lng: null };
+    let cacheAgeBeforeSave = null;
     if (req.body.draftId) {
       listing = await FlatmateListing.findOne({ _id: req.body.draftId, student: req.student.id });
       if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
+      coordsBeforeSave = { lat: listing.coordinates?.lat ?? null, lng: listing.coordinates?.lng ?? null };
+      cacheAgeBeforeSave = listing.nearbyCacheAt;
       Object.assign(listing, fields);
     } else {
       listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT" });
@@ -655,6 +674,30 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
     listing.publishedAt = listing.publishedAt || new Date();
     if (!listing.slug) listing.generateSlug();
     await listing.save();
+
+    // Auto-sync nearby places the moment a pin exists or moves — this is
+    // what makes "Nearby Highlights" appear for every viewer with zero
+    // clicks. Only recompute when the pin is new/changed or never cached
+    // before — not on every republish of an unrelated field, which would
+    // waste 10 Places API calls for no reason. Fire-and-forget so publish
+    // itself is never slowed down waiting on Google.
+    const pinChanged = listing.coordinates?.lat !== coordsBeforeSave.lat || listing.coordinates?.lng !== coordsBeforeSave.lng;
+    const hasValidPin = listing.coordinates?.lat != null && listing.coordinates?.lng != null;
+    if (hasValidPin && (pinChanged || !cacheAgeBeforeSave)) {
+      setImmediate(async () => {
+        try {
+          const { computeNearbyCache } = require("../utils/googleMaps");
+          const cache = await computeNearbyCache(listing.coordinates.lat, listing.coordinates.lng);
+          await FlatmateListing.updateOne(
+            { _id: listing._id },
+            { $set: { nearbyCache: cache, nearbyCacheAt: new Date() } }
+          );
+          console.log(`✅ Nearby places cached for listing ${listing._id}`);
+        } catch (e) {
+          console.error("Nearby cache computation failed (non-critical):", e.message);
+        }
+      });
+    }
 
     res.json({ success: true, redirect: `/flatmate/create-success/${listing._id}` });
   } catch (err) {

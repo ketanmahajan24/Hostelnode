@@ -80,6 +80,16 @@
     .map-unavailable button { background: var(--ink); color: #fff; border: none; padding: 8px 18px; border-radius: 999px; font-size: 12.5px; font-weight: 700; margin-top: 4px; }
 
     .nearby-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+    .nearby-highlights-label { font-size: 11px; font-weight: 700; color: var(--muted-light); text-transform: uppercase; letter-spacing: .3px; margin-top: 16px; margin-bottom: 8px; }
+    .nearby-highlights { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+    .nearby-highlight-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg2); border-radius: 12px; cursor: pointer; transition: background .15s; }
+    .nearby-highlight-chip:hover { background: var(--green-light); }
+    .nhc-icon { font-size: 18px; flex-shrink: 0; }
+    .nhc-text { min-width: 0; }
+    .nhc-name { font-size: 12.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nhc-dist { font-size: 11px; color: var(--green-dark); font-weight: 600; margin-top: 1px; }
+    .nearby-syncing { font-size: 12.5px; color: var(--muted); margin-top: 14px; display: flex; align-items: center; gap: 6px; }
     .nearby-cat-btn { background: var(--bg2); border: 1.5px solid transparent; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); cursor: pointer; transition: all .15s; }
     .nearby-cat-btn:hover { border-color: var(--green-border); }
     .nearby-cat-btn.active { background: var(--green); color: #fff; }
@@ -287,7 +297,38 @@
     </div>
     <div id="flatmateMap" class="flatmate-map"></div>
 
-    <!-- Nearby categories -->
+    <!-- Nearby Highlights — auto-computed once when the listing was pinned,
+         shown here with zero clicks. Clicking any of these opens the route
+         panel immediately (no extra API call needed, since lat/lng is
+         already cached). -->
+    <% if (listing.nearbyCache && Object.keys(listing.nearbyCache).length) { %>
+      <div class="nearby-highlights-label">Nearby, at a glance</div>
+      <div class="nearby-highlights">
+        <%
+          const categoryMeta = {
+            metro: ['🚇','Metro'], hospital: ['🏥','Hospital'], college: ['🎓','College'],
+            grocery: ['🛒','Grocery'], food: ['🍽️','Food'], pharmacy: ['💊','Pharmacy'],
+            gym: ['🏋️','Gym'], atm: ['🏧','ATM'], movies: ['🎬','Movies'], clubs: ['🌳','Clubs'],
+          };
+        %>
+        <% Object.keys(categoryMeta).forEach(function(cat) { %>
+          <% const hit = listing.nearbyCache[cat]; %>
+          <% if (hit) { %>
+            <div class="nearby-highlight-chip" onclick='openRoutePanel(<%- JSON.stringify(Object.assign({}, hit, {category: cat})).replace(/</g,"\\u003c") %>)'>
+              <span class="nhc-icon"><%= categoryMeta[cat][0] %></span>
+              <div class="nhc-text">
+                <div class="nhc-name"><%= categoryMeta[cat][1] %> &middot; <%= hit.name %></div>
+                <div class="nhc-dist"><%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' m' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away</div>
+              </div>
+            </div>
+          <% } %>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="nearby-syncing"><i class="fa-solid fa-circle-info"></i> Nearby places aren't available for this listing yet.</div>
+    <% } %>
+
+    <!-- Nearby categories (explore the full list for any category) -->
     <div class="nearby-categories">
       <button class="nearby-cat-btn" data-category="metro" onclick="loadNearby('metro', this)">🚇 Metro</button>
       <button class="nearby-cat-btn" data-category="hospital" onclick="loadNearby('hospital', this)">🏥 Hospital</button>

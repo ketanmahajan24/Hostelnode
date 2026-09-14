@@ -70,6 +70,17 @@ const flatmateListingSchema = new mongoose.Schema({
   },
   placeId: { type: String, default: null, select: false }, // Google Place ID, same privacy tier as coordinates
 
+  // Auto-computed the moment coordinates are saved (publish/edit) — one
+  // Places API call per category, done once, cached here so every viewer
+  // sees "Nearby Highlights" instantly with zero clicks and zero extra
+  // API calls. Clicking a category on the detail page still hits Google
+  // live for the FULL list; this cache only holds the single closest
+  // result per category, which is what "automatic sync" actually needs.
+  // NOT select:false — this is public info (nearby amenities), same as
+  // the /nearby endpoint's own responses.
+  nearbyCache: { type: mongoose.Schema.Types.Mixed, default: null },
+  nearbyCacheAt: { type: Date, default: null },
+
   /* ── SHARED DISPLAY/FILTER FIELDS (both types) ── */
   bhk: { type: Number, required: true, min: 1, max: 4 }, // 4 = "4 BHK+"
   roomType: {
