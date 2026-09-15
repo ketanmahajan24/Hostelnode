@@ -39,6 +39,18 @@
     .wiz-step { display: none; }
     .wiz-step.active { display: block; animation: wizFade .3s ease; }
     @keyframes wizFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .wiz-step.active { animation: none; }
+      .wiz-card, .chip, .wiz-btn, .photo-drop { transition: none !important; }
+    }
+    .wiz-card { transition: box-shadow .2s ease; }
+    .wiz-card:hover { box-shadow: var(--shadow-md); }
+    .chip:active { transform: scale(.96); }
+    .chip.selected { animation: chipPop .18s ease; }
+    @keyframes chipPop { 0% { transform: scale(.94); } 100% { transform: scale(1); } }
+    .wiz-btn { transition: background .18s, transform .12s, box-shadow .18s; }
+    .wiz-btn:active:not(:disabled) { transform: scale(.97); }
+    .wiz-btn.primary:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(9,184,80,.35); transform: translateY(-1px); }
     .wiz-step h2 { font-family: var(--font-d); font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
     .wiz-step .step-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 20px; }
 
