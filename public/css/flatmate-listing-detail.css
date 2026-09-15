@@ -1,0 +1,120 @@
+/* ============================================================
+   flatmate-listing-detail.css — HostelNode
+   Dedicated stylesheet for the Flatmate listing detail page.
+
+   Visual system reused from public/css/hostel-view1.css (same
+   green brand tokens, same hv-container/hv-section/hv-h2/
+   amenities-grid/booking-card/host-card/progress-nav classes are
+   linked from that file, not duplicated here) — this file only
+   holds the Flatmate-specific additions that don't exist on the
+   PG/Hostel page at all: the gallery, nearby-places explorer,
+   route panel, and the Request-to-Connect modal.
+   All classes below are fm-* prefixed so nothing here can bleed
+   into or override PG/Hostel styling.
+============================================================ */
+
+    /* ══ Flatmate-specific additions only — nothing here duplicates a class
+       that already exists in hostel-view1.css. Prefixed / scoped so nothing
+       here can bleed into or override the PG/Hostel page. ══ */
+
+    /* Gallery adapts hostel-view's gallery-section band to a single
+       swipeable region (Flatmate listings have a variable image count,
+       unlike PG's fixed main+4-thumbnail grid) — same band, height, radius. */
+    .fm-gallery-section { background: var(--white); border-bottom: 1px solid var(--border); padding: 20px clamp(16px,5vw,60px); }
+    .fm-gallery-inner { max-width: 1280px; margin: 0 auto; height: 420px; position: relative; border-radius: var(--radius-lg); overflow: hidden; background: var(--bg2); touch-action: pan-y; }
+    .fm-slide { position: absolute; inset: 0; opacity: 0; transition: opacity .25s ease; }
+    .fm-slide.active { opacity: 1; }
+    .fm-slide img { width: 100%; height: 100%; object-fit: cover; }
+    .fm-need-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg,#eaf1ff,#f5f8ff); color: #2563eb; }
+    .fm-need-placeholder i { font-size: 40px; }
+    .fm-gallery-badge { position: absolute; top: 16px; left: 16px; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #fff; z-index: 3; }
+    .fm-gallery-badge.have { background: rgba(9,184,80,.92); }
+    .fm-gallery-badge.need { background: rgba(37,99,235,.92); }
+    .fm-gallery-save { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.92); border: none; color: var(--muted); font-size: 15px; display: flex; align-items: center; justify-content: center; z-index: 3; box-shadow: var(--shadow-xs); }
+    .fm-gallery-save.saved { color: #e03060; }
+    .fm-slide-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.9); border: none; color: var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; z-index: 3; }
+    .fm-gallery-inner:hover .fm-slide-btn { opacity: 1; }
+    .fm-slide-btn.prev { left: 14px; } .fm-slide-btn.next { right: 14px; }
+    .fm-slide-dots { position: absolute; bottom: 14px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; z-index: 3; }
+    .fm-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); transition: all .15s; }
+    .fm-dot.active { background: #fff; width: 16px; border-radius: 3px; }
+    @media (max-width: 640px) { .fm-gallery-inner { height: 280px; } }
+
+    /* Contact/private-info box — Flatmate-only concept (PG shows contact
+       directly since PG has no accept/decline relationship gate) */
+    .fm-private-box { border: 1.5px dashed var(--border); border-radius: var(--radius-md); padding: 16px; }
+    .fm-contact-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .fm-contact-actions > a { flex: 1; min-width: 160px; }
+    .fm-private-box.locked { color: var(--muted); font-size: 0.85rem; text-align: center; }
+    .fm-private-box.locked i { font-size: 20px; color: var(--muted-light); display: block; margin-bottom: 8px; }
+    .fm-private-row { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: var(--ink); margin-bottom: 8px; }
+    .fm-private-row i { color: var(--green); width: 16px; }
+
+    /* Nearby Highlights + category explorer + route panel — Flatmate-only,
+       lives below the PG-style map-frame-wrap */
+    .fm-map-approx-note { font-size: 0.8rem; color: var(--muted); margin: -6px 0 14px; display: flex; align-items: center; gap: 6px; }
+    .fm-map-unavailable { height: 280px; border-radius: var(--radius-lg); background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--muted); }
+    .fm-map-unavailable i { font-size: 28px; color: var(--border-dark); }
+    .fm-map-unavailable button { background: var(--ink); color: #fff; border: none; padding: 8px 18px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; margin-top: 4px; }
+    .fm-nearby-highlights-label { font-size: 0.7rem; font-weight: 700; color: var(--muted-light); text-transform: uppercase; letter-spacing: .06em; margin: 16px 0 8px; }
+    .fm-nearby-highlights { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+    .fm-nearby-highlight-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg2); border-radius: var(--radius-md); cursor: pointer; transition: background .15s; }
+    .fm-nearby-highlight-chip:hover { background: var(--green-light); }
+    .fm-nhc-icon { font-size: 18px; flex-shrink: 0; }
+    .fm-nhc-name { font-size: 0.8rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fm-nhc-dist { font-size: 0.72rem; color: var(--green-dark); font-weight: 600; margin-top: 1px; }
+    .fm-nearby-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .fm-nearby-cat-btn { background: var(--bg2); border: 1.5px solid transparent; border-radius: 999px; padding: 8px 14px; font-size: 0.8rem; font-weight: 600; color: var(--ink-mid); cursor: pointer; transition: all .15s; }
+    .fm-nearby-cat-btn:hover { border-color: var(--green-border); }
+    .fm-nearby-cat-btn.active { background: var(--green); color: #fff; }
+    .fm-nearby-results { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .fm-nearby-result-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg2); border-radius: var(--radius-md); cursor: pointer; transition: background .15s; }
+    .fm-nearby-result-item:hover { background: var(--green-light); }
+    .fm-nearby-result-name { font-size: 0.82rem; font-weight: 700; color: var(--ink); }
+    .fm-nearby-result-addr { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .fm-nearby-result-dist { font-size: 0.75rem; font-weight: 700; color: var(--green-dark); white-space: nowrap; margin-left: 10px; }
+    .fm-nearby-empty, .fm-nearby-loading, .fm-nearby-error { text-align: center; padding: 16px; font-size: 0.8rem; color: var(--muted); }
+    .fm-route-panel { margin-top: 14px; border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px; background: var(--white); box-shadow: var(--shadow-sm); animation: fmFadeSlideUp .25s ease; }
+    .fm-route-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .fm-route-panel-title { font-size: 0.7rem; color: var(--muted-light); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+    .fm-route-panel-dest { font-size: 0.98rem; font-weight: 700; color: var(--ink); margin-top: 2px; font-family: var(--font-d); }
+    .fm-route-panel-close { background: var(--bg2); border: none; width: 30px; height: 30px; border-radius: 50%; color: var(--muted); transition: all .15s; }
+    .fm-route-panel-close:hover { background: #fee2e2; color: #dc2626; }
+    .fm-route-mode-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .fm-route-mode-tab { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: #fff; font-size: 0.78rem; font-weight: 700; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .fm-route-mode-tab:hover { border-color: var(--green-border); background: var(--green-light); }
+    .fm-route-mode-tab.active { background: var(--green); border-color: var(--green); color: #fff; box-shadow: var(--shadow-green); }
+    .fm-route-result .fm-route-stat-row { display: flex; align-items: center; gap: 12px; }
+    .fm-route-result .fm-route-stat { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; text-align: center; }
+    @keyframes fmFadeSlideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { .fm-route-panel { animation: none; } }
+    .fm-route-result .fm-route-stat .val { font-size: 1.1rem; font-weight: 700; color: var(--ink); font-family: var(--font-d); }
+    .fm-route-result .fm-route-stat .lbl { font-size: 0.68rem; color: var(--muted); }
+
+    /* Sidebar CTA button (Send Request / Request Pending / Chat Now /
+       Manage / Closed) — reuses bc-btn-primary sizing, adds status colors */
+    .fm-cta-btn { width: 100%; padding: 13px; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; font-family: var(--font-d); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; transition: background .18s, box-shadow .18s, transform .14s; }
+    .fm-cta-btn.connect { background: var(--green); color: #fff; }
+    .fm-cta-btn.connect:hover { background: var(--green-dark); box-shadow: var(--shadow-green); transform: translateY(-1px); }
+    .fm-cta-btn.pending { background: #fffbeb; color: #92400e; border: 1.5px solid #fde68a; cursor: default; }
+    .fm-cta-btn.connected { background: var(--green-light); color: var(--green-dark); border: 1.5px solid var(--green-border); }
+    .fm-cta-btn.muted { background: var(--bg); color: var(--muted); border: 1.5px solid var(--border); cursor: default; }
+    .fm-cta-sub { text-align: center; font-size: 0.75rem; margin-top: 8px; color: var(--muted); }
+    .fm-cta-sub button { color: var(--muted); background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 0.75rem; }
+
+    .fm-not-found { text-align: center; padding: 80px 20px; }
+    .fm-not-found i { font-size: 2.4rem; color: var(--border-dark); }
+    .fm-not-found h2 { font-family: var(--font-d); margin: 16px 0 8px; }
+
+    /* Request to Connect modal */
+    .rc-overlay { position: fixed; inset: 0; background: rgba(10,22,40,.55); backdrop-filter: blur(4px); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .rc-overlay.open { opacity: 1; pointer-events: all; }
+    .rc-box { background: #fff; border-radius: var(--radius-xl); width: 100%; max-width: 420px; padding: 24px; position: relative; }
+    .rc-close { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg2); color: var(--muted); }
+    .rc-box h3 { font-family: var(--font-d); font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .rc-box p.hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; }
+    .rc-summary { background: var(--bg2); border-radius: var(--radius-md); padding: 12px 14px; font-size: 0.85rem; color: var(--ink-mid); margin-bottom: 16px; }
+    .rc-field textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-md); font-size: 0.85rem; font-family: inherit; resize: vertical; box-sizing: border-box; }
+    .rc-send { width: 100%; margin-top: 14px; padding: 13px; background: var(--green); color: #fff; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.9rem; }
+    .rc-alert { font-size: 0.8rem; color: #c53030; margin-top: 10px; display: none; }
+    .rc-alert.show { display: block; }

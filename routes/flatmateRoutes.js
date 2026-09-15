@@ -1146,17 +1146,15 @@ router.get("/:slug", async (req, res) => {
       }
     }
 
-    // Contact info (phone/WhatsApp/address) and exact map coordinates are
-    // now both shown to everyone — an explicit product decision to make
-    // listings fully public rather than gated behind an accepted
-    // connection. Combined into one query since both are always fetched now.
-    const withPrivate = await FlatmateListing.findOne({ slug: req.params.slug })
-      .select("+contact.phone +contact.whatsapp +address +coordinates.lat +coordinates.lng +placeId")
+    // Contact info (phone/WhatsApp/address) is never shown on the listing
+    // page — it's intentionally not fetched here at all, so there's
+    // nothing to accidentally leak even if the template changes later.
+    // Only the map coordinates are public (shown to everyone).
+    const withCoords = await FlatmateListing.findOne({ slug: req.params.slug })
+      .select("+coordinates.lat +coordinates.lng +placeId")
       .lean();
-    listing.contact = withPrivate.contact;
-    listing.address = withPrivate.address;
-    listing.coordinates = withPrivate.coordinates;
-    listing.placeId = withPrivate.placeId;
+    listing.coordinates = withCoords.coordinates;
+    listing.placeId = withCoords.placeId;
 
     // Map data: precise pin whenever the listing has one — public now, not
     // gated by connection status. Falls back to an approximate city-level
