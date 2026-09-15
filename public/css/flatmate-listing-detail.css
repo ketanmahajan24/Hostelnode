@@ -208,3 +208,26 @@ body { overflow-x: hidden; }
       outline: 2.5px solid var(--green);
       outline-offset: 2px;
     }
+
+    /* Rent card: Save + Share icon group (reuses PG's .bc-wish styling,
+       just two of them side by side instead of one) */
+    .fm-bc-icon-group { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* Rent card: Security Deposit row — uses the existing depositAmount
+       field, styled consistently with the price row above it */
+    .fm-bc-deposit-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; margin-top: 4px; border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .fm-bc-deposit-label { color: var(--muted); font-weight: 600; }
+    .fm-bc-deposit-val { color: var(--ink); font-weight: 700; }
+
+    /* "Who's Already There" — matches the label-over-value card pattern
+       already used by .qstat, kept as its own component since it needs
+       its own responsive grid (2 cols mobile, 3 desktop) rather than
+       .qstat's single-row flex. */
+    .fm-occupant-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .fm-occupant-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; background: var(--bg2); }
+    .fm-occupant-label { font-size: 0.68rem; font-weight: 700; color: var(--muted-light); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+    .fm-occupant-val { font-size: 0.92rem; font-weight: 700; color: var(--ink); }

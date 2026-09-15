@@ -86,11 +86,6 @@
         <div class="fm-need-placeholder"><i class="fa-solid fa-magnifying-glass"></i><span>Looking for a flat</span></div>
       <% } %>
       <span class="fm-gallery-badge <%= listing.type === 'HAVE_FLAT' ? 'have' : 'need' %>"><%= listing.type === 'HAVE_FLAT' ? '🏠 FLAT' : '👤 FLATMATE' %></span>
-      <% if (!isOwner) { %>
-        <button class="fm-gallery-save <%= isSaved ? 'saved' : '' %>" onclick="toggleDetailSave(event, this, '<%= listing._id %>')" aria-label="Save to properties" aria-pressed="<%= isSaved ? 'true' : 'false' %>">
-          <i class="fa-<%= isSaved ? 'solid' : 'regular' %> fa-heart" aria-hidden="true"></i>
-        </button>
-      <% } %>
     </div>
   </section>
 
@@ -98,8 +93,9 @@
   <div class="progress-nav visible" id="progressNav">
     <a href="#overview" class="pnav-link active">Overview</a>
     <a href="#details" class="pnav-link">Details</a>
+    <% if (listing.type === 'HAVE_FLAT') { %><a href="#occupants" class="pnav-link">Who's There</a><% } %>
     <% if (listing.type === 'HAVE_FLAT') { %><a href="#amenities" class="pnav-link">Amenities</a><% } %>
-    <a href="#preferences" class="pnav-link">Preferences</a>
+    <a href="#preferences" class="pnav-link">Lifestyle</a>
     <% if (listing.type === 'HAVE_FLAT') { %><a href="#location" class="pnav-link">Location</a><% } %>
   </div>
 
@@ -115,9 +111,6 @@
               <span class="htag htag-type"><i class="fa-solid <%= listing.type === 'HAVE_FLAT' ? 'fa-house' : 'fa-magnifying-glass' %>"></i> <%= listing.type === 'HAVE_FLAT' ? 'Flat Available' : 'Flatmate Wanted' %></span>
               <span class="htag htag-gender"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i> <%= listing.gender === 'any' ? 'No Preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span>
               <% if (listing.isVerified) { %><span class="htag htag-verified"><i class="fa-solid fa-shield-halved"></i> Verified</span><% } %>
-              <button class="hn-share-nav" onclick="shareFlatmateListing()" title="Share" aria-label="Share this listing">
-                <i class="fa-solid fa-share-nodes"></i><span>Share</span>
-              </button>
             </div>
             <h1 class="hv-title"><%= listing.bhk %> BHK &middot; <%= listing.roomType %></h1>
             <div class="hv-loc"><i class="fa-solid fa-location-dot"></i> <%= listing.area %>, <%= listing.city %></div>
@@ -181,18 +174,47 @@
       <% } %>
 
       <!-- PREFERENCES -->
-      <section class="hv-section" id="preferences">
-        <h2 class="hv-h2">Flatmate Preferences</h2>
-        <div class="amenities-grid">
-          <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i></div><span class="amenity-label"><%= listing.gender === 'any' ? 'No gender preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span></div>
-          <% if (listing.occupation) { %><div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-briefcase"></i></div><span class="amenity-label"><%= listing.occupation %></span></div><% } %>
-          <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-utensils"></i></div><span class="amenity-label"><%= listing.food %></span></div>
-          <% const flatLifestyle = (listing.lifestyle || []).flatMap(l => typeof l === 'string' && l.includes(',') ? l.split(',').map(s => s.trim()).filter(Boolean) : [l]); %>
-          <% flatLifestyle.forEach(function(l){ %>
-            <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-circle-check"></i></div><span class="amenity-label"><%= l %></span></div>
-          <% }) %>
-        </div>
-      </section>
+      <!-- WHO'S ALREADY THERE — HAVE_FLAT only (a NEED_FLAT listing describes
+           a person looking for a place, not an existing household). Built
+           entirely from fields that already exist on the schema — no new
+           data, just a dedicated section instead of burying this inside
+           "Preferences" where it currently duplicates. -->
+      <% if (listing.type === 'HAVE_FLAT' && (listing.have?.occupantsCount || listing.food || listing.gender)) { %>
+        <section class="hv-section" id="occupants">
+          <h2 class="hv-h2">Who's Already There</h2>
+          <div class="fm-occupant-grid">
+            <% if (listing.have?.occupantsCount) { %>
+              <div class="fm-occupant-card">
+                <div class="fm-occupant-label">Currently Living</div>
+                <div class="fm-occupant-val"><%= listing.have.occupantsCount %> <%= listing.have.occupantsType || '' %></div>
+              </div>
+            <% } %>
+            <div class="fm-occupant-card">
+              <div class="fm-occupant-label">Food in the Flat</div>
+              <div class="fm-occupant-val"><%= listing.food || 'No preference' %></div>
+            </div>
+            <div class="fm-occupant-card">
+              <div class="fm-occupant-label">Looking For</div>
+              <div class="fm-occupant-val"><%= listing.gender === 'any' ? 'Any Gender' : (listing.gender === 'male' ? 'Male' : 'Female') %></div>
+            </div>
+          </div>
+        </section>
+      <% } %>
+
+      <!-- PREFERENCES — lifestyle/occupation only now (gender & food moved
+           to "Who's Already There" above, so they're shown exactly once). -->
+      <% const flatLifestyle = (listing.lifestyle || []).flatMap(l => typeof l === 'string' && l.includes(',') ? l.split(',').map(s => s.trim()).filter(Boolean) : [l]); %>
+      <% if (listing.occupation || flatLifestyle.length) { %>
+        <section class="hv-section" id="preferences">
+          <h2 class="hv-h2">Lifestyle</h2>
+          <div class="amenities-grid">
+            <% if (listing.occupation) { %><div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-briefcase"></i></div><span class="amenity-label"><%= listing.occupation %></span></div><% } %>
+            <% flatLifestyle.forEach(function(l){ %>
+              <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-circle-check"></i></div><span class="amenity-label"><%= l %></span></div>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
 
       <!-- LOCATION / MAP (HAVE only) — same map-address-row/map-frame-wrap as PG -->
       <% if (listing.type === 'HAVE_FLAT') { %>
@@ -278,7 +300,24 @@
           <% } else { %>
             <div><div class="bc-from">Budget</div><div class="bc-price">₹<%= (listing.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (listing.need?.budgetMax || 0).toLocaleString('en-IN') %><span>/mo</span></div></div>
           <% } %>
+          <div class="fm-bc-icon-group">
+            <% if (!isOwner) { %>
+              <button class="bc-wish <%= isSaved ? 'saved' : '' %>" onclick="toggleDetailSave(event, this, '<%= listing._id %>')" title="Save" aria-label="Save to properties" aria-pressed="<%= isSaved ? 'true' : 'false' %>">
+                <i class="fa-<%= isSaved ? 'solid' : 'regular' %> fa-heart" aria-hidden="true"></i>
+              </button>
+            <% } %>
+            <button class="bc-wish" onclick="shareFlatmateListing()" title="Share" aria-label="Share this listing">
+              <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
+
+        <% if (listing.type === 'HAVE_FLAT' && (listing.have?.depositAmount || listing.have?.depositNegotiable)) { %>
+          <div class="fm-bc-deposit-row">
+            <span class="fm-bc-deposit-label">Security Deposit</span>
+            <span class="fm-bc-deposit-val"><%= listing.have.depositNegotiable ? 'Negotiable' : '₹' + listing.have.depositAmount.toLocaleString('en-IN') %></span>
+          </div>
+        <% } %>
 
         <div class="bc-actions" id="bcActionsSource">
           <% if (cta === 'manage') { %>
