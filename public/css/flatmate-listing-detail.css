@@ -99,7 +99,7 @@ body { overflow-x: hidden; }
     .fm-nearby-cat-btn:hover { border-color: var(--green-border); }
     .fm-nearby-cat-btn.active { background: var(--green); color: #fff; }
     .fm-nearby-results { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-    .fm-nearby-result-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg2); border: 2px solid black; margin-bottom: 4px ; border-radius: var(--radius-md); cursor: pointer; transition: background .15s; font-family: inherit; text-align: left; width: 100%; }
+    .fm-nearby-result-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg2); border: 1.5px solid var(--border); margin-bottom: 4px; border-radius: var(--radius-md); cursor: pointer; transition: background .15s; font-family: inherit; text-align: left; width: 100%; }
     .fm-nearby-result-item:hover { background: var(--green-light); }
     .fm-nearby-result-name { font-size: 0.82rem; font-weight: 700; color: var(--ink); }
     .fm-nearby-result-addr { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
@@ -156,6 +156,7 @@ body { overflow-x: hidden; }
     .rc-send { width: 100%; margin-top: 14px; padding: 13px; background: var(--green); color: #fff; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.9rem; }
     .rc-alert { font-size: 0.8rem; color: #c53030; margin-top: 10px; display: none; }
     .rc-alert.show { display: block; }
+    
 
     /* Respect the user's OS-level reduced-motion preference — applies to
        .animate-in wherever it's used on this page (added via JS). */
