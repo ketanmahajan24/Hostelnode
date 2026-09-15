@@ -63,8 +63,6 @@ app.use(express.urlencoded({ extended: true }));  // 3. form body
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(methodOverride("_method"));               // 4. PUT/DELETE via POST
-// With other app.use() route mounts (after session middleware)
-app.use("/user", userRouter);
 app.use(session({
   secret: process.env.SESSION_SECRET || "hostelnode_secret",
   resave: false,
@@ -113,6 +111,7 @@ app.engine("ejs", ejsMate);
 app.post("/track-location", trackGpsLocation);
 
 app.use("/webhook",     waBot);
+app.use("/user",        userRouter);
 app.use("/admin",       adminRouter);
 app.use("/student",     studentRouter);
 app.use("/findHostels", findHostelsRouter);

@@ -619,6 +619,9 @@ router.get("/saved", jwtStudentAuth, async (req, res) => {
 ============================================================ */
 router.get("/recently-viewed", jwtStudentAuth, async (req, res) => {
   try {
+    const student = await Student.findById(req.student.id);
+    if (!student) return res.redirect("/student/login");
+
     const RecentlyViewed = require("../models/RecentlyViewed");
     const FlatmateListing = require("../models/FlatmateListing");
 
