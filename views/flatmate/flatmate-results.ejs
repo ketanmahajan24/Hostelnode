@@ -44,11 +44,109 @@
     .muted-see-more { background: #f1f5f2 !important; box-shadow: none !important; cursor: default !important; }
     .muted-see-more .btn-inner { color: #6b7a72 !important; justify-content: center; }
     .muted-see-more:hover { transform: none !important; }
-    .r-card-img { touch-action: pan-y; }
-    .r-slide-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; z-index: 3; }
-    .r-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.55); transition: all .15s ease; }
-    .r-dot.active { background: #fff; width: 14px; border-radius: 3px; }
-    .r-posted-by i { color: var(--green); font-size: 11px; }
+
+    /* ══ Card redesign — duplicated independently from the landing page's
+       card CSS (same visual result, no shared file/include between them,
+       per explicit instruction) ══ */
+    /* ---- CARD (modernized) ---- */
+    .hn-flatmate-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+      cursor: pointer; display: flex; flex-direction: column; height: 100%;
+      animation: fmCardFadeUp .4s ease backwards;
+    }
+    .hn-flatmate-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--green-border); }
+    @keyframes fmCardFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) {
+      .hn-flatmate-card { animation: none; }
+      .hn-flatmate-card, .hn-flatmate-card-img img, .hn-flatmate-wish, .hn-flatmate-talk-btn { transition: none !important; }
+    }
+
+    .hn-flatmate-card-img { position: relative; aspect-ratio: 4/3; background: var(--bg2); overflow: hidden; touch-action: pan-y; }
+    .hn-flatmate-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
+    .hn-flatmate-card:hover .hn-flatmate-card-img img { transform: scale(1.04); }
+    .fm-slide { position: absolute; inset: 0; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+    .fm-slide.active { opacity: 1; pointer-events: auto; }
+    .fm-slide-btn {
+      position: absolute; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,.9); border: none; color: var(--ink); font-size: 11px; display: flex;
+      align-items: center; justify-content: center; opacity: 0; transition: opacity .15s ease; z-index: 3;
+    }
+    .hn-flatmate-card-img:hover .fm-slide-btn { opacity: 1; }
+    .fm-slide-btn.prev { left: 8px; }
+    .fm-slide-btn.next { right: 8px; }
+    .fm-slide-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; z-index: 3; }
+    .fm-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.55); transition: all .15s ease; }
+    .fm-dot.active { background: #fff; width: 14px; border-radius: 3px; }
+    .hn-flatmate-card-img.placeholder-need {
+      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+      background: linear-gradient(135deg,#eaf1ff,#f5f8ff); color: #2563eb;
+    }
+    .hn-flatmate-card-img.placeholder-need i { font-size: 28px; }
+    .hn-flatmate-card-img.placeholder-need span { font-size: 11.5px; font-weight: 700; }
+
+    .hn-flatmate-badge {
+      position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .3px;
+      backdrop-filter: blur(6px); z-index: 3;
+    }
+    .hn-flatmate-badge.have { background: rgba(9,184,80,.92); color: #fff; }
+    .hn-flatmate-badge.need { background: rgba(37,99,235,.92); color: #fff; }
+
+    .hn-flatmate-verified {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; color: var(--green-dark); background: rgba(255,255,255,.92); z-index: 3;
+    }
+
+    .hn-flatmate-wish {
+      position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,.92); border: none; display: flex; align-items: center; justify-content: center;
+      color: #94a3a8; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.12); transition: transform .2s cubic-bezier(.34,1.56,.64,1), color .18s;
+      z-index: 3;
+    }
+    .hn-flatmate-wish:hover { color: #e53e3e; }
+    .hn-flatmate-wish.pop { transform: scale(1.2); }
+    .hn-flatmate-wish.saved { color: #e53e3e; }
+
+    .hn-flatmate-card-body { padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+    .hn-flatmate-card-title { font-family: var(--font-d); font-size: 15px; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-card-loc { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-weight: 500; }
+    .hn-flatmate-card-loc i { color: var(--green); font-size: 12px; }
+
+    .hn-flatmate-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 1px; }
+    .hn-flatmate-card-gender {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: var(--muted);
+      background: var(--bg2); padding: 3px 9px; border-radius: 999px;
+    }
+    .hn-flatmate-spots {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700;
+      color: var(--green-dark); background: var(--green-light); padding: 3px 9px; border-radius: 999px;
+    }
+
+    .hn-flatmate-card-price { font-family: var(--font-d); font-size: 17px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+    .hn-flatmate-card-price span { font-size: 11.5px; font-weight: 500; color: var(--muted-light); }
+    .hn-flatmate-card-meta { font-size: 11.5px; color: var(--muted); }
+
+    .hn-flatmate-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; padding-top: 11px; border-top: 1px solid var(--border); }
+    .hn-flatmate-poster { font-size: 12px; font-weight: 700; color: var(--ink-mid); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hn-flatmate-talk-btn {
+      flex-shrink: 0; background: var(--green); color: #fff; border: none; border-radius: 999px; padding: 8px 15px;
+      font-size: 11.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; text-decoration: none;
+      transition: background .18s, transform .15s, box-shadow .18s;
+    }
+    .hn-flatmate-talk-btn:hover { background: var(--green-dark); box-shadow: var(--shadow-green); transform: translateY(-1px); }
+    .hn-flatmate-talk-btn:active { transform: scale(.96); }
+    .hn-flatmate-talk-btn.muted { background: var(--bg2); color: var(--muted); cursor: default; }
+    .hn-flatmate-talk-btn.muted:hover { background: var(--bg2); box-shadow: none; transform: none; }
+    .hn-flatmate-talk-btn:disabled { opacity: .7; cursor: not-allowed; }
+
+    /* Results grid uses the shared .rg-grid container (generic layout
+       scaffolding, also used by PG results — safe to reuse since it's
+       just grid-template-columns, not visual card styling) but a tighter
+       gap to match the featured row's spacing. */
+    .rg-grid { gap: 20px; }
+    @media (max-width: 640px) { .rg-grid { gap: 14px; } }
   </style>
 </head>
 <body>
@@ -198,119 +296,63 @@
     <!-- Cards Grid -->
     <div class="rg-grid">
       <% if (listings && listings.length > 0) { %>
-        <% listings.forEach(function(l) { %>
+        <% listings.forEach(function(l, i) { %>
 
-          <div class="r-card" data-slug="<%= l.slug %>" onclick="rCardNavigate(event, this)">
-
-            <!-- Image slider (have) / icon placeholder (need) -->
-            <div class="r-card-img" data-swipe-card>
+          <div class="hn-flatmate-card" data-type="<%= l.type %>" data-slug="<%= l.slug %>" style="animation-delay:<%= Math.min(i,8) * 80 %>ms" onclick="rCardNavigate(event, this)">
+            <div class="hn-flatmate-card-img <%= (l.type === 'need') ? 'placeholder-need' : '' %>" data-swipe-card>
               <% if (l.type === 'have' && l.images && l.images.length > 0) { %>
                 <% l.images.forEach(function(img, i) { %>
-                  <div class="slide <%= i===0?'active':'' %>">
+                  <div class="fm-slide <%= i===0?'active':'' %>">
                     <img src="/flatmate-images/<%= img %>" alt="<%= l.bhk %> BHK <%= l.roomType %> flat in <%= l.location %>, <%= l.city %>" loading="lazy" decoding="async">
                   </div>
                 <% }) %>
                 <% if (l.images.length > 1) { %>
-                  <button class="slide-btn prev" onclick="event.stopPropagation(); slide(event,this,-1)" aria-label="Previous photo">
-                    <i class="fa-solid fa-chevron-left"></i>
-                  </button>
-                  <button class="slide-btn next" onclick="event.stopPropagation(); slide(event,this,1)" aria-label="Next photo">
-                    <i class="fa-solid fa-chevron-right"></i>
-                  </button>
-                  <div class="r-slide-dots">
-                    <% l.images.forEach(function(_, di) { %><span class="r-dot <%= di===0?'active':'' %>"></span><% }) %>
-                  </div>
+                  <button class="fm-slide-btn prev" onclick="event.stopPropagation(); slide(event,this,-1)" aria-label="Previous photo"><i class="fa-solid fa-chevron-left"></i></button>
+                  <button class="fm-slide-btn next" onclick="event.stopPropagation(); slide(event,this,1)" aria-label="Next photo"><i class="fa-solid fa-chevron-right"></i></button>
+                  <div class="fm-slide-dots"><% l.images.forEach(function(_, di) { %><span class="fm-dot <%= di===0?'active':'' %>"></span><% }) %></div>
                 <% } %>
+              <% } else if (l.type === 'have') { %>
+                <div class="fm-slide active"><img src="/images/placeholder.jpg" alt="<%= l.bhk %> BHK <%= l.roomType %> flat" loading="lazy"></div>
               <% } else { %>
-                <div class="slide active">
-                  <div class="r-need-placeholder">
-                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                    <span>Looking for a flat</span>
-                  </div>
-                </div>
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <span>Looking for a flat</span>
               <% } %>
-
-              <span class="r-badge badge-<%= l.type %>">
-                <%= l.type === 'have' ? '🏠 FLAT' : '👤 FLATMATE' %>
-              </span>
-
-              <button class="r-wish <%= l.isSaved ? 'saved' : '' %>" onclick="flatWishToggle(event,this,'<%= l._id %>')" aria-label="Save to wishlist" aria-pressed="<%= l.isSaved ? 'true' : 'false' %>">
-                <i class="fa-<%= l.isSaved ? 'solid' : 'regular' %> fa-heart"></i>
+              <% if (l.type === 'have') { %>
+                <span class="hn-flatmate-badge have">🏠 FLAT</span>
+              <% } else { %>
+                <span class="hn-flatmate-badge need">👤 FLATMATE</span>
+              <% } %>
+              <% if (l.isVerified) { %><span class="hn-flatmate-verified"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verified</span><% } %>
+              <button class="hn-flatmate-wish <%= l.isSaved ? 'saved' : '' %>" onclick="event.stopPropagation(); flatWishToggle(event, this, '<%= l._id %>')" aria-label="Save to wishlist" aria-pressed="<%= l.isSaved ? 'true' : 'false' %>">
+                <i class="fa-<%= l.isSaved ? 'solid' : 'regular' %> fa-heart" aria-hidden="true"></i>
               </button>
-
-              <div class="r-dist">
-                <i class="fa-solid fa-location-dot"></i>
-                <%= l.location %>, <%= l.city %>
-              </div>
-            </div><!-- /img -->
-
-            <!-- Body -->
-            <div class="r-body">
-              <div class="r-row">
-                <div>
-                  <div class="r-name"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
-                  <div class="r-type"><i class="fa-solid fa-bolt"></i> <%= l.type === 'have' ? 'Offering a room' : 'Looking for a room' %></div>
-                </div>
-              </div>
-
-              <div class="r-loc">
-                <i class="fa-solid fa-venus-mars"></i>
-                <%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %>
-              </div>
-
-              <div class="r-amenities">
-                <% if (l.type === 'have') { %>
-                  <span class="r-tag">Available <%= l.moveIn %></span>
-                <% } else { %>
-                  <span class="r-tag">Move-in <%= l.moveIn %></span>
+            </div>
+            <div class="hn-flatmate-card-body">
+              <div class="hn-flatmate-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
+              <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= l.location %>, <%= l.city %></div>
+              <div class="hn-flatmate-chips">
+                <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
+                <% if (l.type === 'have' && l.availableSpots) { %>
+                  <span class="hn-flatmate-spots"><i class="fa-solid fa-door-open" aria-hidden="true"></i> <%= l.availableSpots %> spot<%= l.availableSpots === 1 ? '' : 's' %> open</span>
                 <% } %>
               </div>
-
-              <div class="r-footer">
-                <div>
-                  <% if (l.type === 'have') { %>
-                    <div class="r-price-val">₹<%= Number(l.rent).toLocaleString('en-IN') %> <span>/mo</span></div>
-                    <div class="r-price-label"><%= l.roomType %></div>
-                  <% } else { %>
-                    <div class="r-price-val">₹<%= Number(l.budgetMin).toLocaleString('en-IN') %>&ndash;₹<%= Number(l.budgetMax).toLocaleString('en-IN') %></div>
-                    <div class="r-price-label">Budget</div>
-                  <% } %>
-                </div>
-                <div class="r-posted-by"><i class="fa-solid fa-user"></i> <%= l.postedBy %></div>
-              </div>
-
-              <div class="btn-wrap">
+              <% if (l.type === 'have') { %>
+                <div class="hn-flatmate-card-price">₹<%= Number(l.rent||0).toLocaleString('en-IN') %> <span>/ month</span></div>
+                <div class="hn-flatmate-card-meta">Available from <%= l.moveIn %></div>
+              <% } else { %>
+                <div class="hn-flatmate-card-price">₹<%= Number(l.budgetMin||0).toLocaleString('en-IN') %>&ndash;₹<%= Number(l.budgetMax||0).toLocaleString('en-IN') %></div>
+                <div class="hn-flatmate-card-meta">Move-in <%= l.moveIn %></div>
+              <% } %>
+              <div class="hn-flatmate-card-footer">
+                <div class="hn-flatmate-poster">Posted by <%= l.postedBy %></div>
                 <% if (l.requestStatus === 'own') { %>
-                  <button class="btn-see-more muted-see-more" disabled>
-                    <span class="btn-inner"><span class="btn-label">Your Listing</span></span>
-                  </button>
+                  <button class="hn-flatmate-talk-btn muted" disabled>Your Listing</button>
                 <% } else if (l.requestStatus === 'pending') { %>
-                  <button class="btn-see-more muted-see-more" disabled>
-                    <span class="btn-inner"><span class="btn-label"><i class="fa-solid fa-clock"></i> Request Sent</span></span>
-                  </button>
+                  <button class="hn-flatmate-talk-btn muted" disabled><i class="fa-solid fa-clock"></i> Request Sent</button>
                 <% } else if (l.requestStatus === 'accepted') { %>
-                  <a class="btn-see-more" href="/messages/<%= l.conversationId %>" onclick="event.stopPropagation()">
-                    <span class="btn-gloss"></span>
-                    <span class="btn-sheen"></span>
-                    <span class="btn-inner">
-                      <span class="dot"></span>
-                      <span class="btn-label"><i class="fa-solid fa-comment"></i> Chat Now</span>
-                      <span class="btn-arrow"><i class="fa-solid fa-arrow-right" style="font-size:11px"></i></span>
-                    </span>
-                  </a>
+                  <a class="hn-flatmate-talk-btn" href="/messages/<%= l.conversationId %>" onclick="event.stopPropagation()"><i class="fa-solid fa-comment"></i> Chat Now</a>
                 <% } else { %>
-                  <button class="btn-see-more" data-listing-id="<%= l._id %>"
-                    onclick="event.stopPropagation(); sendCardRequest('<%= l._id %>', this)">
-                    <span class="btn-gloss"></span>
-                    <span class="btn-sheen"></span>
-                    <span class="btn-inner">
-                      <span class="dot"></span>
-                      <span class="btn-label">Send Request</span>
-                      <span class="btn-arrow">
-                        <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
-                      </span>
-                    </span>
-                  </button>
+                  <button class="hn-flatmate-talk-btn" data-listing-id="<%= l._id %>" onclick="event.stopPropagation(); sendCardRequest('<%= l._id %>', this)">Send Request</button>
                 <% } %>
               </div>
             </div>
@@ -424,10 +466,10 @@
       dragging = false;
       const dx = (e.changedTouches[0] ? e.changedTouches[0].clientX : startX) - startX;
       if (Math.abs(dx) < THRESHOLD) return; // a tap — let navigation proceed
-      const cardEl = wrap.closest('.r-card');
+      const cardEl = wrap.closest('.hn-flatmate-card');
       if (cardEl) cardEl.dataset.swiped = 'true';
-      const slides = [...wrap.querySelectorAll('.slide')];
-      const dots = [...wrap.querySelectorAll('.r-dot')];
+      const slides = [...wrap.querySelectorAll('.fm-slide')];
+      const dots = [...wrap.querySelectorAll('.fm-dot')];
       if (slides.length < 2) return;
       const idx = slides.findIndex(s => s.classList.contains('active'));
       slides[idx].classList.remove('active');
@@ -500,9 +542,9 @@
   // ── Image slider ─────────────────────────────────────
   function slide(e, btn, dir) {
     e.stopPropagation();
-    const wrap   = btn.closest('.r-card-img');
-    const slides = [...wrap.querySelectorAll('.slide')];
-    const dots   = [...wrap.querySelectorAll('.r-dot')];
+    const wrap   = btn.closest('.hn-flatmate-card-img');
+    const slides = [...wrap.querySelectorAll('.fm-slide')];
+    const dots   = [...wrap.querySelectorAll('.fm-dot')];
     let idx = slides.findIndex(s => s.classList.contains('active'));
     slides[idx].classList.remove('active');
     dots[idx]?.classList.remove('active');

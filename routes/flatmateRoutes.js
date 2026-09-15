@@ -398,6 +398,8 @@ function toCardViewModel(doc, requestInfo, isSaved) {
     rent: isHave ? doc.have?.rentMonthly : undefined,
     budgetMin: !isHave ? doc.need?.budgetMin : undefined,
     budgetMax: !isHave ? doc.need?.budgetMax : undefined,
+    availableSpots: isHave ? (doc.have?.availableSpots ?? null) : null,
+    isVerified: !!doc.isVerified,
     requestStatus: requestInfo ? requestInfo.status : "none",
     connectionId: requestInfo ? requestInfo.connectionId : null,
     conversationId: requestInfo ? requestInfo.conversationId : null,

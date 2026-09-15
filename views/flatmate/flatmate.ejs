@@ -233,24 +233,39 @@
       scroll-behavior: smooth; scrollbar-width: none;
     }
     .hn-flatmate-row-track::-webkit-scrollbar { display: none; }
-    .hn-flatmate-row-card-wrap { flex: 0 0 250px; scroll-snap-align: start; }
+    .hn-flatmate-row-card-wrap { flex: 0 0 270px; scroll-snap-align: start; }
 
-    /* ---- CARD (shared shape for both listing types & rows) ---- */
+    /* Mobile: vertical stacked list instead of horizontal scroll — swiping
+       a horizontal carousel on a phone is exactly the friction this was
+       built to remove. */
+    @media (max-width: 640px) {
+      .hn-flatmate-row-track { flex-direction: column; overflow-x: visible; scroll-snap-type: none; gap: 14px; }
+      .hn-flatmate-row-card-wrap { flex: 1 1 auto; width: 100%; }
+      .hn-flatmate-row-scroll-btns { display: none; } /* meaningless once it's a vertical list */
+    }
+
+    /* ---- CARD (modernized) ---- */
     .hn-flatmate-card {
       background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      overflow: hidden; box-shadow: var(--shadow-xs); transition: transform .2s ease, box-shadow .2s ease; cursor: pointer;
-      display: flex; flex-direction: column; height: 100%;
+      overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+      cursor: pointer; display: flex; flex-direction: column; height: 100%;
+      animation: fmCardFadeUp .4s ease backwards;
     }
-    .hn-flatmate-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+    .hn-flatmate-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--green-border); }
+    @keyframes fmCardFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) {
+      .hn-flatmate-card { animation: none; }
+      .hn-flatmate-card, .hn-flatmate-card-img img, .hn-flatmate-wish, .hn-flatmate-talk-btn { transition: none !important; }
+    }
 
     .hn-flatmate-card-img { position: relative; aspect-ratio: 4/3; background: var(--bg2); overflow: hidden; touch-action: pan-y; }
-    .hn-flatmate-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
-    .hn-flatmate-card:hover .hn-flatmate-card-img img { transform: scale(1.03); }
+    .hn-flatmate-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
+    .hn-flatmate-card:hover .hn-flatmate-card-img img { transform: scale(1.04); }
     .fm-slide { position: absolute; inset: 0; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
     .fm-slide.active { opacity: 1; pointer-events: auto; }
     .fm-slide-btn {
-      position: absolute; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 50%;
-      background: rgba(255,255,255,.85); border: none; color: var(--ink); font-size: 11px; display: flex;
+      position: absolute; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,.9); border: none; color: var(--ink); font-size: 11px; display: flex;
       align-items: center; justify-content: center; opacity: 0; transition: opacity .15s ease; z-index: 3;
     }
     .hn-flatmate-card-img:hover .fm-slide-btn { opacity: 1; }
@@ -269,42 +284,57 @@
     .hn-flatmate-badge {
       position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 6px;
       padding: 5px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .3px;
-      backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px); z-index: 3;
     }
     .hn-flatmate-badge.have { background: rgba(9,184,80,.92); color: #fff; }
     .hn-flatmate-badge.need { background: rgba(37,99,235,.92); color: #fff; }
 
-    .hn-flatmate-wish {
-      position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%;
-      background: rgba(255,255,255,.92); border: none; display: flex; align-items: center; justify-content: center;
-      color: #94a3a8; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.12); transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+    .hn-flatmate-verified {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; color: var(--green-dark); background: rgba(255,255,255,.92); z-index: 3;
     }
+
+    .hn-flatmate-wish {
+      position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,.92); border: none; display: flex; align-items: center; justify-content: center;
+      color: #94a3a8; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.12); transition: transform .2s cubic-bezier(.34,1.56,.64,1), color .18s;
+      z-index: 3;
+    }
+    .hn-flatmate-wish:hover { color: #e53e3e; }
     .hn-flatmate-wish.pop { transform: scale(1.2); }
     .hn-flatmate-wish.saved { color: #e53e3e; }
 
     .hn-flatmate-card-body { padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
-    .hn-flatmate-card-title { font-family: var(--font-d); font-size: 14.5px; font-weight: 700; color: var(--ink); }
-    .hn-flatmate-card-loc { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-    .hn-flatmate-card-loc i { color: var(--green); font-size: 11px; }
+    .hn-flatmate-card-title { font-family: var(--font-d); font-size: 15px; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-card-loc { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-weight: 500; }
+    .hn-flatmate-card-loc i { color: var(--green); font-size: 12px; }
+
+    .hn-flatmate-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 1px; }
     .hn-flatmate-card-gender {
-      display: inline-flex; align-self: flex-start; font-size: 10.5px; font-weight: 700; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: var(--muted);
       background: var(--bg2); padding: 3px 9px; border-radius: 999px;
     }
+    .hn-flatmate-spots {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700;
+      color: var(--green-dark); background: var(--green-light); padding: 3px 9px; border-radius: 999px;
+    }
 
-    .hn-flatmate-card-price { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: var(--ink); }
+    .hn-flatmate-card-price { font-family: var(--font-d); font-size: 17px; font-weight: 700; color: var(--ink); margin-top: 2px; }
     .hn-flatmate-card-price span { font-size: 11.5px; font-weight: 500; color: var(--muted-light); }
     .hn-flatmate-card-meta { font-size: 11.5px; color: var(--muted); }
 
-    .hn-flatmate-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 11px; border-top: 1px solid var(--border); }
-    .hn-flatmate-poster { font-size: 12px; font-weight: 700; color: var(--ink-mid); }
+    .hn-flatmate-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; padding-top: 11px; border-top: 1px solid var(--border); }
+    .hn-flatmate-poster { font-size: 12px; font-weight: 700; color: var(--ink-mid); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .hn-flatmate-talk-btn {
-      background: var(--ink); color: #fff; border: none; border-radius: 999px; padding: 8px 14px;
-      font-size: 11.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: background .15s, transform .15s;
+      flex-shrink: 0; background: var(--green); color: #fff; border: none; border-radius: 999px; padding: 8px 15px;
+      font-size: 11.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; text-decoration: none;
+      transition: background .18s, transform .15s, box-shadow .18s;
     }
-    .hn-flatmate-talk-btn:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .hn-flatmate-talk-btn:hover { background: var(--green-dark); box-shadow: var(--shadow-green); transform: translateY(-1px); }
     .hn-flatmate-talk-btn:active { transform: scale(.96); }
     .hn-flatmate-talk-btn.muted { background: var(--bg2); color: var(--muted); cursor: default; }
-    .hn-flatmate-talk-btn.muted:hover { background: var(--bg2); transform: none; }
+    .hn-flatmate-talk-btn.muted:hover { background: var(--bg2); box-shadow: none; transform: none; }
     .hn-flatmate-talk-btn:disabled { opacity: .7; cursor: not-allowed; }
 
     /* ---- RESULT TABS (All / Need a Flat / Have a Flat) ---- */
@@ -617,7 +647,7 @@
                   </div>
                 <% } %>
               <% } else if (l.type === 'have') { %>
-                <div class="fm-slide active"><img src="/images/placeholder.jpg" alt="<%= l.bhk %> BHK <%= l.roomType %> flat"></div>
+                <div class="fm-slide active"><img src="/images/placeholder.jpg" alt="<%= l.bhk %> BHK <%= l.roomType %> flat" loading="lazy"></div>
               <% } else { %>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                 <span>Looking for a flat</span>
@@ -627,6 +657,7 @@
               <% } else { %>
                 <span class="hn-flatmate-badge need">👤 FLATMATE</span>
               <% } %>
+              <% if (l.isVerified) { %><span class="hn-flatmate-verified"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verified</span><% } %>
               <button class="hn-flatmate-wish <%= l.isSaved ? 'saved' : '' %>" onclick="event.stopPropagation(); toggleFmWish(event, this, '<%= l._id %>')" aria-label="Save to wishlist" aria-pressed="<%= l.isSaved ? 'true' : 'false' %>">
                 <i class="fa-<%= l.isSaved ? 'solid' : 'regular' %> fa-heart" aria-hidden="true"></i>
               </button>
@@ -634,7 +665,12 @@
             <div class="hn-flatmate-card-body">
               <div class="hn-flatmate-card-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
               <div class="hn-flatmate-card-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= l.location %>, <%= l.city %></div>
-              <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
+              <div class="hn-flatmate-chips">
+                <span class="hn-flatmate-card-gender"><%= l.gender === 'any' ? 'Co-ed' : (l.gender === 'male' ? 'Males only' : 'Females only') %></span>
+                <% if (l.type === 'have' && l.availableSpots) { %>
+                  <span class="hn-flatmate-spots"><i class="fa-solid fa-door-open" aria-hidden="true"></i> <%= l.availableSpots %> spot<%= l.availableSpots === 1 ? '' : 's' %> open</span>
+                <% } %>
+              </div>
               <% if (l.type === 'have') { %>
                 <div class="hn-flatmate-card-price">₹<%= l.rent.toLocaleString('en-IN') %> <span>/ month</span></div>
                 <div class="hn-flatmate-card-meta">Available from <%= l.moveIn %></div>
