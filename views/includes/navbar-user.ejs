@@ -390,3 +390,36 @@
 })();
 </script>
 <% } %>
+
+<!-- ══ Navbar interactivity — mobile hamburger + profile dropdown ══
+     This partial's own markup uses onclick="openMobileNav()" and
+     onclick="snToggle(event)" above, but previously relied on whatever
+     page included this file to separately define those functions
+     itself. Only the PG/Hostel detail page actually did — every single
+     Flatmate page (landing, results, my-listings, both create wizards,
+     and the listing detail page) was missing them entirely, silently
+     breaking the hamburger menu and profile dropdown on all of them.
+     Defining them here, once, makes the navbar genuinely self-contained
+     regardless of which page includes it. Using `function` declarations
+     (not const/let) is deliberate — if a page like hostel-view.ejs still
+     has its own copy too, a function re-declaration doesn't throw the
+     way a duplicate const would; it's a harmless no-op collision. -->
+<script>
+function openMobileNav() {
+  const nav = document.getElementById('mobileNav');
+  if (nav) { nav.classList.add('open'); document.body.style.overflow = 'hidden'; }
+}
+function closeMobileNav(e) {
+  const nav = document.getElementById('mobileNav');
+  if (nav && (!e || e.target === nav)) { nav.classList.remove('open'); document.body.style.overflow = ''; }
+}
+function snToggle(e) {
+  if (e) e.stopPropagation();
+  const pill = document.getElementById('snPill');
+  if (pill) pill.classList.toggle('open');
+}
+document.addEventListener('click', function () {
+  const pill = document.getElementById('snPill');
+  if (pill) pill.classList.remove('open');
+});
+</script>
