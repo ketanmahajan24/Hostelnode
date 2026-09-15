@@ -228,10 +228,10 @@
               <% Object.keys(categoryMeta).forEach(function(cat) { %>
                 <% const hit = listing.nearbyCache[cat]; %>
                 <% if (hit) { %>
-                  <div class="fm-nearby-highlight-chip" onclick='openRoutePanel(<%- JSON.stringify(Object.assign({}, hit, {category: cat})).replace(/</g,"\\u003c") %>)'>
+                  <button type="button" class="fm-nearby-highlight-chip" aria-label="View route to <%= hit.name %>, <%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' meters' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away" onclick='openRoutePanel(<%- JSON.stringify(Object.assign({}, hit, {category: cat})).replace(/</g,"\\u003c") %>)'>
                     <span class="fm-nhc-icon"><%= categoryMeta[cat][0] %></span>
                     <div class="fm-nhc-text"><div class="fm-nhc-name"><%= categoryMeta[cat][1] %> &middot; <%= hit.name %></div><div class="fm-nhc-dist"><%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' m' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away</div></div>
-                  </div>
+                  </button>
                 <% } %>
               <% }) %>
             </div>
@@ -254,7 +254,7 @@
           <div id="routePanel" class="fm-route-panel" style="display:none">
             <div class="fm-route-panel-head">
               <div><div class="fm-route-panel-title">Route to</div><div class="fm-route-panel-dest" id="routeDestName">—</div></div>
-              <button class="fm-route-panel-close" onclick="closeRoutePanel()"><i class="fa-solid fa-xmark"></i></button>
+              <button class="fm-route-panel-close" onclick="closeRoutePanel()" aria-label="Close route panel"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
             <div class="fm-route-mode-tabs">
               <button class="fm-route-mode-tab active" data-mode="driving" onclick="loadRoute('driving', this)">🚗 Driving</button>
@@ -353,10 +353,10 @@
   </div><!-- /hv-container -->
 
   <!-- Report this listing modal -->
-  <div class="rc-overlay" id="reportListingOverlay" onclick="if(event.target===this) closeReportListingModal()">
+  <div class="rc-overlay" id="reportListingOverlay" onclick="if(event.target===this) closeReportListingModal()" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
     <div class="rc-box">
-      <button class="rc-close" onclick="closeReportListingModal()"><i class="fa-solid fa-xmark"></i></button>
-      <h3>Report this listing</h3>
+      <button class="rc-close" onclick="closeReportListingModal()" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <h3 id="reportModalTitle">Report this listing</h3>
       <p class="hint">Let us know what's wrong — an admin will review it. This won't notify the listing owner.</p>
       <div class="rc-field">
         <select id="reportReason" style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;font-family:inherit;margin-bottom:10px">
@@ -392,10 +392,10 @@
   </div>
 
   <!-- Request to Connect modal -->
-  <div class="rc-overlay" id="rcOverlay" onclick="if(event.target===this) closeConnectModal()">
+  <div class="rc-overlay" id="rcOverlay" onclick="if(event.target===this) closeConnectModal()" role="dialog" aria-modal="true" aria-labelledby="connectModalTitle">
     <div class="rc-box">
-      <button class="rc-close" onclick="closeConnectModal()"><i class="fa-solid fa-xmark"></i></button>
-      <h3>Request to Connect</h3>
+      <button class="rc-close" onclick="closeConnectModal()" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <h3 id="connectModalTitle">Request to Connect</h3>
       <p class="hint">You're requesting to connect with <%= listing.student?.firstName || 'this user' %> about this listing.</p>
       <div class="rc-summary">
         <%= listing.type === 'HAVE_FLAT' ? '🏠' : '👤' %> <%= listing.bhk %> BHK &middot; <%= listing.area %>, <%= listing.city %>
@@ -498,10 +498,11 @@ async function loadNearby(category, btn) {
     }
     box.innerHTML = data.places.map(function (p, i) {
       const distText = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' m' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
-      return '<div class="fm-nearby-result-item" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
+      const distLabel = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' meters' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
+      return '<button type="button" class="fm-nearby-result-item" aria-label="View route to ' + escapeHtml(p.name) + (distLabel ? ', ' + distLabel + ' away' : '') + '" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
         '<div><div class="fm-nearby-result-name">' + escapeHtml(p.name) + '</div>' +
         (p.address ? '<div class="fm-nearby-result-addr">' + escapeHtml(p.address) + '</div>' : '') + '</div>' +
-        '<div class="fm-nearby-result-dist">' + distText + '</div></div>';
+        '<div class="fm-nearby-result-dist">' + distText + '</div></button>';
     }).join('');
   } catch (err) {
     box.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
@@ -726,15 +727,37 @@ function toggleTrustItem(btn) {
 /* ── Report this listing (reuses the existing /messages/report endpoint —
    it already supports an optional listingId with no conversation
    required, so no new backend route needed) ── */
+/* ── Modal accessibility: Escape closes whichever is open, focus moves
+   into the modal and returns to whatever triggered it on close ── */
+let fmLastFocusedEl = null;
+function fmOpenModal(overlayId) {
+  fmLastFocusedEl = document.activeElement;
+  const overlay = document.getElementById(overlayId);
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  const closeBtn = overlay.querySelector('.rc-close');
+  if (closeBtn) closeBtn.focus();
+}
+function fmCloseModal(overlayId) {
+  document.getElementById(overlayId).classList.remove('open');
+  document.body.style.overflow = '';
+  if (fmLastFocusedEl && typeof fmLastFocusedEl.focus === 'function') fmLastFocusedEl.focus();
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  const openOverlay = document.querySelector('.rc-overlay.open');
+  if (!openOverlay) return;
+  if (openOverlay.id === 'reportListingOverlay') closeReportListingModal();
+  else if (openOverlay.id === 'rcOverlay') closeConnectModal();
+});
+
 function openReportListingModal() {
   const isLoggedIn = <%= typeof student !== 'undefined' && student ? 'true' : 'false' %>;
   if (!isLoggedIn) { window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname); return; }
-  document.getElementById('reportListingOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  fmOpenModal('reportListingOverlay');
 }
 function closeReportListingModal() {
-  document.getElementById('reportListingOverlay').classList.remove('open');
-  document.body.style.overflow = '';
+  fmCloseModal('reportListingOverlay');
 }
 async function submitListingReport(listingId, reportedUserId) {
   const reason = document.getElementById('reportReason').value;
@@ -765,12 +788,10 @@ async function submitListingReport(listingId, reportedUserId) {
 }
 
 function openConnectModal() {
-  document.getElementById('rcOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  fmOpenModal('rcOverlay');
 }
 function closeConnectModal() {
-  document.getElementById('rcOverlay').classList.remove('open');
-  document.body.style.overflow = '';
+  fmCloseModal('rcOverlay');
 }
 
 // Cards elsewhere on the site (Featured, search results) link "Request to

@@ -89,7 +89,7 @@ body { overflow-x: hidden; }
     .fm-map-unavailable button { background: var(--ink); color: #fff; border: none; padding: 8px 18px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; margin-top: 4px; }
     .fm-nearby-highlights-label { font-size: 0.7rem; font-weight: 700; color: var(--muted-light); text-transform: uppercase; letter-spacing: .06em; margin: 16px 0 8px; }
     .fm-nearby-highlights { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
-    .fm-nearby-highlight-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg2); border-radius: var(--radius-md); cursor: pointer; transition: background .15s; }
+    .fm-nearby-highlight-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg2); border: none; border-radius: var(--radius-md); cursor: pointer; transition: background .15s; font-family: inherit; text-align: left; width: 100%; }
     .fm-nearby-highlight-chip:hover { background: var(--green-light); }
     .fm-nhc-icon { font-size: 18px; flex-shrink: 0; }
     .fm-nhc-name { font-size: 0.8rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -99,7 +99,7 @@ body { overflow-x: hidden; }
     .fm-nearby-cat-btn:hover { border-color: var(--green-border); }
     .fm-nearby-cat-btn.active { background: var(--green); color: #fff; }
     .fm-nearby-results { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-    .fm-nearby-result-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg2); border-radius: var(--radius-md); cursor: pointer; transition: background .15s; }
+    .fm-nearby-result-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg2); border: none; border-radius: var(--radius-md); cursor: pointer; transition: background .15s; font-family: inherit; text-align: left; width: 100%; }
     .fm-nearby-result-item:hover { background: var(--green-light); }
     .fm-nearby-result-name { font-size: 0.82rem; font-weight: 700; color: var(--ink); }
     .fm-nearby-result-addr { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
@@ -187,3 +187,24 @@ body { overflow-x: hidden; }
       text-decoration: underline; padding: 14px 18px 6px; border-top: 1px solid var(--border); margin-top: 4px;
     }
     .fm-report-link:hover { color: var(--ink); }
+
+    /* ══ Visible, branded focus states ══
+       Nothing here removes the default outline — it was never stripped,
+       so keyboard focus was always technically visible. But several
+       interactive elements sit inside overflow:hidden containers (the
+       gallery, the nearby-highlights grid) where a thin default outline
+       can get visually clipped. This makes focus unmistakable everywhere
+       on this page, in the brand color instead of the browser default. */
+    .fm-nearby-cat-btn:focus-visible,
+    .fm-route-mode-tab:focus-visible,
+    .fm-trust-item:focus-visible,
+    .fm-cta-btn:focus-visible,
+    .fm-slide-btn:focus-visible,
+    .fm-gallery-save:focus-visible,
+    .fm-nearby-highlight-chip:focus-visible,
+    .fm-nearby-result-item:focus-visible,
+    .rc-close:focus-visible,
+    .fm-route-panel-close:focus-visible {
+      outline: 2.5px solid var(--green);
+      outline-offset: 2px;
+    }
