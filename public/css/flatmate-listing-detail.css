@@ -162,3 +162,28 @@ body { overflow-x: hidden; }
     @media (prefers-reduced-motion: reduce) {
       .animate-in { animation: none !important; opacity: 1 !important; transform: none !important; }
     }
+
+    /* Trust & Safety accordion (adapted from a competitor's sidebar
+       pattern the user referenced — verification/security reassurance
+       items, collapsible, plus a low-friction report link) */
+    .fm-trust-accordion { padding: 8px 0; }
+    .fm-trust-item {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 18px; background: none; border: none; border-top: 1px solid var(--border);
+      font-size: 0.85rem; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left;
+    }
+    .fm-trust-accordion .fm-trust-item:first-child { border-top: none; }
+    .fm-trust-item-head { display: flex; align-items: center; gap: 10px; }
+    .fm-trust-item-head i { color: var(--green); width: 16px; }
+    .fm-trust-chevron { color: var(--muted-light); font-size: 0.75rem; transition: transform .18s; }
+    .fm-trust-item[aria-expanded="true"] .fm-trust-chevron { transform: rotate(180deg); }
+    .fm-trust-item-body {
+      max-height: 0; overflow: hidden; padding: 0 18px; margin-left: 26px;
+      font-size: 0.78rem; color: var(--muted); line-height: 1.5; transition: max-height .22s ease, padding .22s ease;
+    }
+    .fm-trust-item-body.open { max-height: 200px; padding: 0 18px 12px 0; }
+    .fm-report-link {
+      display: block; text-align: center; font-size: 0.78rem; color: var(--muted);
+      text-decoration: underline; padding: 14px 18px 6px; border-top: 1px solid var(--border); margin-top: 4px;
+    }
+    .fm-report-link:hover { color: var(--ink); }

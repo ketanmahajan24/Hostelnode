@@ -303,9 +303,49 @@
         </div>
         <% if (listing.isVerified) { %><span class="htag htag-verified"><i class="fa-solid fa-circle-check"></i> Verified</span><% } %>
       </div>
+
+      <!-- Trust & Safety accordion -->
+      <div class="host-card fm-trust-accordion">
+        <% const trustItems = [
+          { icon:'shield-halved', title:'Verified Listing', body:'This listing\'s owner has verified their mobile number with HostelNode before it went live.' },
+          { icon:'lock', title:'Secure Requests', body:'Your contact details are never shared until you choose to send a request and the owner accepts it.' },
+          { icon:'hand-holding-dollar', title:'Zero Broker Fee', body:'HostelNode never charges brokerage — you deal directly with the person who posted the listing.' },
+          { icon:'comments', title:'Messages Stay On HostelNode', body:'Chat happens right here after a request is accepted, so there\'s a record if anything goes wrong.' },
+        ]; %>
+        <% trustItems.forEach(function(t, i) { %>
+          <button class="fm-trust-item" onclick="toggleTrustItem(this)" aria-expanded="false">
+            <span class="fm-trust-item-head"><i class="fa-solid fa-<%= t.icon %>"></i> <%= t.title %></span>
+            <i class="fa-solid fa-chevron-down fm-trust-chevron"></i>
+          </button>
+          <div class="fm-trust-item-body"><%= t.body %></div>
+        <% }) %>
+        <a href="javascript:void(0)" class="fm-report-link" onclick="openReportListingModal()">Something feel off? Report this listing</a>
+      </div>
     </div><!-- /hv-right -->
 
   </div><!-- /hv-container -->
+
+  <!-- Report this listing modal -->
+  <div class="rc-overlay" id="reportListingOverlay" onclick="if(event.target===this) closeReportListingModal()">
+    <div class="rc-box">
+      <button class="rc-close" onclick="closeReportListingModal()"><i class="fa-solid fa-xmark"></i></button>
+      <h3>Report this listing</h3>
+      <p class="hint">Let us know what's wrong — an admin will review it. This won't notify the listing owner.</p>
+      <div class="rc-field">
+        <select id="reportReason" style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;font-family:inherit;margin-bottom:10px">
+          <option value="">Select a reason…</option>
+          <option>Spam</option>
+          <option>Fake profile</option>
+          <option>Fraud / Scam</option>
+          <option>Inappropriate content</option>
+          <option>Other</option>
+        </select>
+        <textarea id="reportDetails" rows="3" maxlength="1000" placeholder="Any additional details (optional)"></textarea>
+      </div>
+      <button class="rc-send" id="reportSendBtn" onclick="submitListingReport('<%= listing._id %>', '<%= listing.student?._id %>')">Submit Report</button>
+      <div class="rc-alert" id="reportAlert"></div>
+    </div>
+  </div>
 
   <!-- MOBILE STICKY BOTTOM BAR — same pattern as the PG/Hostel page.
        The action slot is populated by JS from the sidebar's own CTA
@@ -631,6 +671,55 @@ async function toggleDetailSave(e, btn, listingId) {
       btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
     }
   } catch (err) { /* silent — non-critical action */ }
+}
+
+/* ── Trust & Safety accordion ── */
+function toggleTrustItem(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+  body.classList.toggle('open', !isOpen);
+}
+
+/* ── Report this listing (reuses the existing /messages/report endpoint —
+   it already supports an optional listingId with no conversation
+   required, so no new backend route needed) ── */
+function openReportListingModal() {
+  const isLoggedIn = <%= typeof student !== 'undefined' && student ? 'true' : 'false' %>;
+  if (!isLoggedIn) { window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname); return; }
+  document.getElementById('reportListingOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeReportListingModal() {
+  document.getElementById('reportListingOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+async function submitListingReport(listingId, reportedUserId) {
+  const reason = document.getElementById('reportReason').value;
+  const details = document.getElementById('reportDetails').value.trim();
+  const alertEl = document.getElementById('reportAlert');
+  if (!reason) { alertEl.textContent = 'Please select a reason.'; alertEl.classList.add('show'); return; }
+
+  const btn = document.getElementById('reportSendBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const res = await fetch('/messages/report', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportedUserId, listingId, reason, details }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeReportListingModal();
+      if (typeof showToastMsg === 'function') showToastMsg('Report submitted — thank you.');
+      else alert('Report submitted — thank you.');
+    } else {
+      alertEl.textContent = data.error || 'Could not submit report.'; alertEl.classList.add('show');
+    }
+  } catch (e) {
+    alertEl.textContent = 'Network error — please try again.'; alertEl.classList.add('show');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Submit Report';
+  }
 }
 
 function openConnectModal() {
