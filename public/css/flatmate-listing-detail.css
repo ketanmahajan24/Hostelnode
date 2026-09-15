@@ -13,6 +13,18 @@
    into or override PG/Hostel styling.
 ============================================================ */
 
+/* ══ Defensive overflow guard ══
+   hv-container's grid columns (from hostel-view1.css) don't set
+   min-width:0 on their items — by default, a CSS grid item won't shrink
+   below its content's intrinsic width. A long unbroken string (a full
+   address, a long place name with no spaces to wrap at) can force the
+   left column wider than its track, pushing the sticky right sidebar
+   past the edge of the viewport. This has actually happened — these
+   rules prevent it regardless of what content ends up in either column. */
+.hv-left, .hv-right { min-width: 0; }
+.hv-left * { overflow-wrap: break-word; word-break: break-word; }
+body { overflow-x: hidden; }
+
     /* ══ Flatmate-specific additions only — nothing here duplicates a class
        that already exists in hostel-view1.css. Prefixed / scoped so nothing
        here can bleed into or override the PG/Hostel page. ══ */

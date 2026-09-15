@@ -399,7 +399,7 @@ async function loadNearby(category, btn) {
 
   const box = document.getElementById('nearbyResults');
   box.style.display = 'block';
-  box.innerHTML = '<div class="nearby-loading">Finding nearby places…</div>';
+  box.innerHTML = '<div class="fm-nearby-loading">Finding nearby places…</div>';
 
   try {
     const res = await fetch('/flatmate/' + LISTING_SLUG + '/nearby?category=' + encodeURIComponent(category));
@@ -409,15 +409,1327 @@ async function loadNearby(category, btn) {
       return;
     }
     if (!data.places || !data.places.length) {
-      box.innerHTML = '<div class="nearby-empty">No nearby places found in this category.</div>';
+      box.innerHTML = '<div class="fm-nearby-empty">No nearby places found in this category.</div>';
       return;
     }
     box.innerHTML = data.places.map(function (p, i) {
       const distText = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' m' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
-      return '<div class="nearby-result-item" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
-        '<div><div class="nearby-result-name">' + escapeHtml(p.name) + '</div>' +
-        (p.address ? '<div class="nearby-result-addr">' + escapeHtml(p.address) + '</div>' : '') + '</div>' +
-        '<div class="nearby-result-dist">' + distText + '</div></div>';
+      return '<div class="fm-nearby-result-item" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
+        '<div><div class="fm-nearby-result-name">' + escapeHtml(p.name) + '</div>' +
+        (p.address ? '<div class="fm-nearby-result-addr">' + escapeHtml(p.address) + '</div>' : '') + '</div>' +
+        '<div class="fm-nearby-result-dist">' + distText + '</div></div>';
+    }).join('');
+  } catch (err) {
+    box.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ── ROUTE PANEL ── */
+function openRoutePanel(place) {
+  currentDestination = place;
+  document.getElementById('routePanel').style.display = 'block';
+  document.getElementById('routeDestName').textContent = place.name;
+  document.querySelectorAll('.fm-route-mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.fm-route-mode-tab[data-mode="driving"]').classList.add('active');
+  loadRoute('driving');
+  document.getElementById('routePanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (flatmateMap && place.lat && place.lng) {
+    if (destMarker) destMarker.setMap(null);
+    destMarker = new google.maps.Marker({
+      position: { lat: place.lat, lng: place.lng }, map: flatmateMap,
+      title: place.name, icon: { url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+    });
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: MAP_DATA.lat, lng: MAP_DATA.lng });
+    bounds.extend({ lat: place.lat, lng: place.lng });
+    flatmateMap.fitBounds(bounds);
+  }
+}
+
+function closeRoutePanel() {
+  document.getElementById('routePanel').style.display = 'none';
+  currentDestination = null;
+  if (destMarker) { destMarker.setMap(null); destMarker = null; }
+  if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+}
+
+async function loadRoute(mode, tabBtn) {
+  if (!currentDestination) return;
+  if (tabBtn) {
+    document.querySelectorAll('.fm-route-mode-tab').forEach(t => t.classList.remove('active'));
+    tabBtn.classList.add('active');
+  }
+  const resultEl = document.getElementById('routeResult');
+  resultEl.textContent = 'Loading…';
+
+  try {
+    const res = await fetch('/flatmate/' + LISTING_SLUG + '/route?destLat=' + currentDestination.lat + '&destLng=' + currentDestination.lng + '&mode=' + mode);
+    const data = await res.json();
+    if (!data.success) {
+      resultEl.innerHTML = '<div class="fm-nearby-error">' + (data.error || 'No route available for this mode.') + '</div>';
+      if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+      return;
+    }
+    const km = (data.distanceMeters / 1000).toFixed(1);
+    const mins = Math.round(data.durationSeconds / 60);
+    resultEl.innerHTML = '<div class="fm-route-stat-row">' +
+      '<div class="fm-route-stat"><span class="val">' + km + ' km</span><span class="lbl">Distance</span></div>' +
+      '<div class="fm-route-stat"><span class="val">' + mins + ' min</span><span class="lbl">Duration</span></div>' +
+      '</div>';
+
+    if (flatmateMap && data.polyline && google.maps.geometry) {
+      if (routePolyline) routePolyline.setMap(null);
+      const path = google.maps.geometry.encoding.decodePath(data.polyline);
+      routePolyline = new google.maps.Polyline({ path, strokeColor: '#09b850', strokeWeight: 4, map: flatmateMap });
+    }
+  } catch (err) {
+    resultEl.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
+  }
+}
+
+/* ── PROGRESS NAV: smooth scroll + active-tab tracking ── */
+document.querySelectorAll('.pnav-link').forEach(function (link) {
+  link.addEventListener('click', function (e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (!target) return;
+    const offset = target.getBoundingClientRect().top + window.scrollY - 80;
+    window.scrollTo({ top: offset, behavior: 'smooth' });
+  });
+});
+
+(function () {
+  const pnavLinks = [...document.querySelectorAll('.pnav-link')];
+  const sections = pnavLinks.map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+  if (!sections.length) return;
+  window.addEventListener('scroll', function () {
+    let current = sections[0];
+    sections.forEach(function (s) {
+      if (window.scrollY + 100 >= s.offsetTop) current = s;
+    });
+    pnavLinks.forEach(function (l) {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current.id);
+    });
+  }, { passive: true });
+})();
+
+/* ── GALLERY: slide + dots + touch swipe (replaces old thumbnail-strip click) ── */
+function fmGoToSlide(idx) {
+  const wrap = document.querySelector('.fm-gallery-inner');
+  if (!wrap) return;
+  const slides = wrap.querySelectorAll('.fm-slide');
+  const dots = wrap.querySelectorAll('.fm-dot');
+  if (!slides.length) return;
+  const clamped = (idx + slides.length) % slides.length;
+  slides.forEach(s => s.classList.remove('active'));
+  dots.forEach(d => d.classList.remove('active'));
+  slides[clamped].classList.add('active');
+  if (dots[clamped]) dots[clamped].classList.add('active');
+}
+function fmSlide(dir) {
+  const wrap = document.querySelector('.fm-gallery-inner');
+  if (!wrap) return;
+  const slides = [...wrap.querySelectorAll('.fm-slide')];
+  const idx = slides.findIndex(s => s.classList.contains('active'));
+  fmGoToSlide(idx + dir);
+}
+(function () {
+  const wrap = document.querySelector('[data-swipe-card]');
+  if (!wrap) return;
+  let startX = 0, startY = 0, dragging = false;
+  wrap.addEventListener('touchstart', e => { if (!e.touches[0]) return; startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragging = true; }, { passive: true });
+  wrap.addEventListener('touchmove', e => {
+    if (!dragging || !e.touches[0]) return;
+    const dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) e.preventDefault();
+  }, { passive: false });
+  wrap.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+    const dx = (e.changedTouches[0] ? e.changedTouches[0].clientX : startX) - startX;
+    if (Math.abs(dx) < 30) return;
+    fmSlide(dx < 0 ? 1 : -1);
+  });
+})();
+
+/* ── SCROLL-SPY for the sticky tab nav ── */
+(function () {
+  const sections = [...document.querySelectorAll('.hv-section[id]')];
+  const links = [...document.querySelectorAll('.pnav-link')];
+  if (!sections.length || !links.length) return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const match = links.find(l => l.getAttribute('href') === '#' + entry.target.id);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-40% 0px -50% 0px' });
+  sections.forEach(s => observer.observe(s));
+})();
+
+async function toggleDetailSave(e, btn, listingId) {
+  e.stopPropagation();
+  try {
+    const res = await fetch('/student/saved/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingType: 'flatmate', listingId }),
+    });
+    if (res.redirected || res.status === 401) {
+      window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    const data = await res.json();
+    if (data.success) {
+      btn.classList.toggle('saved', data.saved);
+      btn.setAttribute('aria-pressed', data.saved ? 'true' : 'false');
+      btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+    }
+  } catch (err) { /* silent — non-critical action */ }
+}
+
+function openConnectModal() {
+  document.getElementById('rcOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeConnectModal() {
+  document.getElementById('rcOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Cards elsewhere on the site (Featured, search results) link "Request to
+// Talk" to /flatmate/<slug>#request — land here with the connect modal
+// already open, instead of the hash doing nothing.
+if (window.location.hash === '#request' && document.getElementById('connectBtn')) {
+  openConnectModal();
+}
+
+async function sendConnectRequest(listingId) {
+  const btn = document.getElementById('rcSendBtn');
+  const alertBox = document.getElementById('rcAlert');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Sending…';
+  try {
+    const res = await fetch('/flatmate/connect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId, message: document.getElementById('rcMessage').value.trim() }),
+    });
+    if (res.status === 302 || res.redirected) {
+      window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    const data = await res.json();
+    btn.disabled = false; btn.innerHTML = original;
+    if (data.success) {
+      closeConnectModal();
+      window.location.reload();
+    } else {
+      alertBox.textContent = data.error || 'Something went wrong.';
+      alertBox.classList.add('show');
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    alertBox.textContent = 'Network error — please try again.';
+    alertBox.classList.add('show');
+  }
+}
+
+async function cancelRequest(connectionId) {
+  if (!confirm('Cancel this request?')) return;
+  try {
+    const res = await fetch('/flatmate/connection/' + connectionId + '/cancel', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) window.location.reload();
+    else alert(data.error || 'Could not cancel request.');
+  } catch (err) {
+    alert('Network error — please try again.');
+  }
+}
+</script>
+<% } %>
+</body>
+<!-- listing-detail.ejs — HostelNode Flatmate listing detail
+     Visually rebuilt to match views/listings/hostel-view.ejs exactly —
+     reuses /css/hostel-view1.css's real classes (hv-container, hv-section,
+     hv-h2, amenities-grid, booking-card, host-card, progress-nav, map-*)
+     rather than a separate visual system, per the master-reference spec. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <% if (listing) { %>
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
+    <link rel="canonical" href="<%= seo.canonical %>">
+    <meta name="robots" content="<%= listing.status === 'ACTIVE' ? 'index, follow' : 'noindex, follow' %>">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<%= seo.title %>">
+    <meta property="og:description" content="<%= seo.description %>">
+    <meta property="og:url" content="<%= seo.canonical %>">
+  <% } else { %>
+    <title>Listing Not Found | HostelNode</title>
+    <meta name="robots" content="noindex, follow">
+  <% } %>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <!-- SAME master stylesheet the PG/Hostel detail page uses — this is what
+       gives real, exact visual parity (not an approximation). -->
+  <link rel="stylesheet" href="/css/hostel-view1.css">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/flatmate-listing-detail.css">
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<% if (!listing) { %>
+  <div class="fm-not-found">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <h2>Listing not found</h2>
+    <p style="color:var(--muted);font-size:0.85rem">This listing may have been removed or the link is incorrect.</p>
+    <a href="/flatmate" style="color:var(--green-dark);font-weight:700">&larr; Back to Flatmate</a>
+  </div>
+<% } else { %>
+
+  <!-- ══ GALLERY (same band/height/radius as PG's gallery-section) ══ -->
+  <section class="fm-gallery-section">
+    <div class="fm-gallery-inner" data-swipe-card>
+      <% if (listing.type === 'HAVE_FLAT' && listing.images && listing.images.length) { %>
+        <% listing.images.forEach(function(img, si) { %>
+          <div class="fm-slide <%= si===0?'active':'' %>"><img id="<%= si===0?'galleryMainImg':'' %>" src="/flatmate-images/<%= img %>" alt="<%= listing.bhk %> BHK <%= listing.roomType %> in <%= listing.area %>, <%= listing.city %>"></div>
+        <% }) %>
+        <% if (listing.images.length > 1) { %>
+          <button class="fm-slide-btn prev" onclick="fmSlide(-1)" aria-label="Previous photo"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="fm-slide-btn next" onclick="fmSlide(1)" aria-label="Next photo"><i class="fa-solid fa-chevron-right"></i></button>
+          <div class="fm-slide-dots"><% listing.images.forEach(function(_, di) { %><span class="fm-dot <%= di===0?'active':'' %>"></span><% }) %></div>
+        <% } %>
+      <% } else if (listing.type === 'HAVE_FLAT') { %>
+        <div class="fm-slide active"><img src="/images/placeholder.jpg" alt="<%= listing.bhk %> BHK <%= listing.roomType %>"></div>
+      <% } else { %>
+        <div class="fm-need-placeholder"><i class="fa-solid fa-magnifying-glass"></i><span>Looking for a flat</span></div>
+      <% } %>
+      <span class="fm-gallery-badge <%= listing.type === 'HAVE_FLAT' ? 'have' : 'need' %>"><%= listing.type === 'HAVE_FLAT' ? '🏠 FLAT' : '👤 FLATMATE' %></span>
+      <% if (!isOwner) { %>
+        <button class="fm-gallery-save <%= isSaved ? 'saved' : '' %>" onclick="toggleDetailSave(event, this, '<%= listing._id %>')" aria-label="Save to properties" aria-pressed="<%= isSaved ? 'true' : 'false' %>">
+          <i class="fa-<%= isSaved ? 'solid' : 'regular' %> fa-heart" aria-hidden="true"></i>
+        </button>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- ══ STICKY TAB NAV (same as PG's progress-nav) ══ -->
+  <div class="progress-nav visible" id="progressNav">
+    <a href="#overview" class="pnav-link active">Overview</a>
+    <a href="#details" class="pnav-link">Details</a>
+    <% if (listing.type === 'HAVE_FLAT') { %><a href="#amenities" class="pnav-link">Amenities</a><% } %>
+    <a href="#preferences" class="pnav-link">Preferences</a>
+    <% if (listing.type === 'HAVE_FLAT') { %><a href="#location" class="pnav-link">Location</a><% } %>
+  </div>
+
+  <!-- ══ MAIN LAYOUT (same hv-container/hv-left/hv-right grid as PG) ══ -->
+  <div class="hv-container">
+    <div class="hv-left">
+
+      <!-- OVERVIEW -->
+      <section class="hv-section" id="overview">
+        <div class="title-row">
+          <div>
+            <div class="title-tags">
+              <span class="htag htag-type"><i class="fa-solid <%= listing.type === 'HAVE_FLAT' ? 'fa-house' : 'fa-magnifying-glass' %>"></i> <%= listing.type === 'HAVE_FLAT' ? 'Flat Available' : 'Flatmate Wanted' %></span>
+              <span class="htag htag-gender"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i> <%= listing.gender === 'any' ? 'No Preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span>
+              <% if (listing.isVerified) { %><span class="htag htag-verified"><i class="fa-solid fa-shield-halved"></i> Verified</span><% } %>
+            </div>
+            <h1 class="hv-title"><%= listing.bhk %> BHK &middot; <%= listing.roomType %></h1>
+            <div class="hv-loc"><i class="fa-solid fa-location-dot"></i> <%= listing.area %>, <%= listing.city %></div>
+          </div>
+        </div>
+
+        <% if (listing.description || listing.need?.intro) { %>
+          <div class="about-block" style="margin-top:18px">
+            <h2 class="hv-h2" style="font-size:1rem;margin-bottom:8px"><%= listing.type === 'HAVE_FLAT' ? 'About this listing' : 'About this person' %></h2>
+            <p class="about-text" style="font-size:0.88rem;color:var(--ink-mid);line-height:1.6"><%= listing.description || listing.need.intro %></p>
+          </div>
+        <% } %>
+      </section>
+
+      <!-- DETAILS -->
+      <section class="hv-section" id="details">
+        <h2 class="hv-h2">Details</h2>
+        <div class="quick-stats">
+          <% if (listing.type === 'HAVE_FLAT') { %>
+            <div class="qstat"><i class="fa-solid fa-key"></i><div><div class="qstat-val"><%= listing.have?.availabilityType || '—' %></div><div class="qstat-label"><%= listing.have?.availableSpots || 1 %> spot(s)</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-couch"></i><div><div class="qstat-val"><%= listing.have?.furnishing || 'Not specified' %></div><div class="qstat-label">Furnishing</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-calendar-check"></i><div><div class="qstat-val"><%= listing.have?.availableFromMode === 'now' ? 'Now' : (listing.have?.availableFromDate ? new Date(listing.have.availableFromDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Flexible') %></div><div class="qstat-label">Available from</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-indian-rupee-sign"></i><div><div class="qstat-val"><%= listing.have?.depositNegotiable ? 'Negotiable' : ('₹' + (listing.have?.depositAmount || 0).toLocaleString('en-IN')) %></div><div class="qstat-label">Deposit</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-file-invoice"></i><div><div class="qstat-val"><%= listing.have?.maintenance %></div><div class="qstat-label">Maintenance<%= listing.have?.maintenance === 'Separate' && listing.have?.maintenanceAmount ? ' — ₹' + listing.have.maintenanceAmount.toLocaleString('en-IN') : '' %></div></div></div>
+            <% if (listing.have?.occupantsCount) { %><div class="qstat"><i class="fa-solid fa-users"></i><div><div class="qstat-val"><%= listing.have.occupantsCount %></div><div class="qstat-label"><%= listing.have.occupantsType || 'Current occupants' %></div></div></div><% } %>
+          <% } else { %>
+            <div class="qstat"><i class="fa-solid fa-key"></i><div><div class="qstat-val"><%= listing.need?.needType || '—' %></div><div class="qstat-label">Looking for</div></div></div>
+            <% const moveInLabels = { immediate:'Immediately', '15days':'Within 15 days', '1month':'Within 1 month' }; %>
+            <div class="qstat"><i class="fa-solid fa-calendar-check"></i><div><div class="qstat-val"><%= moveInLabels[listing.need?.moveInMode] || (listing.need?.moveInDate ? new Date(listing.need.moveInDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Flexible') %></div><div class="qstat-label">Move-in</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-indian-rupee-sign"></i><div><div class="qstat-val"><%= listing.need?.depositPreference || 'Flexible' %></div><div class="qstat-label">Deposit preference</div></div></div>
+            <% if (listing.need?.preferredAreas && listing.need.preferredAreas.length > 1) { %><div class="qstat"><i class="fa-solid fa-map-location-dot"></i><div><div class="qstat-val"><%= listing.need.preferredAreas.slice(1).join(', ') %></div><div class="qstat-label">Also considering</div></div></div><% } %>
+          <% } %>
+        </div>
+      </section>
+
+      <!-- AMENITIES (HAVE only) — same amenities-grid/amenity-item/icon as PG -->
+      <% if (listing.type === 'HAVE_FLAT' && listing.have?.amenities && listing.have.amenities.length) { %>
+        <%
+          const amenityIcons = {
+            'WiFi': 'wifi', 'AC': 'snowflake', 'Washing Machine': 'shirt', 'Geyser': 'fire-flame-simple',
+            'Refrigerator': 'kitchen-set', 'Bed': 'bed', 'Wardrobe': 'box-archive', 'Study Table': 'book',
+            'Sofa': 'couch', 'Dining Table': 'utensils', 'TV': 'tv', 'Microwave': 'kitchen-set',
+            'RO Water': 'droplet', 'Power Backup': 'bolt', 'Lift': 'elevator', 'Parking': 'car',
+            'CCTV': 'camera', 'Security': 'shield-halved', 'Balcony': 'building', 'Gym': 'dumbbell',
+            'Swimming Pool': 'person-swimming', 'Housekeeping': 'broom',
+          };
+          // Defensive: some existing listings were saved before the
+          // amenity-chip bug fix, with multiple values joined into one
+          // comma-string stored as a single array element. Flatten those
+          // here so they display correctly without needing a re-save.
+          const flatAmenities = listing.have.amenities.flatMap(a => typeof a === 'string' && a.includes(',') ? a.split(',').map(s => s.trim()).filter(Boolean) : [a]);
+        %>
+        <section class="hv-section" id="amenities">
+          <h2 class="hv-h2">Amenities</h2>
+          <div class="amenities-grid">
+            <% flatAmenities.forEach(function(a){ %>
+              <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-<%= amenityIcons[a] || 'check' %>"></i></div><span class="amenity-label"><%= a %></span></div>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <!-- PREFERENCES -->
+      <section class="hv-section" id="preferences">
+        <h2 class="hv-h2">Flatmate Preferences</h2>
+        <div class="amenities-grid">
+          <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i></div><span class="amenity-label"><%= listing.gender === 'any' ? 'No gender preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span></div>
+          <% if (listing.occupation) { %><div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-briefcase"></i></div><span class="amenity-label"><%= listing.occupation %></span></div><% } %>
+          <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-utensils"></i></div><span class="amenity-label"><%= listing.food %></span></div>
+          <% const flatLifestyle = (listing.lifestyle || []).flatMap(l => typeof l === 'string' && l.includes(',') ? l.split(',').map(s => s.trim()).filter(Boolean) : [l]); %>
+          <% flatLifestyle.forEach(function(l){ %>
+            <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-circle-check"></i></div><span class="amenity-label"><%= l %></span></div>
+          <% }) %>
+        </div>
+      </section>
+
+      <!-- LOCATION / MAP (HAVE only) — same map-address-row/map-frame-wrap as PG -->
+      <% if (listing.type === 'HAVE_FLAT') { %>
+        <section class="hv-section" id="location">
+          <h2 class="hv-h2">Location</h2>
+          <p class="fm-map-approx-note">
+            <% if (mapData.precise) { %>
+              <i class="fa-solid fa-location-dot" style="color:var(--green)"></i> Exact location shown on the map.
+            <% } else { %>
+              <i class="fa-solid fa-circle-info"></i> This listing doesn't have a pinned location yet.
+            <% } %>
+          </p>
+
+          <div id="fmMapUnavailable" class="fm-map-unavailable" style="display:none">
+            <i class="fa-solid fa-map"></i>
+            <p>Map is temporarily unavailable.</p>
+            <button onclick="initFlatmateMap()">Retry</button>
+          </div>
+          <div class="map-frame-wrap" id="fmMapFrameWrap" style="height:280px">
+            <div id="flatmateMap" style="width:100%;height:100%"></div>
+          </div>
+
+          <% if (listing.nearbyCache && Object.keys(listing.nearbyCache).length) { %>
+            <div class="fm-nearby-highlights-label">Nearby, at a glance</div>
+            <div class="fm-nearby-highlights">
+              <%
+                const categoryMeta = {
+                  metro: ['🚇','Metro'], hospital: ['🏥','Hospital'], college: ['🎓','College'],
+                  grocery: ['🛒','Grocery'], food: ['🍽️','Food'], pharmacy: ['💊','Pharmacy'],
+                  gym: ['🏋️','Gym'], atm: ['🏧','ATM'], movies: ['🎬','Movies'], clubs: ['🌳','Clubs'],
+                };
+              %>
+              <% Object.keys(categoryMeta).forEach(function(cat) { %>
+                <% const hit = listing.nearbyCache[cat]; %>
+                <% if (hit) { %>
+                  <div class="fm-nearby-highlight-chip" onclick='openRoutePanel(<%- JSON.stringify(Object.assign({}, hit, {category: cat})).replace(/</g,"\\u003c") %>)'>
+                    <span class="fm-nhc-icon"><%= categoryMeta[cat][0] %></span>
+                    <div><div class="fm-nhc-name"><%= categoryMeta[cat][1] %> &middot; <%= hit.name %></div><div class="fm-nhc-dist"><%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' m' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away</div></div>
+                  </div>
+                <% } %>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <div class="fm-nearby-categories">
+            <button class="fm-nearby-cat-btn" data-category="metro" onclick="loadNearby('metro', this)">🚇 Metro</button>
+            <button class="fm-nearby-cat-btn" data-category="hospital" onclick="loadNearby('hospital', this)">🏥 Hospital</button>
+            <button class="fm-nearby-cat-btn" data-category="college" onclick="loadNearby('college', this)">🎓 College</button>
+            <button class="fm-nearby-cat-btn" data-category="grocery" onclick="loadNearby('grocery', this)">🛒 Grocery</button>
+            <button class="fm-nearby-cat-btn" data-category="food" onclick="loadNearby('food', this)">🍽️ Food</button>
+            <button class="fm-nearby-cat-btn" data-category="pharmacy" onclick="loadNearby('pharmacy', this)">💊 Pharmacy</button>
+            <button class="fm-nearby-cat-btn" data-category="gym" onclick="loadNearby('gym', this)">🏋️ Gym</button>
+            <button class="fm-nearby-cat-btn" data-category="atm" onclick="loadNearby('atm', this)">🏧 ATM</button>
+            <button class="fm-nearby-cat-btn" data-category="movies" onclick="loadNearby('movies', this)">🎬 Movies</button>
+            <button class="fm-nearby-cat-btn" data-category="clubs" onclick="loadNearby('clubs', this)">🌳 Clubs</button>
+          </div>
+          <div id="nearbyResults" class="fm-nearby-results" style="display:none"></div>
+
+          <div id="routePanel" class="fm-route-panel" style="display:none">
+            <div class="fm-route-panel-head">
+              <div><div class="fm-route-panel-title">Route to</div><div class="fm-route-panel-dest" id="routeDestName">—</div></div>
+              <button class="fm-route-panel-close" onclick="closeRoutePanel()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="fm-route-mode-tabs">
+              <button class="fm-route-mode-tab active" data-mode="driving" onclick="loadRoute('driving', this)">🚗 Driving</button>
+              <button class="fm-route-mode-tab" data-mode="walking" onclick="loadRoute('walking', this)">🚶 Walking</button>
+              <button class="fm-route-mode-tab" data-mode="transit" onclick="loadRoute('transit', this)">🚌 Transit</button>
+            </div>
+            <div id="routeResult" class="fm-route-result">Loading…</div>
+          </div>
+        </section>
+      <% } %>
+
+
+    </div><!-- /hv-left -->
+
+    <!-- ══ STICKY RIGHT SIDEBAR (same booking-card/host-card as PG) ══ -->
+    <div class="hv-right">
+      <div class="booking-card">
+        <div class="bc-price-row">
+          <% if (listing.type === 'HAVE_FLAT') { %>
+            <div><div class="bc-from">Rent</div><div class="bc-price">₹<%= (listing.have?.rentMonthly || 0).toLocaleString('en-IN') %><span>/month</span></div></div>
+          <% } else { %>
+            <div><div class="bc-from">Budget</div><div class="bc-price">₹<%= (listing.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (listing.need?.budgetMax || 0).toLocaleString('en-IN') %><span>/mo</span></div></div>
+          <% } %>
+        </div>
+
+        <div class="bc-actions">
+          <% if (cta === 'manage') { %>
+            <a class="fm-cta-btn muted" href="/flatmate/my-listings"><i class="fa-solid fa-gear"></i> My Listing</a>
+            <div class="fm-cta-sub">Status: <%= listing.status %></div>
+
+          <% } else if (cta === 'closed') { %>
+            <button class="fm-cta-btn muted" disabled><i class="fa-solid fa-lock"></i> No longer available</button>
+
+          <% } else if (cta === 'blocked') { %>
+            <button class="fm-cta-btn muted" disabled>Unavailable</button>
+
+          <% } else if (cta === 'pending_sent') { %>
+            <button class="fm-cta-btn pending" disabled><i class="fa-solid fa-clock"></i> Request Sent</button>
+            <div class="fm-cta-sub"><button onclick="cancelRequest('<%= connection._id %>')">Cancel Request</button></div>
+
+          <% } else if (cta === 'connected') { %>
+            <% if (conversationId) { %>
+              <a class="fm-cta-btn connected" href="/messages/<%= conversationId %>"><i class="fa-solid fa-comment"></i> Chat Now</a>
+            <% } else { %>
+              <button class="fm-cta-btn connected" disabled><i class="fa-solid fa-circle-check"></i> Connected</button>
+              <div class="fm-cta-sub">Visit Messages to start chatting</div>
+            <% } %>
+
+          <% } else if (!isOwner) { %>
+            <% if (typeof student !== 'undefined' && student) { %>
+              <button class="fm-cta-btn connect" id="connectBtn" onclick="openConnectModal()"><i class="fa-solid fa-paper-plane"></i> Send Request</button>
+            <% } else { %>
+              <a class="fm-cta-btn connect" href="/student/login?next=<%= encodeURIComponent('/flatmate/' + listing.slug) %>"><i class="fa-solid fa-paper-plane"></i> Send Request</a>
+            <% } %>
+          <% } %>
+        </div>
+
+        <div class="bc-trust">
+          <div class="trust-item"><i class="fa-solid fa-circle-check"></i><span>Verified listing</span></div>
+          <div class="trust-item"><i class="fa-solid fa-ban"></i><span>Zero broker fee</span></div>
+        </div>
+        <div class="bc-emi"><i class="fa-solid fa-calendar-days"></i> <%= listing.views || 0 %> views</div>
+      </div>
+
+      <div class="host-card">
+        <h4 class="host-title">Posted by</h4>
+        <div class="host-info">
+          <div class="host-avatar"><%= (listing.student?.firstName || 'H')[0] %></div>
+          <div>
+            <div class="host-name"><%= listing.student?.firstName || 'HostelNode User' %></div>
+            <div class="host-since"><%= new Date(listing.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %></div>
+          </div>
+        </div>
+        <% if (listing.isVerified) { %><span class="htag htag-verified"><i class="fa-solid fa-circle-check"></i> Verified</span><% } %>
+      </div>
+    </div><!-- /hv-right -->
+
+  </div><!-- /hv-container -->
+
+  <!-- Request to Connect modal -->
+  <div class="rc-overlay" id="rcOverlay" onclick="if(event.target===this) closeConnectModal()">
+    <div class="rc-box">
+      <button class="rc-close" onclick="closeConnectModal()"><i class="fa-solid fa-xmark"></i></button>
+      <h3>Request to Connect</h3>
+      <p class="hint">You're requesting to connect with <%= listing.student?.firstName || 'this user' %> about this listing.</p>
+      <div class="rc-summary">
+        <%= listing.type === 'HAVE_FLAT' ? '🏠' : '👤' %> <%= listing.bhk %> BHK &middot; <%= listing.area %>, <%= listing.city %>
+        <% if (listing.type === 'HAVE_FLAT') { %> &middot; ₹<%= (listing.have?.rentMonthly||0).toLocaleString('en-IN') %>/mo<% } %>
+      </div>
+      <div class="rc-field">
+        <textarea id="rcMessage" rows="3" maxlength="500" placeholder="Hi, I'm interested in this listing..."></textarea>
+      </div>
+      <button class="rc-send" id="rcSendBtn" onclick="sendConnectRequest('<%= listing._id %>')">Send Request</button>
+      <div class="rc-alert" id="rcAlert"></div>
+    </div>
+  </div>
+
+<% } %>
+
+<% if (listing) { %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+/* ── LOCATION / MAP ── */
+const LISTING_SLUG = <%- JSON.stringify(listing.slug) %>;
+const MAP_DATA = <%- JSON.stringify(mapData || null) %>;
+const GOOGLE_MAPS_KEY = <%- JSON.stringify(googleMapsApiKey || null) %>;
+let flatmateMap = null;
+let flatmateMarker = null;
+let destMarker = null;
+let routePolyline = null;
+let currentDestination = null;
+let mapLoaded = false;
+
+function showMapUnavailable() {
+  const wrap = document.getElementById('fmMapFrameWrap');
+  if (wrap) wrap.style.display = 'none';
+  const fallback = document.getElementById('fmMapUnavailable');
+  if (fallback) fallback.style.display = 'flex';
+}
+
+function loadGoogleMapsScript() {
+  if (!GOOGLE_MAPS_KEY || !MAP_DATA) { showMapUnavailable(); return; }
+  // If the script fails to load or the key is invalid, Google never calls
+  // our callback — this timeout catches that case so the page never hangs
+  // on a blank map container.
+  setTimeout(function () { if (!mapLoaded) showMapUnavailable(); }, 6000);
+
+  const script = document.createElement('script');
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_MAPS_KEY) + '&libraries=geometry&callback=initFlatmateMap&loading=async';
+  script.async = true;
+  script.onerror = showMapUnavailable;
+  document.head.appendChild(script);
+}
+
+function initFlatmateMap() {
+  mapLoaded = true;
+  const el = document.getElementById('flatmateMap');
+  if (!el || !MAP_DATA) return;
+  flatmateMap = new google.maps.Map(el, {
+    center: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+    zoom: MAP_DATA.zoom,
+    disableDefaultUI: true,
+    zoomControl: true,
+  });
+  flatmateMarker = new google.maps.Marker({
+    position: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+    map: flatmateMap,
+    title: MAP_DATA.precise ? 'This property' : 'Approximate area',
+  });
+  if (!MAP_DATA.precise) {
+    // Visually reinforce that this is an area, not a pinpointed address.
+    new google.maps.Circle({
+      map: flatmateMap,
+      center: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+      radius: 3000,
+      fillColor: '#09b850', fillOpacity: 0.08,
+      strokeColor: '#09b850', strokeOpacity: 0.3, strokeWeight: 1,
+    });
+  }
+}
+window.initFlatmateMap = initFlatmateMap;
+loadGoogleMapsScript();
+
+/* ── NEARBY PLACES ── */
+async function loadNearby(category, btn) {
+  document.querySelectorAll('.fm-nearby-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  closeRoutePanel();
+
+  const box = document.getElementById('nearbyResults');
+  box.style.display = 'block';
+  box.innerHTML = '<div class="fm-nearby-loading">Finding nearby places…</div>';
+
+  try {
+    const res = await fetch('/flatmate/' + LISTING_SLUG + '/nearby?category=' + encodeURIComponent(category));
+    const data = await res.json();
+    if (!data.success) {
+      box.innerHTML = '<div class="fm-nearby-error">' + (data.error || 'Could not load nearby places.') + '</div>';
+      return;
+    }
+    if (!data.places || !data.places.length) {
+      box.innerHTML = '<div class="fm-nearby-empty">No nearby places found in this category.</div>';
+      return;
+    }
+    box.innerHTML = data.places.map(function (p, i) {
+      const distText = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' m' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
+      return '<div class="fm-nearby-result-item" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
+        '<div><div class="fm-nearby-result-name">' + escapeHtml(p.name) + '</div>' +
+        (p.address ? '<div class="fm-nearby-result-addr">' + escapeHtml(p.address) + '</div>' : '') + '</div>' +
+        '<div class="fm-nearby-result-dist">' + distText + '</div></div>';
+    }).join('');
+  } catch (err) {
+    box.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ── ROUTE PANEL ── */
+function openRoutePanel(place) {
+  currentDestination = place;
+  document.getElementById('routePanel').style.display = 'block';
+  document.getElementById('routeDestName').textContent = place.name;
+  document.querySelectorAll('.fm-route-mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.fm-route-mode-tab[data-mode="driving"]').classList.add('active');
+  loadRoute('driving');
+  document.getElementById('routePanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (flatmateMap && place.lat && place.lng) {
+    if (destMarker) destMarker.setMap(null);
+    destMarker = new google.maps.Marker({
+      position: { lat: place.lat, lng: place.lng }, map: flatmateMap,
+      title: place.name, icon: { url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+    });
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: MAP_DATA.lat, lng: MAP_DATA.lng });
+    bounds.extend({ lat: place.lat, lng: place.lng });
+    flatmateMap.fitBounds(bounds);
+  }
+}
+
+function closeRoutePanel() {
+  document.getElementById('routePanel').style.display = 'none';
+  currentDestination = null;
+  if (destMarker) { destMarker.setMap(null); destMarker = null; }
+  if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+}
+
+async function loadRoute(mode, tabBtn) {
+  if (!currentDestination) return;
+  if (tabBtn) {
+    document.querySelectorAll('.fm-route-mode-tab').forEach(t => t.classList.remove('active'));
+    tabBtn.classList.add('active');
+  }
+  const resultEl = document.getElementById('routeResult');
+  resultEl.textContent = 'Loading…';
+
+  try {
+    const res = await fetch('/flatmate/' + LISTING_SLUG + '/route?destLat=' + currentDestination.lat + '&destLng=' + currentDestination.lng + '&mode=' + mode);
+    const data = await res.json();
+    if (!data.success) {
+      resultEl.innerHTML = '<div class="fm-nearby-error">' + (data.error || 'No route available for this mode.') + '</div>';
+      if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+      return;
+    }
+    const km = (data.distanceMeters / 1000).toFixed(1);
+    const mins = Math.round(data.durationSeconds / 60);
+    resultEl.innerHTML = '<div class="fm-route-stat-row">' +
+      '<div class="fm-route-stat"><span class="val">' + km + ' km</span><span class="lbl">Distance</span></div>' +
+      '<div class="fm-route-stat"><span class="val">' + mins + ' min</span><span class="lbl">Duration</span></div>' +
+      '</div>';
+
+    if (flatmateMap && data.polyline && google.maps.geometry) {
+      if (routePolyline) routePolyline.setMap(null);
+      const path = google.maps.geometry.encoding.decodePath(data.polyline);
+      routePolyline = new google.maps.Polyline({ path, strokeColor: '#09b850', strokeWeight: 4, map: flatmateMap });
+    }
+  } catch (err) {
+    resultEl.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
+  }
+}
+
+/* ── PROGRESS NAV: smooth scroll + active-tab tracking ── */
+document.querySelectorAll('.pnav-link').forEach(function (link) {
+  link.addEventListener('click', function (e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (!target) return;
+    const offset = target.getBoundingClientRect().top + window.scrollY - 80;
+    window.scrollTo({ top: offset, behavior: 'smooth' });
+  });
+});
+
+(function () {
+  const pnavLinks = [...document.querySelectorAll('.pnav-link')];
+  const sections = pnavLinks.map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+  if (!sections.length) return;
+  window.addEventListener('scroll', function () {
+    let current = sections[0];
+    sections.forEach(function (s) {
+      if (window.scrollY + 100 >= s.offsetTop) current = s;
+    });
+    pnavLinks.forEach(function (l) {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current.id);
+    });
+  }, { passive: true });
+})();
+
+/* ── GALLERY: slide + dots + touch swipe (replaces old thumbnail-strip click) ── */
+function fmGoToSlide(idx) {
+  const wrap = document.querySelector('.fm-gallery-inner');
+  if (!wrap) return;
+  const slides = wrap.querySelectorAll('.fm-slide');
+  const dots = wrap.querySelectorAll('.fm-dot');
+  if (!slides.length) return;
+  const clamped = (idx + slides.length) % slides.length;
+  slides.forEach(s => s.classList.remove('active'));
+  dots.forEach(d => d.classList.remove('active'));
+  slides[clamped].classList.add('active');
+  if (dots[clamped]) dots[clamped].classList.add('active');
+}
+function fmSlide(dir) {
+  const wrap = document.querySelector('.fm-gallery-inner');
+  if (!wrap) return;
+  const slides = [...wrap.querySelectorAll('.fm-slide')];
+  const idx = slides.findIndex(s => s.classList.contains('active'));
+  fmGoToSlide(idx + dir);
+}
+(function () {
+  const wrap = document.querySelector('[data-swipe-card]');
+  if (!wrap) return;
+  let startX = 0, startY = 0, dragging = false;
+  wrap.addEventListener('touchstart', e => { if (!e.touches[0]) return; startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragging = true; }, { passive: true });
+  wrap.addEventListener('touchmove', e => {
+    if (!dragging || !e.touches[0]) return;
+    const dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) e.preventDefault();
+  }, { passive: false });
+  wrap.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+    const dx = (e.changedTouches[0] ? e.changedTouches[0].clientX : startX) - startX;
+    if (Math.abs(dx) < 30) return;
+    fmSlide(dx < 0 ? 1 : -1);
+  });
+})();
+
+/* ── SCROLL-SPY for the sticky tab nav ── */
+(function () {
+  const sections = [...document.querySelectorAll('.hv-section[id]')];
+  const links = [...document.querySelectorAll('.pnav-link')];
+  if (!sections.length || !links.length) return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const match = links.find(l => l.getAttribute('href') === '#' + entry.target.id);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-40% 0px -50% 0px' });
+  sections.forEach(s => observer.observe(s));
+})();
+
+async function toggleDetailSave(e, btn, listingId) {
+  e.stopPropagation();
+  try {
+    const res = await fetch('/student/saved/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingType: 'flatmate', listingId }),
+    });
+    if (res.redirected || res.status === 401) {
+      window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    const data = await res.json();
+    if (data.success) {
+      btn.classList.toggle('saved', data.saved);
+      btn.setAttribute('aria-pressed', data.saved ? 'true' : 'false');
+      btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+    }
+  } catch (err) { /* silent — non-critical action */ }
+}
+
+function openConnectModal() {
+  document.getElementById('rcOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeConnectModal() {
+  document.getElementById('rcOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Cards elsewhere on the site (Featured, search results) link "Request to
+// Talk" to /flatmate/<slug>#request — land here with the connect modal
+// already open, instead of the hash doing nothing.
+if (window.location.hash === '#request' && document.getElementById('connectBtn')) {
+  openConnectModal();
+}
+
+async function sendConnectRequest(listingId) {
+  const btn = document.getElementById('rcSendBtn');
+  const alertBox = document.getElementById('rcAlert');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'Sending…';
+  try {
+    const res = await fetch('/flatmate/connect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId, message: document.getElementById('rcMessage').value.trim() }),
+    });
+    if (res.status === 302 || res.redirected) {
+      window.location.href = '/student/login?next=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    const data = await res.json();
+    btn.disabled = false; btn.innerHTML = original;
+    if (data.success) {
+      closeConnectModal();
+      window.location.reload();
+    } else {
+      alertBox.textContent = data.error || 'Something went wrong.';
+      alertBox.classList.add('show');
+    }
+  } catch (err) {
+    btn.disabled = false; btn.innerHTML = original;
+    alertBox.textContent = 'Network error — please try again.';
+    alertBox.classList.add('show');
+  }
+}
+
+async function cancelRequest(connectionId) {
+  if (!confirm('Cancel this request?')) return;
+  try {
+    const res = await fetch('/flatmate/connection/' + connectionId + '/cancel', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) window.location.reload();
+    else alert(data.error || 'Could not cancel request.');
+  } catch (err) {
+    alert('Network error — please try again.');
+  }
+}
+</script>
+<% } %>
+</body>
+<!-- listing-detail.ejs — HostelNode Flatmate listing detail
+     Visually rebuilt to match views/listings/hostel-view.ejs exactly —
+     reuses /css/hostel-view1.css's real classes (hv-container, hv-section,
+     hv-h2, amenities-grid, booking-card, host-card, progress-nav, map-*)
+     rather than a separate visual system, per the master-reference spec. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <% if (listing) { %>
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
+    <link rel="canonical" href="<%= seo.canonical %>">
+    <meta name="robots" content="<%= listing.status === 'ACTIVE' ? 'index, follow' : 'noindex, follow' %>">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<%= seo.title %>">
+    <meta property="og:description" content="<%= seo.description %>">
+    <meta property="og:url" content="<%= seo.canonical %>">
+  <% } else { %>
+    <title>Listing Not Found | HostelNode</title>
+    <meta name="robots" content="noindex, follow">
+  <% } %>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <!-- SAME master stylesheet the PG/Hostel detail page uses — this is what
+       gives real, exact visual parity (not an approximation). -->
+  <link rel="stylesheet" href="/css/hostel-view1.css">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/flatmate-listing-detail.css">
+</head>
+<body>
+
+<%- include("../includes/navbar-user.ejs") %>
+
+<% if (!listing) { %>
+  <div class="fm-not-found">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <h2>Listing not found</h2>
+    <p style="color:var(--muted);font-size:0.85rem">This listing may have been removed or the link is incorrect.</p>
+    <a href="/flatmate" style="color:var(--green-dark);font-weight:700">&larr; Back to Flatmate</a>
+  </div>
+<% } else { %>
+
+  <!-- ══ GALLERY (same band/height/radius as PG's gallery-section) ══ -->
+  <section class="fm-gallery-section">
+    <div class="fm-gallery-inner" data-swipe-card>
+      <% if (listing.type === 'HAVE_FLAT' && listing.images && listing.images.length) { %>
+        <% listing.images.forEach(function(img, si) { %>
+          <div class="fm-slide <%= si===0?'active':'' %>"><img id="<%= si===0?'galleryMainImg':'' %>" src="/flatmate-images/<%= img %>" alt="<%= listing.bhk %> BHK <%= listing.roomType %> in <%= listing.area %>, <%= listing.city %>"></div>
+        <% }) %>
+        <% if (listing.images.length > 1) { %>
+          <button class="fm-slide-btn prev" onclick="fmSlide(-1)" aria-label="Previous photo"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="fm-slide-btn next" onclick="fmSlide(1)" aria-label="Next photo"><i class="fa-solid fa-chevron-right"></i></button>
+          <div class="fm-slide-dots"><% listing.images.forEach(function(_, di) { %><span class="fm-dot <%= di===0?'active':'' %>"></span><% }) %></div>
+        <% } %>
+      <% } else if (listing.type === 'HAVE_FLAT') { %>
+        <div class="fm-slide active"><img src="/images/placeholder.jpg" alt="<%= listing.bhk %> BHK <%= listing.roomType %>"></div>
+      <% } else { %>
+        <div class="fm-need-placeholder"><i class="fa-solid fa-magnifying-glass"></i><span>Looking for a flat</span></div>
+      <% } %>
+      <span class="fm-gallery-badge <%= listing.type === 'HAVE_FLAT' ? 'have' : 'need' %>"><%= listing.type === 'HAVE_FLAT' ? '🏠 FLAT' : '👤 FLATMATE' %></span>
+      <% if (!isOwner) { %>
+        <button class="fm-gallery-save <%= isSaved ? 'saved' : '' %>" onclick="toggleDetailSave(event, this, '<%= listing._id %>')" aria-label="Save to properties" aria-pressed="<%= isSaved ? 'true' : 'false' %>">
+          <i class="fa-<%= isSaved ? 'solid' : 'regular' %> fa-heart" aria-hidden="true"></i>
+        </button>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- ══ STICKY TAB NAV (same as PG's progress-nav) ══ -->
+  <div class="progress-nav visible" id="progressNav">
+    <a href="#overview" class="pnav-link active">Overview</a>
+    <a href="#details" class="pnav-link">Details</a>
+    <% if (listing.type === 'HAVE_FLAT') { %><a href="#amenities" class="pnav-link">Amenities</a><% } %>
+    <a href="#preferences" class="pnav-link">Preferences</a>
+    <% if (listing.type === 'HAVE_FLAT') { %><a href="#location" class="pnav-link">Location</a><% } %>
+  </div>
+
+  <!-- ══ MAIN LAYOUT (same hv-container/hv-left/hv-right grid as PG) ══ -->
+  <div class="hv-container">
+    <div class="hv-left">
+
+      <!-- OVERVIEW -->
+      <section class="hv-section" id="overview">
+        <div class="title-row">
+          <div>
+            <div class="title-tags">
+              <span class="htag htag-type"><i class="fa-solid <%= listing.type === 'HAVE_FLAT' ? 'fa-house' : 'fa-magnifying-glass' %>"></i> <%= listing.type === 'HAVE_FLAT' ? 'Flat Available' : 'Flatmate Wanted' %></span>
+              <span class="htag htag-gender"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i> <%= listing.gender === 'any' ? 'No Preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span>
+              <% if (listing.isVerified) { %><span class="htag htag-verified"><i class="fa-solid fa-shield-halved"></i> Verified</span><% } %>
+            </div>
+            <h1 class="hv-title"><%= listing.bhk %> BHK &middot; <%= listing.roomType %></h1>
+            <div class="hv-loc"><i class="fa-solid fa-location-dot"></i> <%= listing.area %>, <%= listing.city %></div>
+          </div>
+        </div>
+
+        <% if (listing.description || listing.need?.intro) { %>
+          <div class="about-block" style="margin-top:18px">
+            <h2 class="hv-h2" style="font-size:1rem;margin-bottom:8px"><%= listing.type === 'HAVE_FLAT' ? 'About this listing' : 'About this person' %></h2>
+            <p class="about-text" style="font-size:0.88rem;color:var(--ink-mid);line-height:1.6"><%= listing.description || listing.need.intro %></p>
+          </div>
+        <% } %>
+      </section>
+
+      <!-- DETAILS -->
+      <section class="hv-section" id="details">
+        <h2 class="hv-h2">Details</h2>
+        <div class="quick-stats">
+          <% if (listing.type === 'HAVE_FLAT') { %>
+            <div class="qstat"><i class="fa-solid fa-key"></i><div><div class="qstat-val"><%= listing.have?.availabilityType || '—' %></div><div class="qstat-label"><%= listing.have?.availableSpots || 1 %> spot(s)</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-couch"></i><div><div class="qstat-val"><%= listing.have?.furnishing || 'Not specified' %></div><div class="qstat-label">Furnishing</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-calendar-check"></i><div><div class="qstat-val"><%= listing.have?.availableFromMode === 'now' ? 'Now' : (listing.have?.availableFromDate ? new Date(listing.have.availableFromDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Flexible') %></div><div class="qstat-label">Available from</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-indian-rupee-sign"></i><div><div class="qstat-val"><%= listing.have?.depositNegotiable ? 'Negotiable' : ('₹' + (listing.have?.depositAmount || 0).toLocaleString('en-IN')) %></div><div class="qstat-label">Deposit</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-file-invoice"></i><div><div class="qstat-val"><%= listing.have?.maintenance %></div><div class="qstat-label">Maintenance<%= listing.have?.maintenance === 'Separate' && listing.have?.maintenanceAmount ? ' — ₹' + listing.have.maintenanceAmount.toLocaleString('en-IN') : '' %></div></div></div>
+            <% if (listing.have?.occupantsCount) { %><div class="qstat"><i class="fa-solid fa-users"></i><div><div class="qstat-val"><%= listing.have.occupantsCount %></div><div class="qstat-label"><%= listing.have.occupantsType || 'Current occupants' %></div></div></div><% } %>
+          <% } else { %>
+            <div class="qstat"><i class="fa-solid fa-key"></i><div><div class="qstat-val"><%= listing.need?.needType || '—' %></div><div class="qstat-label">Looking for</div></div></div>
+            <% const moveInLabels = { immediate:'Immediately', '15days':'Within 15 days', '1month':'Within 1 month' }; %>
+            <div class="qstat"><i class="fa-solid fa-calendar-check"></i><div><div class="qstat-val"><%= moveInLabels[listing.need?.moveInMode] || (listing.need?.moveInDate ? new Date(listing.need.moveInDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Flexible') %></div><div class="qstat-label">Move-in</div></div></div>
+            <div class="qstat"><i class="fa-solid fa-indian-rupee-sign"></i><div><div class="qstat-val"><%= listing.need?.depositPreference || 'Flexible' %></div><div class="qstat-label">Deposit preference</div></div></div>
+            <% if (listing.need?.preferredAreas && listing.need.preferredAreas.length > 1) { %><div class="qstat"><i class="fa-solid fa-map-location-dot"></i><div><div class="qstat-val"><%= listing.need.preferredAreas.slice(1).join(', ') %></div><div class="qstat-label">Also considering</div></div></div><% } %>
+          <% } %>
+        </div>
+      </section>
+
+      <!-- AMENITIES (HAVE only) — same amenities-grid/amenity-item/icon as PG -->
+      <% if (listing.type === 'HAVE_FLAT' && listing.have?.amenities && listing.have.amenities.length) { %>
+        <%
+          const amenityIcons = {
+            'WiFi': 'wifi', 'AC': 'snowflake', 'Washing Machine': 'shirt', 'Geyser': 'fire-flame-simple',
+            'Refrigerator': 'kitchen-set', 'Bed': 'bed', 'Wardrobe': 'box-archive', 'Study Table': 'book',
+            'Sofa': 'couch', 'Dining Table': 'utensils', 'TV': 'tv', 'Microwave': 'kitchen-set',
+            'RO Water': 'droplet', 'Power Backup': 'bolt', 'Lift': 'elevator', 'Parking': 'car',
+            'CCTV': 'camera', 'Security': 'shield-halved', 'Balcony': 'building', 'Gym': 'dumbbell',
+            'Swimming Pool': 'person-swimming', 'Housekeeping': 'broom',
+          };
+          // Defensive: some existing listings were saved before the
+          // amenity-chip bug fix, with multiple values joined into one
+          // comma-string stored as a single array element. Flatten those
+          // here so they display correctly without needing a re-save.
+          const flatAmenities = listing.have.amenities.flatMap(a => typeof a === 'string' && a.includes(',') ? a.split(',').map(s => s.trim()).filter(Boolean) : [a]);
+        %>
+        <section class="hv-section" id="amenities">
+          <h2 class="hv-h2">Amenities</h2>
+          <div class="amenities-grid">
+            <% flatAmenities.forEach(function(a){ %>
+              <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-<%= amenityIcons[a] || 'check' %>"></i></div><span class="amenity-label"><%= a %></span></div>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <!-- PREFERENCES -->
+      <section class="hv-section" id="preferences">
+        <h2 class="hv-h2">Flatmate Preferences</h2>
+        <div class="amenities-grid">
+          <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i></div><span class="amenity-label"><%= listing.gender === 'any' ? 'No gender preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span></div>
+          <% if (listing.occupation) { %><div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-briefcase"></i></div><span class="amenity-label"><%= listing.occupation %></span></div><% } %>
+          <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-utensils"></i></div><span class="amenity-label"><%= listing.food %></span></div>
+          <% const flatLifestyle = (listing.lifestyle || []).flatMap(l => typeof l === 'string' && l.includes(',') ? l.split(',').map(s => s.trim()).filter(Boolean) : [l]); %>
+          <% flatLifestyle.forEach(function(l){ %>
+            <div class="amenity-item"><div class="amenity-icon"><i class="fa-solid fa-circle-check"></i></div><span class="amenity-label"><%= l %></span></div>
+          <% }) %>
+        </div>
+      </section>
+
+      <!-- LOCATION / MAP (HAVE only) — same map-address-row/map-frame-wrap as PG -->
+      <% if (listing.type === 'HAVE_FLAT') { %>
+        <section class="hv-section" id="location">
+          <h2 class="hv-h2">Location</h2>
+          <p class="fm-map-approx-note">
+            <% if (mapData.precise) { %>
+              <i class="fa-solid fa-location-dot" style="color:var(--green)"></i> Exact location shown on the map.
+            <% } else { %>
+              <i class="fa-solid fa-circle-info"></i> This listing doesn't have a pinned location yet.
+            <% } %>
+          </p>
+
+          <div id="fmMapUnavailable" class="fm-map-unavailable" style="display:none">
+            <i class="fa-solid fa-map"></i>
+            <p>Map is temporarily unavailable.</p>
+            <button onclick="initFlatmateMap()">Retry</button>
+          </div>
+          <div class="map-frame-wrap" id="fmMapFrameWrap" style="height:280px">
+            <div id="flatmateMap" style="width:100%;height:100%"></div>
+          </div>
+
+          <% if (listing.nearbyCache && Object.keys(listing.nearbyCache).length) { %>
+            <div class="fm-nearby-highlights-label">Nearby, at a glance</div>
+            <div class="fm-nearby-highlights">
+              <%
+                const categoryMeta = {
+                  metro: ['🚇','Metro'], hospital: ['🏥','Hospital'], college: ['🎓','College'],
+                  grocery: ['🛒','Grocery'], food: ['🍽️','Food'], pharmacy: ['💊','Pharmacy'],
+                  gym: ['🏋️','Gym'], atm: ['🏧','ATM'], movies: ['🎬','Movies'], clubs: ['🌳','Clubs'],
+                };
+              %>
+              <% Object.keys(categoryMeta).forEach(function(cat) { %>
+                <% const hit = listing.nearbyCache[cat]; %>
+                <% if (hit) { %>
+                  <div class="fm-nearby-highlight-chip" onclick='openRoutePanel(<%- JSON.stringify(Object.assign({}, hit, {category: cat})).replace(/</g,"\\u003c") %>)'>
+                    <span class="fm-nhc-icon"><%= categoryMeta[cat][0] %></span>
+                    <div><div class="fm-nhc-name"><%= categoryMeta[cat][1] %> &middot; <%= hit.name %></div><div class="fm-nhc-dist"><%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' m' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away</div></div>
+                  </div>
+                <% } %>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <div class="fm-nearby-categories">
+            <button class="fm-nearby-cat-btn" data-category="metro" onclick="loadNearby('metro', this)">🚇 Metro</button>
+            <button class="fm-nearby-cat-btn" data-category="hospital" onclick="loadNearby('hospital', this)">🏥 Hospital</button>
+            <button class="fm-nearby-cat-btn" data-category="college" onclick="loadNearby('college', this)">🎓 College</button>
+            <button class="fm-nearby-cat-btn" data-category="grocery" onclick="loadNearby('grocery', this)">🛒 Grocery</button>
+            <button class="fm-nearby-cat-btn" data-category="food" onclick="loadNearby('food', this)">🍽️ Food</button>
+            <button class="fm-nearby-cat-btn" data-category="pharmacy" onclick="loadNearby('pharmacy', this)">💊 Pharmacy</button>
+            <button class="fm-nearby-cat-btn" data-category="gym" onclick="loadNearby('gym', this)">🏋️ Gym</button>
+            <button class="fm-nearby-cat-btn" data-category="atm" onclick="loadNearby('atm', this)">🏧 ATM</button>
+            <button class="fm-nearby-cat-btn" data-category="movies" onclick="loadNearby('movies', this)">🎬 Movies</button>
+            <button class="fm-nearby-cat-btn" data-category="clubs" onclick="loadNearby('clubs', this)">🌳 Clubs</button>
+          </div>
+          <div id="nearbyResults" class="fm-nearby-results" style="display:none"></div>
+
+          <div id="routePanel" class="fm-route-panel" style="display:none">
+            <div class="fm-route-panel-head">
+              <div><div class="fm-route-panel-title">Route to</div><div class="fm-route-panel-dest" id="routeDestName">—</div></div>
+              <button class="fm-route-panel-close" onclick="closeRoutePanel()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="fm-route-mode-tabs">
+              <button class="fm-route-mode-tab active" data-mode="driving" onclick="loadRoute('driving', this)">🚗 Driving</button>
+              <button class="fm-route-mode-tab" data-mode="walking" onclick="loadRoute('walking', this)">🚶 Walking</button>
+              <button class="fm-route-mode-tab" data-mode="transit" onclick="loadRoute('transit', this)">🚌 Transit</button>
+            </div>
+            <div id="routeResult" class="fm-route-result">Loading…</div>
+          </div>
+        </section>
+      <% } %>
+
+
+    </div><!-- /hv-left -->
+
+    <!-- ══ STICKY RIGHT SIDEBAR (same booking-card/host-card as PG) ══ -->
+    <div class="hv-right">
+      <div class="booking-card">
+        <div class="bc-price-row">
+          <% if (listing.type === 'HAVE_FLAT') { %>
+            <div><div class="bc-from">Rent</div><div class="bc-price">₹<%= (listing.have?.rentMonthly || 0).toLocaleString('en-IN') %><span>/month</span></div></div>
+          <% } else { %>
+            <div><div class="bc-from">Budget</div><div class="bc-price">₹<%= (listing.need?.budgetMin || 0).toLocaleString('en-IN') %>&ndash;₹<%= (listing.need?.budgetMax || 0).toLocaleString('en-IN') %><span>/mo</span></div></div>
+          <% } %>
+        </div>
+
+        <div class="bc-actions">
+          <% if (cta === 'manage') { %>
+            <a class="fm-cta-btn muted" href="/flatmate/my-listings"><i class="fa-solid fa-gear"></i> My Listing</a>
+            <div class="fm-cta-sub">Status: <%= listing.status %></div>
+
+          <% } else if (cta === 'closed') { %>
+            <button class="fm-cta-btn muted" disabled><i class="fa-solid fa-lock"></i> No longer available</button>
+
+          <% } else if (cta === 'blocked') { %>
+            <button class="fm-cta-btn muted" disabled>Unavailable</button>
+
+          <% } else if (cta === 'pending_sent') { %>
+            <button class="fm-cta-btn pending" disabled><i class="fa-solid fa-clock"></i> Request Sent</button>
+            <div class="fm-cta-sub"><button onclick="cancelRequest('<%= connection._id %>')">Cancel Request</button></div>
+
+          <% } else if (cta === 'connected') { %>
+            <% if (conversationId) { %>
+              <a class="fm-cta-btn connected" href="/messages/<%= conversationId %>"><i class="fa-solid fa-comment"></i> Chat Now</a>
+            <% } else { %>
+              <button class="fm-cta-btn connected" disabled><i class="fa-solid fa-circle-check"></i> Connected</button>
+              <div class="fm-cta-sub">Visit Messages to start chatting</div>
+            <% } %>
+
+          <% } else if (!isOwner) { %>
+            <% if (typeof student !== 'undefined' && student) { %>
+              <button class="fm-cta-btn connect" id="connectBtn" onclick="openConnectModal()"><i class="fa-solid fa-paper-plane"></i> Send Request</button>
+            <% } else { %>
+              <a class="fm-cta-btn connect" href="/student/login?next=<%= encodeURIComponent('/flatmate/' + listing.slug) %>"><i class="fa-solid fa-paper-plane"></i> Send Request</a>
+            <% } %>
+          <% } %>
+        </div>
+
+        <div class="bc-trust">
+          <div class="trust-item"><i class="fa-solid fa-circle-check"></i><span>Verified listing</span></div>
+          <div class="trust-item"><i class="fa-solid fa-ban"></i><span>Zero broker fee</span></div>
+        </div>
+        <div class="bc-emi"><i class="fa-solid fa-calendar-days"></i> <%= listing.views || 0 %> views</div>
+      </div>
+
+      <div class="host-card">
+        <h4 class="host-title">Posted by</h4>
+        <div class="host-info">
+          <div class="host-avatar"><%= (listing.student?.firstName || 'H')[0] %></div>
+          <div>
+            <div class="host-name"><%= listing.student?.firstName || 'HostelNode User' %></div>
+            <div class="host-since"><%= new Date(listing.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %></div>
+          </div>
+        </div>
+        <% if (listing.isVerified) { %><span class="htag htag-verified"><i class="fa-solid fa-circle-check"></i> Verified</span><% } %>
+      </div>
+    </div><!-- /hv-right -->
+
+  </div><!-- /hv-container -->
+
+  <!-- Request to Connect modal -->
+  <div class="rc-overlay" id="rcOverlay" onclick="if(event.target===this) closeConnectModal()">
+    <div class="rc-box">
+      <button class="rc-close" onclick="closeConnectModal()"><i class="fa-solid fa-xmark"></i></button>
+      <h3>Request to Connect</h3>
+      <p class="hint">You're requesting to connect with <%= listing.student?.firstName || 'this user' %> about this listing.</p>
+      <div class="rc-summary">
+        <%= listing.type === 'HAVE_FLAT' ? '🏠' : '👤' %> <%= listing.bhk %> BHK &middot; <%= listing.area %>, <%= listing.city %>
+        <% if (listing.type === 'HAVE_FLAT') { %> &middot; ₹<%= (listing.have?.rentMonthly||0).toLocaleString('en-IN') %>/mo<% } %>
+      </div>
+      <div class="rc-field">
+        <textarea id="rcMessage" rows="3" maxlength="500" placeholder="Hi, I'm interested in this listing..."></textarea>
+      </div>
+      <button class="rc-send" id="rcSendBtn" onclick="sendConnectRequest('<%= listing._id %>')">Send Request</button>
+      <div class="rc-alert" id="rcAlert"></div>
+    </div>
+  </div>
+
+<% } %>
+
+<% if (listing) { %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+/* ── LOCATION / MAP ── */
+const LISTING_SLUG = <%- JSON.stringify(listing.slug) %>;
+const MAP_DATA = <%- JSON.stringify(mapData || null) %>;
+const GOOGLE_MAPS_KEY = <%- JSON.stringify(googleMapsApiKey || null) %>;
+let flatmateMap = null;
+let flatmateMarker = null;
+let destMarker = null;
+let routePolyline = null;
+let currentDestination = null;
+let mapLoaded = false;
+
+function showMapUnavailable() {
+  const wrap = document.getElementById('fmMapFrameWrap');
+  if (wrap) wrap.style.display = 'none';
+  const fallback = document.getElementById('fmMapUnavailable');
+  if (fallback) fallback.style.display = 'flex';
+}
+
+function loadGoogleMapsScript() {
+  if (!GOOGLE_MAPS_KEY || !MAP_DATA) { showMapUnavailable(); return; }
+  // If the script fails to load or the key is invalid, Google never calls
+  // our callback — this timeout catches that case so the page never hangs
+  // on a blank map container.
+  setTimeout(function () { if (!mapLoaded) showMapUnavailable(); }, 6000);
+
+  const script = document.createElement('script');
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_MAPS_KEY) + '&libraries=geometry&callback=initFlatmateMap&loading=async';
+  script.async = true;
+  script.onerror = showMapUnavailable;
+  document.head.appendChild(script);
+}
+
+function initFlatmateMap() {
+  mapLoaded = true;
+  const el = document.getElementById('flatmateMap');
+  if (!el || !MAP_DATA) return;
+  flatmateMap = new google.maps.Map(el, {
+    center: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+    zoom: MAP_DATA.zoom,
+    disableDefaultUI: true,
+    zoomControl: true,
+  });
+  flatmateMarker = new google.maps.Marker({
+    position: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+    map: flatmateMap,
+    title: MAP_DATA.precise ? 'This property' : 'Approximate area',
+  });
+  if (!MAP_DATA.precise) {
+    // Visually reinforce that this is an area, not a pinpointed address.
+    new google.maps.Circle({
+      map: flatmateMap,
+      center: { lat: MAP_DATA.lat, lng: MAP_DATA.lng },
+      radius: 3000,
+      fillColor: '#09b850', fillOpacity: 0.08,
+      strokeColor: '#09b850', strokeOpacity: 0.3, strokeWeight: 1,
+    });
+  }
+}
+window.initFlatmateMap = initFlatmateMap;
+loadGoogleMapsScript();
+
+/* ── NEARBY PLACES ── */
+async function loadNearby(category, btn) {
+  document.querySelectorAll('.fm-nearby-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  closeRoutePanel();
+
+  const box = document.getElementById('nearbyResults');
+  box.style.display = 'block';
+  box.innerHTML = '<div class="fm-nearby-loading">Finding nearby places…</div>';
+
+  try {
+    const res = await fetch('/flatmate/' + LISTING_SLUG + '/nearby?category=' + encodeURIComponent(category));
+    const data = await res.json();
+    if (!data.success) {
+      box.innerHTML = '<div class="fm-nearby-error">' + (data.error || 'Could not load nearby places.') + '</div>';
+      return;
+    }
+    if (!data.places || !data.places.length) {
+      box.innerHTML = '<div class="fm-nearby-empty">No nearby places found in this category.</div>';
+      return;
+    }
+    box.innerHTML = data.places.map(function (p, i) {
+      const distText = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' m' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
+      return '<div class="fm-nearby-result-item" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
+        '<div><div class="fm-nearby-result-name">' + escapeHtml(p.name) + '</div>' +
+        (p.address ? '<div class="fm-nearby-result-addr">' + escapeHtml(p.address) + '</div>' : '') + '</div>' +
+        '<div class="fm-nearby-result-dist">' + distText + '</div></div>';
     }).join('');
   } catch (err) {
     box.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
