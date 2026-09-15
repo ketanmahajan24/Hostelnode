@@ -17,6 +17,30 @@
     <meta property="og:title" content="<%= seo.title %>">
     <meta property="og:description" content="<%= seo.description %>">
     <meta property="og:url" content="<%= seo.canonical %>">
+    <% if (listing.status === 'ACTIVE') { %>
+      <!-- Structured data for search engines. Built with JSON.stringify()
+           for every field (not raw string interpolation) so a description
+           or area name containing a quote can never produce broken/invalid
+           JSON — a real risk in string-concatenated JSON-LD. Deliberately
+           excludes phone/contact/exact-address fields: those aren't shown
+           on the page itself, so they must not leak into a public,
+           search-engine-crawled script tag either. -->
+      <script type="application/ld+json">
+      <%- JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "RealEstateListing",
+        "name": (listing.bhk + " BHK " + listing.roomType + " in " + listing.area + ", " + listing.city),
+        "description": (listing.description || (listing.type === 'HAVE_FLAT' ? "Flat available for flatmates in " + listing.area : "Looking for a flat/flatmate in " + listing.area)),
+        "url": seo.canonical,
+        "datePosted": listing.createdAt,
+        "address": { "@type": "PostalAddress", "addressLocality": listing.area, "addressRegion": listing.city, "addressCountry": "IN" },
+        ...(listing.type === 'HAVE_FLAT' && listing.have?.rentMonthly ? {
+          "offers": { "@type": "Offer", "price": listing.have.rentMonthly, "priceCurrency": "INR", "availability": "https://schema.org/InStock" }
+        } : {}),
+        ...(listing.images && listing.images.length ? { "image": "https://hostelnode.com/flatmate-images/" + listing.images[0] } : {}),
+      }) %>
+      </script>
+    <% } %>
   <% } else { %>
     <title>Listing Not Found | HostelNode</title>
     <meta name="robots" content="noindex, follow">
@@ -91,6 +115,9 @@
               <span class="htag htag-type"><i class="fa-solid <%= listing.type === 'HAVE_FLAT' ? 'fa-house' : 'fa-magnifying-glass' %>"></i> <%= listing.type === 'HAVE_FLAT' ? 'Flat Available' : 'Flatmate Wanted' %></span>
               <span class="htag htag-gender"><i class="fa-solid fa-<%= listing.gender === 'any' ? 'venus-mars' : (listing.gender === 'male' ? 'mars' : 'venus') %>"></i> <%= listing.gender === 'any' ? 'No Preference' : (listing.gender === 'male' ? 'Male' : 'Female') %></span>
               <% if (listing.isVerified) { %><span class="htag htag-verified"><i class="fa-solid fa-shield-halved"></i> Verified</span><% } %>
+              <button class="hn-share-nav" onclick="shareFlatmateListing()" title="Share" aria-label="Share this listing">
+                <i class="fa-solid fa-share-nodes"></i><span>Share</span>
+              </button>
             </div>
             <h1 class="hv-title"><%= listing.bhk %> BHK &middot; <%= listing.roomType %></h1>
             <div class="hv-loc"><i class="fa-solid fa-location-dot"></i> <%= listing.area %>, <%= listing.city %></div>
@@ -671,6 +698,21 @@ async function toggleDetailSave(e, btn, listingId) {
       btn.querySelector('i').className = data.saved ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
     }
   } catch (err) { /* silent — non-critical action */ }
+}
+
+/* ── Share (same pattern as PG/Hostel's shareHostel(), reused not
+   reinvented — Web Share API where available, WhatsApp link fallback) ── */
+function shareFlatmateListing() {
+  const url = window.location.href;
+  const text = <%- JSON.stringify((listing.type === 'HAVE_FLAT' ? '🏠 ' + listing.bhk + ' BHK in ' + listing.area : '👤 Looking for a flat in ' + listing.area) + ' on HostelNode') %>;
+
+  if (navigator.share) {
+    navigator.share({ title: document.title, text, url })
+      .then(() => console.log('Shared successfully'))
+      .catch((err) => console.log('Share cancelled', err));
+  } else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank');
+  }
 }
 
 /* ── Trust & Safety accordion ── */
