@@ -156,6 +156,36 @@ router.post("/connection/:id/accept", requireStudent, async (req, res) => {
         connection: connection._id,
         status: "active",
       });
+
+      // The requester's original "Request to Connect" message was, until
+      // now, only ever stored on the FlatmateConnection itself — it never
+      // became a real Message, so it silently vanished once the chat
+      // opened (issue: request message never appears in the conversation).
+      // Carry it over as this conversation's first message, exactly once
+      // (only in this "conversation didn't exist yet" branch, never on a
+      // re-fetch), so the requester's "Hi, I'm interested..." shows up as
+      // a normal chat bubble instead of being lost. Stamped with the
+      // ORIGINAL request time (connection.createdAt), not the moment of
+      // acceptance, so the timeline reads correctly (they wrote it then,
+      // not just now).
+      const requestText = (connection.message || "").trim();
+      if (requestText) {
+        const firstMessage = new Message({
+          conversation: conversation._id,
+          sender: connection.requester,
+          text: requestText,
+          createdAt: connection.createdAt,
+        });
+        await firstMessage.save();
+
+        conversation.lastMessage = requestText.slice(0, 140);
+        conversation.lastMessageAt = connection.createdAt;
+        // Not counted as unread for the receiver — they already read this
+        // exact text on the request they just chose to accept, so a "1
+        // unread" badge the instant the conversation opens would be
+        // misleading rather than helpful.
+        await conversation.save();
+      }
     }
 
     Notification.create({
