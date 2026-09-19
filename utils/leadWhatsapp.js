@@ -17,11 +17,21 @@ function formatPhone(phone) {
 
 // ============================================================
 //  sendTemplateMessage — Meta approved templates only
+//
+//  languageCode: Meta treats each template's language as a distinct
+//  translation — "en" and "en_US" are NOT interchangeable, and asking
+//  for a language a template wasn't approved under fails with API
+//  error 132001 ("template name does not exist in the translation"),
+//  even though the template genuinely exists. Defaults to "en" to
+//  keep every pre-existing caller of this function working exactly as
+//  before; callers whose template was approved under a specific
+//  language (check the "Language" column in WhatsApp Manager) must
+//  pass that exact code.
 // ============================================================
-async function sendTemplateMessage(phone, templateName, variables, headerImageUrl = null) {
+async function sendTemplateMessage(phone, templateName, variables, headerImageUrl = null, languageCode = "en") {
   try {
     const fullPhone = formatPhone(phone);
-    console.log(`🔵 Template [${templateName}] → ${fullPhone}`, variables);
+    console.log(`🔵 Template [${templateName}] (${languageCode}) → ${fullPhone}`, variables);
 
     // Build components array
     const components = [];
@@ -51,7 +61,7 @@ async function sendTemplateMessage(phone, templateName, variables, headerImageUr
       type: "template",
       template: {
         name:       templateName,
-        language:   { code: "en" },
+        language:   { code: languageCode },
         components
       }
     }, {

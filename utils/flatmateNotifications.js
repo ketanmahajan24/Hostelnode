@@ -58,23 +58,50 @@ function waSender() {
    `type` enum. whatsapp is either null ("no approved template — in-app
    only") or a () => templateName function reading from env (mirrors
    the existing FLATMATE_WA_TEMPLATES pattern in flatmateRoutes.js).
+
+   language — REQUIRED alongside whatsapp, and must match that exact
+   template's "Language" column in WhatsApp Manager. Meta treats "en"
+   and "en_US" as different translations of the same template name; a
+   mismatch fails with API error 132001 ("template name does not exist
+   in the translation") even when the template is genuinely approved.
+   This bit us in production: hostelnode_flatmate_accepted and
+   hostelnode_flatmate_removed were both approved as English (US) —
+   en_US — but the send code was hardcoded to "en". Every entry below
+   is overridable via its own env var so a template's language can be
+   corrected without a code change if Meta's UI shows something
+   different than what's set here.
 ──────────────────────────────────────────────────────────── */
 const EVENTS = {
   // Someone sends a connection request → notify the listing owner.
   CONNECTION_REQUEST_RECEIVED: {
     notificationType: "FLATMATE_CONNECTION_REQUEST",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_REQUEST || "hostelnode_flatmate_request",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_REQUEST_LANG || "en",
   },
   // A request is accepted → notify the requester.
+  // Production log showed this failing under "en" (132001) — set to
+  // en_US to match; CONFIRM against WhatsApp Manager's Language column
+  // and override via WA_TEMPLATE_FLATMATE_ACCEPTED_LANG if different.
   CONNECTION_REQUEST_ACCEPTED: {
     notificationType: "FLATMATE_REQUEST_ACCEPTED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_ACCEPTED || "hostelnode_flatmate_accepted",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_ACCEPTED_LANG || "en_US",
   },
   // A request is declined → notify the requester.
   // Template: WA_TEMPLATE_FLATMATE_DECLINED — 1 var: listing summary.
+  // NOTE: as of 20 Sep 2026 this template was auto-reclassified by
+  // Meta from Utility to Marketing (visible in WhatsApp Manager's
+  // "needs your attention" banner) — likely the "Explore more
+  // listings" line read as promotional. A Marketing-category template
+  // needs recipient opt-in to deliver at all, so this will keep
+  // failing/under-delivering regardless of the language fix until
+  // either a review is requested (24hr window from the flag) or the
+  // wording is resubmitted less promotionally. Language set for when
+  // it does go through.
   CONNECTION_REQUEST_DECLINED: {
     notificationType: "FLATMATE_REQUEST_DECLINED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_DECLINED || "hostelnode_flatmate_declined",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_DECLINED_LANG || "en_US",
   },
   // The requester cancels their own pending request → notify the
   // receiver, who otherwise has no way to know it's gone.
@@ -82,12 +109,16 @@ const EVENTS = {
   CONNECTION_REQUEST_CANCELLED: {
     notificationType: "FLATMATE_REQUEST_CANCELLED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_CANCELLED || "hostelnode_flatmate_cancelled",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_CANCELLED_LANG || "en_US",
   },
   // Either side ends an accepted connection → notify the other side.
   // Template: WA_TEMPLATE_FLATMATE_REMOVED — 1 var: the other person's name.
+  // Confirmed en_US from the production 132001 error + WhatsApp
+  // Manager's Language column (20 Sep 2026).
   CONNECTION_REMOVED: {
     notificationType: "FLATMATE_CONNECTION_REMOVED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_REMOVED || "hostelnode_flatmate_removed",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_REMOVED_LANG || "en_US",
   },
   // A new chat message → notify the recipient.
   // Template: WA_TEMPLATE_FLATMATE_NEW_MESSAGE — 1 var: sender's name.
@@ -97,6 +128,7 @@ const EVENTS = {
   NEW_MESSAGE: {
     notificationType: "FLATMATE_NEW_MESSAGE",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_NEW_MESSAGE || "hostelnode_flatmate_new_message",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_NEW_MESSAGE_LANG || "en_US",
   },
   // A listing owner closes their listing → notify anyone with a
   // still-pending request on it, since it will never be actioned now.
@@ -104,14 +136,18 @@ const EVENTS = {
   LISTING_CLOSED: {
     notificationType: "LISTING_CLOSED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_CLOSED || "hostelnode_flatmate_listing_closed",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_CLOSED_LANG || "en_US",
   },
   // A listing owner pauses their listing → same reasoning as above,
   // kept as a distinct (softer) notification type since a pause is
   // reversible and the requester's chances aren't necessarily gone.
   // Template: WA_TEMPLATE_FLATMATE_LISTING_PAUSED — 1 var: listing summary.
+  // NOTE: this one is genuinely "English" (en), not "English (US)", in
+  // WhatsApp Manager — it's the one exception among the 8 new templates.
   LISTING_PAUSED: {
     notificationType: "FLATMATE_LISTING_PAUSED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PAUSED || "hostelnode_flatmate_listing_paused",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PAUSED_LANG || "en",
   },
   // Confirms to the REPORTER that their report was logged — purely a
   // "we got it" receipt, not a moderation outcome.
@@ -119,6 +155,7 @@ const EVENTS = {
   REPORT_RECEIVED: {
     notificationType: "FLATMATE_REPORT_RECEIVED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_REPORT_RECEIVED || "hostelnode_flatmate_report_received",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_REPORT_RECEIVED_LANG || "en_US",
   },
   // Confirms to the OWNER that their listing was published/submitted —
   // separate from the create-success page (Phase 2), which only the
@@ -127,6 +164,7 @@ const EVENTS = {
   LISTING_PUBLISHED: {
     notificationType: "FLATMATE_LISTING_PUBLISHED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PUBLISHED || "hostelnode_flatmate_listing_published",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PUBLISHED_LANG || "en_US",
   },
 };
 
@@ -200,8 +238,14 @@ async function notifyFlatmateEvent(eventKey, payload = {}) {
     setImmediate(async () => {
       try {
         const templateName = def.whatsapp();
+        // def.language is required for every WA-enabled event (see the
+        // registry comment above EVENTS) — "en" only as a last-resort
+        // fallback if an entry is somehow missing it, matching the old
+        // (buggy) hardcoded default so behavior degrades gracefully
+        // rather than throwing.
+        const languageCode = typeof def.language === "function" ? def.language() : "en";
         const send = waSender();
-        const result = await send(whatsapp.phone, templateName, whatsapp.variables || [], whatsapp.headerImageUrl || null);
+        const result = await send(whatsapp.phone, templateName, whatsapp.variables || [], whatsapp.headerImageUrl || null, languageCode);
         if (result.success) console.log(`✅ WA [${eventKey}] → ${whatsapp.phone}`);
         else console.error(`🔴 WA [${eventKey}] failed:`, result.error);
       } catch (e) {
