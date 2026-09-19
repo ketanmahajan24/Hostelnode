@@ -222,6 +222,93 @@ async function saveCompressedImage(fileBuffer) {
   return filename; // stored in FlatmateListing.images[]; served at /flatmate-images/<filename>
 }
 
+// Best-effort disk cleanup for a removed image — never allowed to block
+// or fail the request it's called from (fire-and-forget).
+function deleteImageFileSafe(filename) {
+  if (!filename) return;
+  const fullPath = path.join(flatmateUploadDir, filename);
+  fs.unlink(fullPath, (err) => {
+    if (err && err.code !== "ENOENT") console.error("Flatmate image cleanup failed (non-critical):", err.message);
+  });
+}
+
+// Returns `images` with `coverImage` moved to index 0 (if present in the
+// array) so every existing template — card carousels, the detail gallery,
+// og:image/JSON-LD — automatically shows the chosen cover first without
+// any template changes, since they all just render images[0] as the lead.
+function orderImagesByCover(images, coverImage) {
+  if (!Array.isArray(images) || images.length < 2 || !coverImage) return images || [];
+  const idx = images.indexOf(coverImage);
+  if (idx <= 0) return images;
+  const reordered = images.slice();
+  reordered.splice(idx, 1);
+  reordered.unshift(coverImage);
+  return reordered;
+}
+
+/* ─────────────────────────────────────────────
+   Applies a create/edit request's image changes to a listing doc:
+     - req.body.keepImages : JSON array of existing filenames the client
+       still wants (anything already saved but NOT in this list is being
+       removed). Omitted entirely (e.g. a brand-new draft) = keep all.
+     - req.files            : newly uploaded photos (already multer-parsed)
+     - req.body.coverImage  : "NEW:<index>" (an index into this request's
+       new files) OR an existing filename OR omitted.
+   Validates the COMBINED existing+new count against the real 15-photo
+   cap before doing any compression work, so a bad request fails fast
+   with a specific message instead of a generic error after wasted work.
+───────────────────────────────────────────── */
+async function applyImageChanges(listing, req) {
+  let keepSet = null;
+  if (req.body.keepImages !== undefined) {
+    try {
+      const parsed = JSON.parse(req.body.keepImages);
+      if (Array.isArray(parsed)) keepSet = new Set(parsed);
+    } catch (e) { /* malformed — fall back to keeping everything */ }
+  }
+
+  const existingImages = listing.images || [];
+  const keptImages = keepSet ? existingImages.filter((fn) => keepSet.has(fn)) : existingImages;
+  const removedImages = keepSet ? existingImages.filter((fn) => !keepSet.has(fn)) : [];
+
+  const incomingCount = (req.files || []).length;
+  if (keptImages.length + incomingCount > 15) {
+    const remaining = Math.max(0, 15 - keptImages.length);
+    return {
+      error: remaining > 0
+        ? `You can add only ${remaining} more photo${remaining === 1 ? "" : "s"}. Maximum 15 photos per listing.`
+        : "Maximum 15 photos are allowed per listing. Remove some to add more.",
+    };
+  }
+
+  const newFilenames = [];
+  if (incomingCount) {
+    for (const file of req.files) newFilenames.push(await saveCompressedImage(file.buffer));
+  }
+
+  listing.images = [...keptImages, ...newFilenames];
+
+  const coverRef = (req.body.coverImage || "").trim();
+  if (coverRef.startsWith("NEW:")) {
+    const idx = parseInt(coverRef.slice(4), 10);
+    if (Number.isInteger(idx) && newFilenames[idx]) listing.coverImage = newFilenames[idx];
+  } else if (coverRef && listing.images.includes(coverRef)) {
+    listing.coverImage = coverRef;
+  } else if (!listing.coverImage || !listing.images.includes(listing.coverImage)) {
+    // No explicit choice, or the previous cover was just removed —
+    // fall back to the first remaining/new image (matches "if the user
+    // doesn't explicitly select a cover, use the first image").
+    listing.coverImage = listing.images[0] || null;
+  }
+  if (!listing.images.length) listing.coverImage = null;
+
+  // Non-blocking — the listing save above already has the correct final
+  // image list regardless of whether these deletes succeed.
+  removedImages.forEach(deleteImageFileSafe);
+
+  return { newImageCount: newFilenames.length };
+}
+
 function handleFlatmateUploadError(fn) {
   return (req, res, next) => {
     fn(req, res, (err) => {
@@ -394,7 +481,7 @@ function toCardViewModel(doc, requestInfo, isSaved) {
     gender: doc.gender,
     moveIn: formatMoveIn(doc),
     postedBy: doc.student?.firstName || "HostelNode User",
-    images: isHave ? (doc.images || []) : undefined,
+    images: isHave ? orderImagesByCover(doc.images || [], doc.coverImage) : undefined,
     rent: isHave ? doc.have?.rentMonthly : undefined,
     budgetMin: !isHave ? doc.need?.budgetMin : undefined,
     budgetMax: !isHave ? doc.need?.budgetMax : undefined,
@@ -648,15 +735,20 @@ router.post("/create/draft", requireStudent, handleFlatmateUploadError(flatmateU
       listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT" });
     }
 
-    if (type === "HAVE_FLAT" && req.files && req.files.length) {
-      const newFilenames = [];
-      for (const file of req.files) newFilenames.push(await saveCompressedImage(file.buffer));
-      listing.images = [...(listing.images || []), ...newFilenames];
-      if (!listing.coverImage) listing.coverImage = listing.images[0];
+    if (type === "HAVE_FLAT") {
+      const imgResult = await applyImageChanges(listing, req);
+      if (imgResult.error) {
+        return res.status(400).json({ success: false, error: imgResult.error });
+      }
     }
 
     await listing.save();
-    res.json({ success: true, draftId: listing._id.toString() });
+    res.json({
+      success: true,
+      draftId: listing._id.toString(),
+      images: listing.images || [],
+      coverImage: listing.coverImage || null,
+    });
   } catch (err) {
     console.error("Flatmate draft save error:", err);
     res.status(500).json({ success: false, error: "Could not save draft. Please try again." });
@@ -691,13 +783,15 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
       listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT" });
     }
 
-    let newImageCount = 0;
-    if (type === "HAVE_FLAT" && req.files && req.files.length) {
-      const newFilenames = [];
-      for (const file of req.files) newFilenames.push(await saveCompressedImage(file.buffer));
-      listing.images = [...(listing.images || []), ...newFilenames];
-      if (!listing.coverImage) listing.coverImage = listing.images[0];
-      newImageCount = newFilenames.length;
+    if (type === "HAVE_FLAT") {
+      const imgResult = await applyImageChanges(listing, req);
+      if (imgResult.error) {
+        // Save whatever was already valid as a draft so the student's
+        // other field edits aren't lost just because the photo change
+        // was rejected, then report the specific image error back.
+        await listing.save();
+        return res.status(400).json({ success: false, errors: [imgResult.error], draftId: listing._id.toString() });
+      }
     }
 
     const errors = validateForPublish(fields, type);
@@ -811,6 +905,9 @@ router.get("/my-listings", requireStudent, async (req, res) => {
       ...l,
       requestCount: countsByListing[l._id.toString()]?.pending || 0,
       connectedCount: countsByListing[l._id.toString()]?.accepted || 0,
+      coverThumb: l.type === "HAVE_FLAT"
+        ? ((l.coverImage && (l.images || []).includes(l.coverImage)) ? l.coverImage : (l.images && l.images[0]) || null)
+        : null,
     }));
 
     res.render("flatmate/my-listings", { listings: withCounts });
@@ -1114,6 +1211,14 @@ router.get("/:slug", optionalAuth, async (req, res) => {
         listing: null, isOwner: false, cta: null, connection: null, seo: null,
         mapData: null, googleMapsApiKey: null, isSaved: false, conversationId: null,
       });
+    }
+
+    // Cover-first ordering — the gallery, og:image and JSON-LD below all
+    // just render images[0] as the lead photo, so reordering here (rather
+    // than touching every template) is what makes the chosen cover image
+    // actually show up everywhere.
+    if (listing.type === "HAVE_FLAT") {
+      listing.images = orderImagesByCover(listing.images || [], listing.coverImage);
     }
 
     const viewerId = req.student?.id || null;

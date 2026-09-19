@@ -26,6 +26,8 @@
 
     .ml-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 14px; }
     .ml-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .ml-thumb { width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; margin-top: 12px; background: var(--bg2); }
+    .ml-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .ml-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
     .ml-badge.have { background: #dcfce7; color: #087a3c; }
     .ml-badge.need { background: #dbeafe; color: #1d4ed8; }
@@ -106,6 +108,10 @@
           <span class="ml-badge <%= isHave ? 'have' : 'need' %>"><%= isHave ? '🏠 FLAT' : '👤 FLATMATE' %></span>
           <span class="ml-status <%= statusClass %>"><%= statusLabels[l.status] || l.status %></span>
         </div>
+
+        <% if (l.coverThumb) { %>
+          <div class="ml-thumb"><img src="/flatmate-images/<%= l.coverThumb %>" alt="<%= l.bhk %> BHK <%= l.roomType %> cover photo" loading="lazy" decoding="async"></div>
+        <% } %>
 
         <div class="ml-title"><%= l.bhk %> BHK &middot; <%= l.roomType %></div>
         <div class="ml-loc"><i class="fa-solid fa-location-dot"></i> <%= l.area %>, <%= l.city %></div>

@@ -93,11 +93,19 @@
     .photo-drop:hover, .photo-drop.dragover { border-color: var(--green); background: var(--green-light); }
     .photo-drop i { font-size: 26px; color: var(--green); margin-bottom: 8px; display: block; }
     .photo-drop span { font-size: 13px; color: var(--muted); }
-    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 16px; }
+    .photo-count { font-size: 12.5px; font-weight: 700; color: var(--ink-mid); margin-top: 14px; }
+    .photo-progress-wrap { display: none; margin-top: 14px; }
+    .photo-progress-text { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .photo-progress-track { height: 6px; background: var(--bg2); border-radius: 3px; overflow: hidden; }
+    .photo-progress-bar { height: 100%; width: 0%; background: var(--green); border-radius: 3px; transition: width .25s ease; }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 12px; }
     .photo-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
-    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .photo-thumb .cover-tag { position: absolute; bottom: 4px; left: 4px; background: var(--green); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
-    .photo-thumb .rm-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 11px; }
+    .photo-thumb.is-cover { border: 2px solid var(--green); }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-thumb .cover-tag { position: absolute; bottom: 4px; left: 4px; background: var(--green); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; display: flex; align-items: center; gap: 3px; }
+    .photo-thumb .cover-btn { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .15s; }
+    .photo-thumb:hover .cover-btn { opacity: 1; }
+    .photo-thumb .rm-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 11px; cursor: pointer; }
 
     /* Preview card (step 6) */
     .preview-card { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
@@ -392,14 +400,22 @@
     <!-- STEP 5 — Photos -->
     <div class="wiz-step" data-step="5">
       <h2>Photos</h2>
-      <p class="step-sub">3–15 photos recommended. Show the living room, bedroom, kitchen and common areas — no personal photos needed.</p>
+      <p class="step-sub">3–15 photos recommended. Show the living room, bedroom, kitchen and common areas — no personal photos needed. Photos are auto-optimized for fast loading.</p>
 
       <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoInput').click()">
         <i class="fa-solid fa-cloud-arrow-up"></i>
         <span>Click or drag photos here &middot; JPG, PNG or WebP &middot; up to 5 MB each</span>
         <input type="file" id="photoInput" name="photos" accept="image/jpeg,image/png,image/webp" multiple hidden>
       </div>
+
+      <div class="photo-progress-wrap" id="photoProgressWrap">
+        <div class="photo-progress-text" id="photoProgressText">Optimizing photos…</div>
+        <div class="photo-progress-track"><div class="photo-progress-bar" id="photoProgressBar"></div></div>
+      </div>
+
+      <div class="photo-count" id="photoCount">0 / 15 photos added</div>
       <div class="photo-grid" id="photoGrid"></div>
+      <p class="step-sub" style="margin-top:10px;margin-bottom:0;">Hover a photo and tap <b>Set Cover</b> to choose which one shows first on your listing card.</p>
     </div>
 
     <!-- STEP 6 — Contact & Review -->
@@ -480,7 +496,6 @@
 <script>
 const TOTAL_STEPS = 6;
 let currentStep = 1;
-let selectedFiles = [];
 const DRAFT_DATA = <%- JSON.stringify(draft || null).replace(/</g, "\\u003c") %>;
 
 /* ── Chip selectors (single + multi) ──
@@ -575,6 +590,9 @@ function validateStep(n) {
   if (n === 3) {
     if (!document.querySelector('[name="rentMonthly"]').value) errors.push('Please enter the monthly rent.');
   }
+  if (n === 6) {
+    if (totalPhotoCount() === 0) errors.push('Please add at least 1 photo (3+ recommended).');
+  }
   return errors;
 }
 
@@ -618,52 +636,230 @@ function updatePreview() {
   const occupation = document.querySelector('[name="occupation"]').selectedOptions[0]?.text || '';
   document.getElementById('pvTags').innerHTML = [gender, occupation].filter(Boolean).map(t => `<span>${t}</span>`).join('');
 
-  if (selectedFiles.length) {
-    const reader = new FileReader();
-    reader.onload = e => document.getElementById('pvImg').src = e.target.result;
-    reader.readAsDataURL(selectedFiles[0]);
-  }
+  const coverUrl = getCoverPreviewUrl();
+  if (coverUrl) document.getElementById('pvImg').src = coverUrl;
 }
 
-/* ── Photo upload ── */
+/* ============================================================
+   ★ IMAGE COMPRESSION — ported as-is from the PG listing upload
+   flow (views/listings/listproperty.ejs), which already handles
+   this correctly: canvas-based, WebP, ≤1280px, quality 0.82.
+   Runs entirely in the browser; falls back to the original file
+   on any failure so a compression problem never blocks upload
+   (and never shows as a fake "Network Error" — see addFiles()).
+============================================================ */
+const MAX_IMAGES       = 15;
+const MAX_IMG_MB       = 5;
+const ALLOWED_TYPES    = ['image/jpeg', 'image/png', 'image/webp'];
+const COMPRESS_MAX_W   = 1280;
+const COMPRESS_MAX_H   = 1280;
+const COMPRESS_QUALITY = 0.82;
+const COMPRESS_FORMAT  = 'image/webp';
+
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > COMPRESS_MAX_W || height > COMPRESS_MAX_H) {
+        const ratio = Math.min(COMPRESS_MAX_W / width, COMPRESS_MAX_H / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        const newName = file.name.replace(/\.[^.]+$/, '') + '.webp';
+        resolve(new File([blob], newName, { type: COMPRESS_FORMAT, lastModified: Date.now() }));
+      }, COMPRESS_FORMAT, COMPRESS_QUALITY);
+    };
+    img.src = objectUrl;
+  });
+}
+
+/* ── Photo upload — existing (already-saved) + new (this session) photos,
+   combined into one grid with an explicit cover-image picker. ──
+
+   existingImages : [{ filename, url }]   — hydrated from the draft on edit
+   newFiles       : [{ file, localId, previewUrl }] — this session's uploads
+   coverRef       : { type:'existing', filename } | { type:'new', localId } | null
+*/
 const photoDrop = document.getElementById('photoDrop');
 const photoInput = document.getElementById('photoInput');
 const photoGrid = document.getElementById('photoGrid');
+const photoCountEl = document.getElementById('photoCount');
+const photoProgressWrap = document.getElementById('photoProgressWrap');
+const photoProgressBar = document.getElementById('photoProgressBar');
+const photoProgressText = document.getElementById('photoProgressText');
 
-photoInput.addEventListener('change', e => addFiles(e.target.files));
+let existingImages = [];
+let newFiles = [];
+let coverRef = null;
+let removedExistingFilenames = [];
+let newFileLocalIdCounter = 0;
+
+photoInput.addEventListener('change', e => { addFiles(e.target.files); photoInput.value = ''; });
 ['dragover','dragenter'].forEach(evt => photoDrop.addEventListener(evt, e => { e.preventDefault(); photoDrop.classList.add('dragover'); }));
 ['dragleave','drop'].forEach(evt => photoDrop.addEventListener(evt, e => { e.preventDefault(); photoDrop.classList.remove('dragover'); }));
 photoDrop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
 
-function addFiles(fileList) {
-  const remaining = 15 - selectedFiles.length;
-  const files = Array.from(fileList).slice(0, remaining);
-  selectedFiles = selectedFiles.concat(files);
+function totalPhotoCount() {
+  return existingImages.length + newFiles.length;
+}
+
+async function addFiles(fileList) {
+  const incoming = Array.from(fileList || []);
+  if (!incoming.length) return;
+
+  const total = totalPhotoCount();
+  const slots = Math.max(0, MAX_IMAGES - total);
+
+  if (slots === 0) {
+    showErrors([`Maximum ${MAX_IMAGES} photos are allowed per listing. Remove a photo to add more.`]);
+    return;
+  }
+
+  const accepted = [];
+  const skipped = [];
+  incoming.forEach(file => {
+    if (!ALLOWED_TYPES.includes(file.type)) { skipped.push(`"${file.name}" — please upload JPG, PNG or WebP images.`); return; }
+    if (file.size > MAX_IMG_MB * 1024 * 1024) { skipped.push(`"${file.name}" — this image could not be processed. Please choose another image.`); return; }
+    accepted.push(file);
+  });
+
+  const toProcess = accepted.slice(0, slots);
+  const overflow = accepted.length - toProcess.length;
+
+  const errs = [];
+  if (skipped.length) errs.push(...skipped.slice(0, 3));
+  if (overflow > 0) errs.push(`You can add only ${slots} more photo${slots === 1 ? '' : 's'}. Maximum ${MAX_IMAGES} photos per listing.`);
+  if (errs.length) showErrors(errs); else showErrors([]);
+
+  if (!toProcess.length) return;
+
+  photoProgressWrap.style.display = 'block';
+  photoProgressBar.style.width = '0%';
+  photoProgressText.textContent = `Optimizing ${toProcess.length} photo${toProcess.length > 1 ? 's' : ''}…`;
+
+  for (let i = 0; i < toProcess.length; i++) {
+    let compressed;
+    try {
+      compressed = await compressImage(toProcess[i]);
+    } catch (e) {
+      // Compression genuinely failed (not a network issue) — fall back to
+      // the original file rather than blocking or misreporting the error.
+      compressed = toProcess[i];
+    }
+    const localId = ++newFileLocalIdCounter;
+    newFiles.push({ file: compressed, localId, previewUrl: URL.createObjectURL(compressed) });
+    if (!coverRef) coverRef = { type: 'new', localId }; // first photo ever added becomes cover by default
+    photoProgressBar.style.width = Math.round(((i + 1) / toProcess.length) * 100) + '%';
+    photoProgressText.textContent = `Optimizing… ${i + 1} / ${toProcess.length} done`;
+  }
+
+  setTimeout(() => { photoProgressWrap.style.display = 'none'; }, 500);
   renderPhotoGrid();
 }
-function removePhoto(idx) {
-  selectedFiles.splice(idx, 1);
+
+function removeExistingPhoto(filename) {
+  existingImages = existingImages.filter(img => img.filename !== filename);
+  removedExistingFilenames.push(filename);
+  if (coverRef && coverRef.type === 'existing' && coverRef.filename === filename) coverRef = null;
+  reassignCoverIfNeeded();
   renderPhotoGrid();
 }
+
+function removeNewPhoto(localId) {
+  const item = newFiles.find(f => f.localId === localId);
+  if (item) URL.revokeObjectURL(item.previewUrl);
+  newFiles = newFiles.filter(f => f.localId !== localId);
+  if (coverRef && coverRef.type === 'new' && coverRef.localId === localId) coverRef = null;
+  reassignCoverIfNeeded();
+  renderPhotoGrid();
+}
+
+function reassignCoverIfNeeded() {
+  if (coverRef) return;
+  if (existingImages.length) coverRef = { type: 'existing', filename: existingImages[0].filename };
+  else if (newFiles.length) coverRef = { type: 'new', localId: newFiles[0].localId };
+}
+
+function setCoverExisting(filename) { coverRef = { type: 'existing', filename }; renderPhotoGrid(); }
+function setCoverNew(localId) { coverRef = { type: 'new', localId }; renderPhotoGrid(); }
+
+function isCover(ref) {
+  if (!coverRef || !ref) return false;
+  if (coverRef.type !== ref.type) return false;
+  return coverRef.type === 'existing' ? coverRef.filename === ref.filename : coverRef.localId === ref.localId;
+}
+
+function getCoverPreviewUrl() {
+  if (coverRef && coverRef.type === 'existing') {
+    const found = existingImages.find(img => img.filename === coverRef.filename);
+    if (found) return found.url;
+  }
+  if (coverRef && coverRef.type === 'new') {
+    const found = newFiles.find(f => f.localId === coverRef.localId);
+    if (found) return found.previewUrl;
+  }
+  if (existingImages.length) return existingImages[0].url;
+  if (newFiles.length) return newFiles[0].previewUrl;
+  return null;
+}
+
 function renderPhotoGrid() {
+  photoCountEl.textContent = `${totalPhotoCount()} / ${MAX_IMAGES} photos added`;
   photoGrid.innerHTML = '';
-  selectedFiles.forEach((file, idx) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const div = document.createElement('div');
-      div.className = 'photo-thumb';
-      div.innerHTML = `<img src="${e.target.result}">${idx===0 ? '<span class="cover-tag">COVER</span>' : ''}<button type="button" class="rm-btn" onclick="removePhoto(${idx})">✕</button>`;
-      photoGrid.appendChild(div);
-    };
-    reader.readAsDataURL(file);
+
+  existingImages.forEach(img => {
+    const ref = { type: 'existing', filename: img.filename };
+    const cover = isCover(ref);
+    const div = document.createElement('div');
+    div.className = 'photo-thumb' + (cover ? ' is-cover' : '');
+    div.innerHTML = `<img src="${img.url}" alt="Listing photo">` +
+      (cover ? `<span class="cover-tag"><i class="fa-solid fa-star"></i> Cover</span>` : `<button type="button" class="cover-btn" onclick="setCoverExisting('${img.filename}')">Set Cover</button>`) +
+      `<button type="button" class="rm-btn" onclick="removeExistingPhoto('${img.filename}')" aria-label="Remove photo">✕</button>`;
+    photoGrid.appendChild(div);
+  });
+
+  newFiles.forEach(item => {
+    const ref = { type: 'new', localId: item.localId };
+    const cover = isCover(ref);
+    const div = document.createElement('div');
+    div.className = 'photo-thumb' + (cover ? ' is-cover' : '');
+    div.innerHTML = `<img src="${item.previewUrl}" alt="New listing photo">` +
+      (cover ? `<span class="cover-tag"><i class="fa-solid fa-star"></i> Cover</span>` : `<button type="button" class="cover-btn" onclick="setCoverNew(${item.localId})">Set Cover</button>`) +
+      `<button type="button" class="rm-btn" onclick="removeNewPhoto(${item.localId})" aria-label="Remove photo">✕</button>`;
+    photoGrid.appendChild(div);
   });
 }
 
-/* ── Build FormData from the whole form + selected files ── */
+/* ── Build FormData from the whole form + photo state ── */
 function buildFormData() {
   const form = document.getElementById('haveForm');
   const fd = new FormData(form);
-  selectedFiles.forEach(f => fd.append('photos', f));
+  newFiles.forEach(item => fd.append('photos', item.file));
+  // Tells the backend exactly which already-saved images survive this
+  // save — anything previously on the listing but missing from this list
+  // is being removed. Omitted entirely for a brand-new listing (no
+  // existing images to begin with).
+  fd.append('keepImages', JSON.stringify(existingImages.map(img => img.filename)));
+  // "NEW:<index>" = the Nth file in this request's `photos`; otherwise an
+  // existing filename that's still being kept.
+  if (coverRef && coverRef.type === 'new') {
+    const idx = newFiles.findIndex(f => f.localId === coverRef.localId);
+    if (idx > -1) fd.append('coverImage', `NEW:${idx}`);
+  } else if (coverRef && coverRef.type === 'existing') {
+    fd.append('coverImage', coverRef.filename);
+  }
   return fd;
 }
 
@@ -809,6 +1005,17 @@ function hydrateForm(d) {
   if (d.coordinates && d.coordinates.lat != null && d.coordinates.lng != null) {
     pinInitialCenter = { lat: d.coordinates.lat, lng: d.coordinates.lng, hasExisting: true };
   }
+
+  // Previously uploaded photos — this is the piece that was missing
+  // before: the edit form never rendered d.images at all, so existing
+  // photos silently disappeared from view (though they stayed in the DB).
+  if (Array.isArray(d.images) && d.images.length) {
+    existingImages = d.images.map(filename => ({ filename, url: `/flatmate-images/${filename}` }));
+    coverRef = d.coverImage && d.images.includes(d.coverImage)
+      ? { type: 'existing', filename: d.coverImage }
+      : { type: 'existing', filename: existingImages[0].filename };
+  }
+  renderPhotoGrid();
 }
 
 /* ── PROPERTY LOCATION MAP-PIN PICKER ── */
