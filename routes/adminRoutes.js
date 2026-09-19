@@ -19,6 +19,8 @@ const SearchLog = require("../models/searchLog");
 const FlatmateListing = require("../models/FlatmateListing");
 const FlatmateConnection = require("../models/FlatmateConnection");
 const Report = require("../models/Report");
+const { notifyFlatmateEvent } = require("../utils/flatmateNotifications");
+const { computeActivationFields, matchAndNotifySavedSearches } = require("../utils/flatmateActivation");
 
 const { sendMail } = require("../utils/sendMail");
 const { jwtAdminAuth, generateAdminToken } = require("../Middlewares/jwtAuth");
@@ -571,12 +573,24 @@ router.patch("/flatmate/:id/status", jwtAdminAuth, async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ success: false, error: "Invalid status." });
     }
+
+    // Fetch the CURRENT status first — Phase 10's activation side
+    // effects (fresh expiresAt, saved-search matching) only apply on
+    // a genuine transition INTO "ACTIVE", not a no-op re-save of an
+    // already-ACTIVE listing.
+    const before = await FlatmateListing.findById(req.params.id).select("status");
+    if (!before) return res.status(404).json({ success: false, error: "Listing not found." });
+    const isNewlyActive = status === "ACTIVE" && before.status !== "ACTIVE";
+
     const update = { status };
     if (status === "REJECTED") update.rejectionReason = (rejectionReason || "").trim().slice(0, 300);
     if (status === "ACTIVE") update.rejectionReason = null; // clear any stale rejection note on (re)approval
+    if (isNewlyActive) Object.assign(update, computeActivationFields());
 
     const listing = await FlatmateListing.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
+
+    if (isNewlyActive) matchAndNotifySavedSearches(listing);
 
     res.json({ success: true });
   } catch (err) {

@@ -170,6 +170,28 @@ const flatmateListingSchema = new mongoose.Schema({
   rejectionReason: { type: String, default: null },
   publishedAt: { type: Date, default: null },
 
+  // ── Reminder / lifecycle notification bookkeeping (Phase 10) ──
+  // pausedAt: when the owner (or admin) last paused this listing —
+  // drives the "re-activate reminder" cron job.
+  pausedAt: { type: Date, default: null },
+  // pauseReminderSentAt: dedupe guard so the re-activate reminder
+  // fires once per pause, not once per cron run.
+  pauseReminderSentAt: { type: Date, default: null },
+  // activatedAt / expiresAt: set whenever status transitions INTO
+  // "ACTIVE" (admin approval, or the owner's own reactivate route) —
+  // NOT at publish/submit time, since a PENDING listing isn't visible
+  // to seekers yet. Default lifetime is 60 days; both are cleared and
+  // recomputed on every re-activation so a relisted listing gets a
+  // fresh window rather than an already-expired one.
+  activatedAt: { type: Date, default: null },
+  expiresAt: { type: Date, default: null },
+  // expiryWarnedAt: dedupe guard for the "expiring soon" notification.
+  expiryWarnedAt: { type: Date, default: null },
+  // viewMilestonesNotified: which view-count thresholds (see
+  // utils/flatmateMilestones.js) this listing has already notified
+  // the owner about — prevents re-notifying on every single view.
+  viewMilestonesNotified: { type: [Number], default: [] },
+
   // A UUID the create-wizard generates once per browser session and
   // resubmits with every publish attempt for that listing. Lets the
   // publish route recognize "this is the same submit, retried" (a

@@ -220,6 +220,21 @@ cron.schedule("0 0 * * *", async () => {
 });
 
 // ════════════════════════════════════════════════════════════
+//   CRON — Flatmate reminder sweep (hourly) — Phase 10
+//   Pending-request reminders, unread-message reminders, listing
+//   expiring-soon warnings, auto-expiry, and re-activate reminders.
+//   Hourly is the finest granularity these reminder windows need
+//   (the shortest, unread-message, defaults to 3h) — see
+//   utils/flatmateReminders.js for each sweep's exact logic and env
+//   var overrides.
+// ════════════════════════════════════════════════════════════
+cron.schedule("0 * * * *", async () => {
+  console.log("🔄 Running Flatmate reminder sweep...");
+  const { runFlatmateReminderSweep } = require("./utils/flatmateReminders");
+  await runFlatmateReminderSweep();
+});
+
+// ════════════════════════════════════════════════════════════
 //   START SERVER
 // ════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 6060;

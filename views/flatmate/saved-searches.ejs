@@ -1,0 +1,82 @@
+<!-- saved-searches.ejs — HostelNode Flatmate: My Saved Searches (Phase 10) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Saved Searches | HostelNode</title>
+  <link rel="icon" type="image/png" href="/images/hostelnode-logo-cutout.png">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/findhostel.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: var(--bg); }
+    .ss-wrap { max-width: 640px; margin: 0 auto; padding: 24px 20px 80px; }
+    .ss-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .ss-head h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); }
+    .ss-head p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .ss-browse-btn { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; padding: 10px 20px; border-radius: 999px; font-size: 13.5px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-green); }
+
+    .ss-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .ss-label { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .ss-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .ss-del-btn { padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700; border: none; cursor: pointer; background: #fef2f2; color: #c53030; flex-shrink: 0; }
+    .ss-del-btn:focus-visible { outline: 2.5px solid #c53030; outline-offset: 2px; }
+    .ss-del-btn:disabled { opacity: .6; cursor: default; }
+
+    .ss-empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .ss-empty i { font-size: 2.5rem; color: var(--border); margin-bottom: 14px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="ss-wrap">
+    <div class="ss-head">
+      <div>
+        <h1>My Saved Searches</h1>
+        <p>We'll notify you (in-app + WhatsApp) when a new listing matches one of these.</p>
+      </div>
+      <a class="ss-browse-btn" href="/flatmate/results"><i class="fa-solid fa-magnifying-glass"></i> Browse listings</a>
+    </div>
+
+    <% if (!searches || searches.length === 0) { %>
+      <div class="ss-empty">
+        <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+        <p>No saved searches yet.<br>Search on the <a href="/flatmate/results">results page</a> and tap "Save this search" to get notified about new matches.</p>
+      </div>
+    <% } else { %>
+      <% searches.forEach(function(s) { %>
+        <div class="ss-card" id="ssCard-<%= s._id %>">
+          <div>
+            <div class="ss-label"><%= s.label || 'All Flatmate listings' %></div>
+            <div class="ss-meta">Saved <%= new Date(s.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %></div>
+          </div>
+          <button type="button" class="ss-del-btn" onclick="deleteSavedSearch('<%= s._id %>', this)">Remove</button>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+
+<script>
+async function deleteSavedSearch(id, btn) {
+  btn.disabled = true;
+  try {
+    const res = await fetch('/flatmate/saved-searches/' + id, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      const card = document.getElementById('ssCard-' + id);
+      if (card) card.remove();
+    } else {
+      alert(data.error || 'Could not remove this saved search.');
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert('Network error — please try again.');
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

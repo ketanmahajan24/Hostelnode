@@ -53,6 +53,11 @@ const flatmateConnectionSchema = new mongoose.Schema({
   cancelledAt: { type: Date, default: null },
   endedAt:     { type: Date, default: null },
 
+  // Dedupe guard (Phase 10) for the "pending request reminder" cron —
+  // set once a reminder has been sent for this request so it doesn't
+  // fire again on every subsequent cron run while still pending.
+  pendingReminderSentAt: { type: Date, default: null },
+
 }, { timestamps: true });
 
 /* Prevent duplicate pending requests from the same requester on the

@@ -42,7 +42,10 @@ const Student = require("../models/studentSchema");
 const FlatmateConnection = require("../models/FlatmateConnection");
 const Conversation = require("../models/Conversation");
 const Block = require("../models/Block");
+const FlatmateSavedSearch = require("../models/FlatmateSavedSearch");
 const { notifyFlatmateEvent } = require("../utils/flatmateNotifications");
+const { computeActivationFields, matchAndNotifySavedSearches } = require("../utils/flatmateActivation");
+const { VIEW_MILESTONES } = require("../utils/flatmateMilestones");
 
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
 
@@ -696,6 +699,69 @@ router.get("/results", optionalAuth, async (req, res) => {
   }
 });
 
+/* ─────────────────────────────────────────────
+   SAVED SEARCHES (Phase 10) — get notified when a new listing
+   matches a filter combination the seeker cared about.
+   POST   /flatmate/saved-searches       → save the current filters
+   GET    /flatmate/saved-searches       → "My saved searches" list
+   DELETE /flatmate/saved-searches/:id   → unsubscribe
+───────────────────────────────────────────── */
+function buildSavedSearchLabel(f) {
+  const parts = [];
+  if (f.type === "have") parts.push("Flats");
+  else if (f.type === "need") parts.push("Flatmates");
+  if (f.bhk) parts.push(`${f.bhk} BHK`);
+  if (f.location) parts.push(`in ${f.location}`);
+  if (f.budget) parts.push(`under ₹${f.budget}`);
+  return parts.length ? parts.join(" ") : "All Flatmate listings";
+}
+
+router.post("/saved-searches", requireStudent, async (req, res) => {
+  try {
+    const { location = "", gender = "", type = "", budget = "", bhk = "", roomType = "" } = req.body;
+    const filters = { location: (location || "").trim().slice(0, 100), gender, type, budget, bhk, roomType };
+
+    // Avoid piling up literal duplicates for the same student — reuse
+    // an existing identical saved search if one exists instead of
+    // creating a second one that would just double-notify them.
+    const existing = await FlatmateSavedSearch.findOne({ student: req.student.id, active: true, filters });
+    if (existing) return res.json({ success: true, alreadySaved: true, id: existing._id.toString() });
+
+    const saved = await FlatmateSavedSearch.create({
+      student: req.student.id,
+      filters,
+      label: buildSavedSearchLabel(filters),
+    });
+    res.json({ success: true, id: saved._id.toString() });
+  } catch (err) {
+    console.error("Save search error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong saving this search." });
+  }
+});
+
+router.get("/saved-searches", requireStudent, async (req, res) => {
+  try {
+    const searches = await FlatmateSavedSearch.find({ student: req.student.id, active: true })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.render("flatmate/saved-searches", { searches });
+  } catch (err) {
+    console.error("Saved searches list error:", err);
+    res.status(500).send("Something went wrong loading your saved searches. Please try again.");
+  }
+});
+
+router.delete("/saved-searches/:id", requireStudent, async (req, res) => {
+  try {
+    const result = await FlatmateSavedSearch.deleteOne({ _id: req.params.id, student: req.student.id });
+    if (result.deletedCount === 0) return res.json({ success: false, error: "Saved search not found." });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete saved search error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong." });
+  }
+});
+
 // Builds SEO title/description/canonical for a listing detail page. Never
 // includes phone/whatsapp/address — those are private regardless of SEO needs.
 function buildListingSeo(listing) {
@@ -1033,6 +1099,8 @@ router.post("/listing/:id/pause", requireStudent, async (req, res) => {
     if (!listing) return res.json({ success: false, error: "Listing not found." });
     if (listing.status !== "ACTIVE") return res.json({ success: false, error: "Only active listings can be paused." });
     listing.status = "PAUSED";
+    listing.pausedAt = new Date();
+    listing.pauseReminderSentAt = null; // fresh pause → fresh reminder window (Phase 10)
     await listing.save();
 
     notifyPendingRequesters(listing, "LISTING_PAUSED", "was paused by the owner");
@@ -1050,7 +1118,12 @@ router.post("/listing/:id/reactivate", requireStudent, async (req, res) => {
     if (!listing) return res.json({ success: false, error: "Listing not found." });
     if (listing.status !== "PAUSED") return res.json({ success: false, error: "Only paused listings can be reactivated." });
     listing.status = "ACTIVE";
+    // Phase 10: a reactivated listing gets a fresh expiry window and
+    // clears the pause-reminder dedupe guard, same as a fresh admin
+    // approval — see utils/flatmateActivation.js.
+    Object.assign(listing, computeActivationFields());
     await listing.save();
+    matchAndNotifySavedSearches(listing);
     res.json({ success: true });
   } catch (err) {
     console.error("Reactivate listing error:", err);
@@ -1428,7 +1501,32 @@ router.get("/:slug", optionalAuth, async (req, res) => {
     // Fire-and-forget view counter — never block the render on it, and
     // never inflate it when the owner views their own listing.
     if (!isOwner) {
-      FlatmateListing.updateOne({ _id: listing._id }, { $inc: { views: 1 } }).catch(() => {});
+      FlatmateListing.findByIdAndUpdate(listing._id, { $inc: { views: 1 } }, { new: true })
+        .select("views viewMilestonesNotified student bhk area city slug")
+        .then((updated) => {
+          if (!updated) return;
+          // Phase 10: fire a one-time "you hit N views" nudge the
+          // first time views crosses each threshold — never re-fires
+          // for a threshold already in viewMilestonesNotified.
+          const crossed = VIEW_MILESTONES.find(
+            (n) => updated.views >= n && !updated.viewMilestonesNotified.includes(n)
+          );
+          if (!crossed) return;
+          FlatmateListing.updateOne({ _id: updated._id }, { $addToSet: { viewMilestonesNotified: crossed } }).catch(() => {});
+          Student.findById(updated.student).select("phone").lean().then((ownerDoc) => {
+            const listingSummaryText = `${updated.bhk} BHK · ${updated.area}, ${updated.city}`;
+            notifyFlatmateEvent("LISTING_VIEW_MILESTONE", {
+              userId: updated.student,
+              title: `Your listing hit ${crossed} views!`,
+              body: listingSummaryText,
+              link: `/flatmate/${updated.slug}`,
+              relatedListing: updated._id,
+              dedupeKey: `LISTING_VIEW_MILESTONE:${updated._id.toString()}:${crossed}`,
+              whatsapp: ownerDoc?.phone ? { phone: ownerDoc.phone, variables: [String(crossed), listingSummaryText] } : null,
+            });
+          }).catch(() => {});
+        })
+        .catch(() => {});
     }
 
     // Recently Viewed (logged-in students only, and not the owner viewing
@@ -1461,3 +1559,8 @@ router.get("/:slug", optionalAuth, async (req, res) => {
 });
 
 module.exports = router;
+// Exported alongside the router (Phase 10) so the new reminder cron
+// (utils/flatmateReminders.js) can reuse the exact same
+// pending-requester fan-out used by the pause/close routes, instead
+// of a second, possibly-drifting copy of that loop.
+module.exports.notifyPendingRequesters = notifyPendingRequesters;

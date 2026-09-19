@@ -166,6 +166,67 @@ const EVENTS = {
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PUBLISHED || "hostelnode_flatmate_listing_published",
     language: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PUBLISHED_LANG || "en_US",
   },
+
+  /* ── Phase 10: reminder / engagement events ──────────────────
+     All 7 below are cron-or-trigger driven rather than fired directly
+     from a single user action, but go through this exact same
+     registry/notifyFlatmateEvent path — same in-app + WhatsApp
+     guarantees, same hard guard on WhatsApp coverage, same
+     never-throws contract. See app.js's Phase 10 cron block and the
+     relevant routes/flatmateRoutes.js call sites for what triggers
+     each one. */
+
+  // Owner hasn't responded to a pending request within the reminder
+  // window (default 24h, configurable) → nudge them once.
+  CONNECTION_REQUEST_PENDING_REMINDER: {
+    notificationType: "FLATMATE_REQUEST_PENDING_REMINDER",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_PENDING_REMINDER || "hostelnode_flatmate_pending_reminder",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_PENDING_REMINDER_LANG || "en_US",
+  },
+  // A message has sat unread for the reminder window (default 3h) →
+  // nudge the recipient once per unread streak.
+  MESSAGE_UNREAD_REMINDER: {
+    notificationType: "FLATMATE_MESSAGE_UNREAD_REMINDER",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_UNREAD_REMINDER || "hostelnode_flatmate_unread_reminder",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_UNREAD_REMINDER_LANG || "en_US",
+  },
+  // A new listing just went ACTIVE and matches a seeker's saved
+  // search → tell them. See utils/flatmateSavedSearchMatch.js.
+  NEW_MATCHING_LISTING: {
+    notificationType: "FLATMATE_NEW_MATCHING_LISTING",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_NEW_MATCH || "hostelnode_flatmate_new_match",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_NEW_MATCH_LANG || "en_US",
+  },
+  // A listing is within the warning window (default 7 days) of its
+  // computed expiresAt → tell the owner to renew, once.
+  LISTING_EXPIRING_SOON: {
+    notificationType: "FLATMATE_LISTING_EXPIRING_SOON",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_EXPIRING_SOON || "hostelnode_flatmate_expiring_soon",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_EXPIRING_SOON_LANG || "en_US",
+  },
+  // A listing's expiresAt has actually passed and the cron auto-closed
+  // it → tell the OWNER (distinct from LISTING_CLOSED, which is what
+  // notifyPendingRequesters fires to anyone still waiting on it).
+  LISTING_EXPIRED: {
+    notificationType: "FLATMATE_LISTING_EXPIRED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_EXPIRED || "hostelnode_flatmate_expired",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_EXPIRED_LANG || "en_US",
+  },
+  // A listing crosses a view-count threshold (see
+  // utils/flatmateMilestones.js) → a one-time engagement nudge to the
+  // owner per threshold.
+  LISTING_VIEW_MILESTONE: {
+    notificationType: "FLATMATE_LISTING_VIEW_MILESTONE",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_MILESTONE || "hostelnode_flatmate_milestone",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_MILESTONE_LANG || "en_US",
+  },
+  // A listing has sat PAUSED for the reminder window (default 7 days)
+  // → nudge the owner to reactivate it, once per pause.
+  LISTING_REACTIVATE_REMINDER: {
+    notificationType: "FLATMATE_LISTING_REACTIVATE_REMINDER",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_REACTIVATE_REMINDER || "hostelnode_flatmate_reactivate_reminder",
+    language: () => process.env.WA_TEMPLATE_FLATMATE_REACTIVATE_REMINDER_LANG || "en_US",
+  },
 };
 
 /**

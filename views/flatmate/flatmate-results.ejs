@@ -33,6 +33,19 @@
     .badge-have { background: #dcfce7; color: #087a3c; }
     .badge-need { background: #dbeafe; color: #1d4ed8; }
 
+    /* Phase 10 — "Save this search" (no equivalent on the PG/Hostel
+       results page, so nothing to reuse from findHostel-results.css). */
+    .save-search-btn {
+      margin-top: 8px; display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1.5px solid var(--border); border-radius: 999px;
+      padding: 6px 14px; font-size: 12px; font-weight: 700; color: var(--ink-mid);
+      cursor: pointer; transition: border-color .15s, color .15s;
+    }
+    .save-search-btn:hover, .save-search-btn:focus-visible { border-color: var(--green); color: var(--green-dark); }
+    .save-search-btn:focus-visible { outline: 2.5px solid var(--green); outline-offset: 2px; }
+    .save-search-btn.saved { border-color: var(--green); color: var(--green-dark); background: var(--green-light); cursor: default; }
+    .save-search-btn:disabled { opacity: .7; cursor: default; }
+
     .r-need-placeholder {
       position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
       justify-content: center; gap: 8px; background: linear-gradient(135deg,#eaf1ff,#f5f8ff); color: #2563eb;
@@ -243,6 +256,9 @@
         <div class="results-sub">
           Showing page <%= currentPage %> of <%= totalPages || 1 %> · Zero broker fees
         </div>
+        <button type="button" class="save-search-btn" id="saveSearchBtn" onclick="saveThisSearch(this)">
+          <i class="fa-regular fa-bookmark" aria-hidden="true"></i> Save this search
+        </button>
       </div>
 
       <!-- Sort buttons (no rating/popularity sort — we don't fabricate that data) -->
@@ -443,6 +459,42 @@
   // ── Sort ─────────────────────────────────────────────
   function setSort(key) {
     window.location.href = buildURL({ sort: key, page: 1 });
+  }
+
+  // ── Save this search (Phase 10) ─────────────────────
+  async function saveThisSearch(btn) {
+    <% if (!student) { %>
+      if (typeof openNudgeModal === 'function') openNudgeModal('login', window.location.pathname + window.location.search);
+      return;
+    <% } %>
+    btn.disabled = true;
+    const params = new URLSearchParams(window.location.search);
+    const body = {
+      location: params.get('location') || '',
+      gender: params.get('gender') || '',
+      type: params.get('type') || '',
+      budget: params.get('budget') || '',
+      bhk: params.get('bhk') || '',
+      roomType: params.get('roomType') || '',
+    };
+    try {
+      const res = await fetch('/flatmate/saved-searches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.classList.add('saved');
+        btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> ' + (data.alreadySaved ? 'Already saved' : 'Saved — we\'ll notify you');
+      } else {
+        alert(data.error || 'Could not save this search.');
+        btn.disabled = false;
+      }
+    } catch (err) {
+      alert('Network error — please try again.');
+      btn.disabled = false;
+    }
   }
 
   // ── Remove filter tag ────────────────────────────────

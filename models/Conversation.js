@@ -62,6 +62,17 @@ const conversationSchema = new mongoose.Schema({
     default: {},
   },
 
+  // Map<studentId (string), Date> (Phase 10) — dedupe guard for the
+  // "unread message reminder" cron: records when a reminder was last
+  // sent to that participant so it doesn't re-fire every cron run
+  // while messages stay unread. Cleared for a participant the moment
+  // their unread count for this conversation returns to 0.
+  unreadReminderSentAt: {
+    type: Map,
+    of: Date,
+    default: {},
+  },
+
 }, { timestamps: true });
 
 conversationSchema.index({ participants: 1, updatedAt: -1 });
