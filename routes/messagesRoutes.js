@@ -28,13 +28,11 @@ const jwt     = require("jsonwebtoken");
 const FlatmateConnection = require("../models/FlatmateConnection");
 const Conversation       = require("../models/Conversation");
 const Message            = require("../models/Message");
-const Notification       = require("../models/Notification");
 const Block              = require("../models/Block");
 const Report             = require("../models/Report");
 const Student            = require("../models/studentSchema");
 const FlatmateListing    = require("../models/FlatmateListing");
-
-const FLATMATE_WA_TEMPLATE_ACCEPTED = process.env.WA_TEMPLATE_FLATMATE_ACCEPTED || "hostelnode_flatmate_accepted";
+const { notifyFlatmateEvent } = require("../utils/flatmateNotifications");
 
 /* ── Auth — same contract as flatmateRoutes.js's requireStudent, defined
    locally so this file has no cross-file coupling. ── */
@@ -222,40 +220,33 @@ router.post("/connection/:id/accept", requireStudent, async (req, res) => {
       }
     }
 
-    Notification.create({
-      user: connection.requester,
-      type: "FLATMATE_REQUEST_ACCEPTED",
-      title: "Your connection request was accepted",
-      link: `/messages/${conversation._id}`,
-      relatedConnection: connection._id,
-      relatedConversation: conversation._id,
-    }).catch(() => {});
-
-    // WhatsApp notify the requester — fires exactly once, only on this
-    // actual pending->accepted transition (the guard above already
-    // prevents a second accept call from reaching this code at all).
-    // Non-critical: acceptance has already been fully saved above
-    // regardless of whether this notification succeeds.
-    setImmediate(async () => {
-      try {
-        const { sendTemplateMessage } = require("../utils/leadWhatsapp");
-        const [requesterDoc, receiverDoc, listing] = await Promise.all([
-          Student.findById(connection.requester).select("phone"),
-          Student.findById(connection.receiver).select("firstName"),
-          FlatmateListing.findById(connection.receiverListing).select("bhk area city"),
-        ]);
-        if (!requesterDoc?.phone) return;
-        const result = await sendTemplateMessage(
-          requesterDoc.phone,
-          FLATMATE_WA_TEMPLATE_ACCEPTED,
-          [receiverDoc?.firstName || "The listing owner", listing ? `${listing.bhk} BHK · ${listing.area}, ${listing.city}` : "your requested listing"]
-        );
-        if (result.success) console.log(`✅ Flatmate acceptance WA notify → ${requesterDoc.phone}`);
-        else console.error("🔴 Flatmate acceptance WA notify failed:", result.error);
-      } catch (e) {
-        console.error("WA flatmate-accepted notify failed (non-critical):", e.message);
-      }
-    });
+    // Centralized lifecycle notification — in-app + WhatsApp to the
+    // requester. Fires exactly once, only on this actual
+    // pending->accepted transition (the guard at the top of this route
+    // already prevents a second accept call from reaching this code at
+    // all) — dedupeKey is a backstop, not the only guard. Non-critical:
+    // acceptance has already been fully saved above regardless of
+    // whether this notification succeeds.
+    (async () => {
+      const [requesterDoc, receiverDoc, listing] = await Promise.all([
+        Student.findById(connection.requester).select("phone").lean().catch(() => null),
+        Student.findById(connection.receiver).select("firstName").lean().catch(() => null),
+        FlatmateListing.findById(connection.receiverListing).select("bhk area city").lean().catch(() => null),
+      ]);
+      const listingSummaryText = listing ? `${listing.bhk} BHK · ${listing.area}, ${listing.city}` : "your requested listing";
+      notifyFlatmateEvent("CONNECTION_REQUEST_ACCEPTED", {
+        userId: connection.requester,
+        title: "Your connection request was accepted",
+        body: `${receiverDoc?.firstName || "They"} accepted your request on ${listingSummaryText}.`,
+        link: `/messages/${conversation._id}`,
+        relatedConnection: connection._id,
+        relatedConversation: conversation._id,
+        dedupeKey: connection._id.toString(),
+        whatsapp: requesterDoc?.phone
+          ? { phone: requesterDoc.phone, variables: [receiverDoc?.firstName || "The listing owner", listingSummaryText] }
+          : null,
+      });
+    })();
 
     res.json({ success: true, conversationId: conversation._id.toString() });
   } catch (err) {
@@ -277,12 +268,13 @@ router.post("/connection/:id/decline", requireStudent, async (req, res) => {
     connection.declinedAt = new Date();
     await connection.save();
 
-    Notification.create({
-      user: connection.requester,
-      type: "FLATMATE_REQUEST_DECLINED",
+    notifyFlatmateEvent("CONNECTION_REQUEST_DECLINED", {
+      userId: connection.requester,
       title: "Your connection request was declined",
+      link: `/messages`,
       relatedConnection: connection._id,
-    }).catch(() => {});
+      dedupeKey: connection._id.toString(),
+    });
 
     res.json({ success: true });
   } catch (err) {
@@ -314,6 +306,20 @@ router.post("/connection/:id/remove", requireStudent, async (req, res) => {
     connection.endedAt = new Date();
     await connection.save();
     await Conversation.updateOne({ connection: connection._id }, { $set: { status: "closed" } });
+
+    // Tell the OTHER participant — whoever didn't click Remove has no
+    // other way to find out the connection just ended. In-app only.
+    const otherId = connection.requester.toString() === viewerId ? connection.receiver : connection.requester;
+    (async () => {
+      const actorDoc = await Student.findById(viewerId).select("firstName").lean().catch(() => null);
+      notifyFlatmateEvent("CONNECTION_REMOVED", {
+        userId: otherId,
+        title: `${actorDoc?.firstName || "A user"} ended your connection`,
+        link: `/messages`,
+        relatedConnection: connection._id,
+        dedupeKey: connection._id.toString(),
+      });
+    })();
 
     res.json({ success: true });
   } catch (err) {
@@ -381,13 +387,23 @@ router.post("/report", requireStudent, async (req, res) => {
       return res.json({ success: false, error: "You can't report yourself." });
     }
 
-    await Report.create({
+    const report = await Report.create({
       reporter: req.student.id,
       reportedUser: reportedUserId,
       relatedListing: listingId || null,
       relatedConversation: conversationId || null,
       reason,
       details: (details || "").trim().slice(0, 1000),
+    });
+
+    // A "we got it" receipt for the reporter — not a moderation outcome
+    // (that's an admin/Phase-7 concern), just confirmation the report
+    // was actually logged, since the modal closes immediately after.
+    notifyFlatmateEvent("REPORT_RECEIVED", {
+      userId: req.student.id,
+      title: "Your report was received",
+      body: "Our team will review it shortly.",
+      dedupeKey: report._id.toString(),
     });
 
     res.json({ success: true });
@@ -508,14 +524,17 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
     conv.unreadCounts.set(receiverId.toString(), currentUnread + 1);
     await conv.save();
 
-    Notification.create({
-      user: receiverId,
-      type: "FLATMATE_NEW_MESSAGE",
+    // dedupeKey = this message's own id — each message is inherently a
+    // distinct event, so this is just consistency with every other call
+    // site rather than a real collision risk.
+    notifyFlatmateEvent("NEW_MESSAGE", {
+      userId: receiverId,
       title: "New message",
       body: text.slice(0, 80),
       link: `/messages/${conv._id}`,
       relatedConversation: conv._id,
-    }).catch(() => {});
+      dedupeKey: message._id.toString(),
+    });
 
     res.json({
       success: true,

@@ -42,18 +42,16 @@ const Student = require("../models/studentSchema");
 const FlatmateConnection = require("../models/FlatmateConnection");
 const Conversation = require("../models/Conversation");
 const Block = require("../models/Block");
+const { notifyFlatmateEvent } = require("../utils/flatmateNotifications");
 
 const CITIES = ["Mumbai", "Navi Mumbai", "Pune", "Bengaluru", "Delhi NCR", "Hyderabad"];
 
-// WhatsApp template names for Flatmate notifications — these are NOT yet
-// approved Meta templates; they must be created in Meta Business Manager
-// before these notifications will actually send (see PHASE-A notes for the
-// exact body text/variables to submit for approval). Configurable via env
-// so the template name can change without a code deploy.
-const FLATMATE_WA_TEMPLATES = {
-  requestReceived: process.env.WA_TEMPLATE_FLATMATE_REQUEST || "hostelnode_flatmate_request",
-  requestAccepted: process.env.WA_TEMPLATE_FLATMATE_ACCEPTED || "hostelnode_flatmate_accepted",
-};
+// WhatsApp template names for Flatmate notifications now live in one
+// place — the EVENTS registry in utils/flatmateNotifications.js — so
+// there's a single source of truth for which events get WhatsApp and
+// which template name each uses. See that file's header for the actual
+// approval-status caveat (still needs confirming in Meta Business
+// Manager as of Phase 1).
 const RESULTS_PAGE_SIZE = 9;
 
 /* ─────────────────────────────────────────────
@@ -265,6 +263,33 @@ function orderImagesByCover(images, coverImage) {
   reordered.splice(idx, 1);
   reordered.unshift(coverImage);
   return reordered;
+}
+
+// Notify everyone with a still-PENDING (never accepted/declined) request
+// on a listing that just got closed or paused — they're waiting on
+// something that will now never respond. Fire-and-forget, same as every
+// other notifyFlatmateEvent call site; failures here can't affect the
+// close/pause response since it's already been sent to the browser by
+// the time this runs its query.
+function notifyPendingRequesters(listing, eventKey, reasonText) {
+  setImmediate(async () => {
+    try {
+      const pending = await FlatmateConnection.find({ receiverListing: listing._id, status: "pending" }).select("_id requester");
+      for (const conn of pending) {
+        notifyFlatmateEvent(eventKey, {
+          userId: conn.requester,
+          title: `A listing you requested to connect on ${reasonText}`,
+          body: `${listing.bhk} BHK · ${listing.area}, ${listing.city}`,
+          link: `/messages`,
+          relatedConnection: conn._id,
+          relatedListing: listing._id,
+          dedupeKey: `${eventKey}:${conn._id.toString()}`,
+        });
+      }
+    } catch (err) {
+      console.error(`notifyPendingRequesters(${eventKey}) failed (non-critical):`, err.message);
+    }
+  });
 }
 
 /* ─────────────────────────────────────────────
@@ -845,7 +870,12 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
     // review queue. Editing an already-ACTIVE/PAUSED/CLOSED listing must
     // preserve its current status — publishing a small edit should never
     // silently demote a live listing back to "pending review".
-    if (listing.status === "DRAFT" || listing.status === "REJECTED") {
+    // Captured before the status is overwritten below — LISTING_PUBLISHED
+    // should fire once, on the actual draft/rejected → pending-review
+    // transition, not on every later edit-and-resave of an already-live
+    // listing (this same route handles both).
+    const isFreshPublish = listing.status === "DRAFT" || listing.status === "REJECTED";
+    if (isFreshPublish) {
       listing.status = "PENDING";
     }
     listing.publishedAt = listing.publishedAt || new Date();
@@ -907,6 +937,17 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
         } catch (e) {
           console.error("Nearby cache computation failed (non-critical):", e.message);
         }
+      });
+    }
+
+    if (isFreshPublish) {
+      notifyFlatmateEvent("LISTING_PUBLISHED", {
+        userId: listing.student,
+        title: "Your listing is live",
+        body: `${listing.bhk} BHK · ${listing.area}, ${listing.city} is now under review / visible to seekers.`,
+        link: `/flatmate/${listing.slug}`,
+        relatedListing: listing._id,
+        dedupeKey: `LISTING_PUBLISHED:${listing._id.toString()}`,
       });
     }
 
@@ -983,6 +1024,9 @@ router.post("/listing/:id/pause", requireStudent, async (req, res) => {
     if (listing.status !== "ACTIVE") return res.json({ success: false, error: "Only active listings can be paused." });
     listing.status = "PAUSED";
     await listing.save();
+
+    notifyPendingRequesters(listing, "LISTING_PAUSED", "was paused by the owner");
+
     res.json({ success: true });
   } catch (err) {
     console.error("Pause listing error:", err);
@@ -1014,7 +1058,11 @@ router.post("/listing/:id/close", requireStudent, async (req, res) => {
     listing.status = "CLOSED";
     await listing.save();
     // Existing connections/conversations intentionally survive — only new
-    // requests stop, per spec. Nothing to clean up here.
+    // requests stop, per spec. Nothing to clean up there. Pending
+    // (never-actioned) requests are a different case: those people are
+    // waiting on a listing that will now never respond, so tell them.
+    notifyPendingRequesters(listing, "LISTING_CLOSED", "was closed by the owner");
+
     res.json({ success: true });
   } catch (err) {
     console.error("Close listing error:", err);
@@ -1091,31 +1139,28 @@ router.post("/connect", requireStudent, async (req, res) => {
       status: "pending",
     });
 
-    // WhatsApp notify the listing owner — non-critical: the request is
-    // already saved above regardless of whether this succeeds. Uses the
-    // existing utils/leadWhatsapp.js template-message sender (the same
-    // one studentRoutes.js already uses for PG enquiry notifications),
-    // since a business-initiated message like this needs an approved
-    // Meta template, not a plain-text session message.
-    setImmediate(async () => {
-      try {
-        const { sendTemplateMessage } = require("../utils/leadWhatsapp");
-        const [requesterDoc, receiverDoc] = await Promise.all([
-          Student.findById(req.student.id).select("firstName"),
-          Student.findById(listing.student).select("phone"),
-        ]);
-        if (!receiverDoc?.phone) return;
-        const result = await sendTemplateMessage(
-          receiverDoc.phone,
-          FLATMATE_WA_TEMPLATES.requestReceived,
-          [requesterDoc?.firstName || "Someone", `${listing.bhk} BHK · ${listing.area}, ${listing.city}`]
-        );
-        if (result.success) console.log(`✅ Flatmate request WA notify → ${receiverDoc.phone}`);
-        else console.error("🔴 Flatmate request WA notify failed:", result.error);
-      } catch (e) {
-        console.error("WA flatmate-request notify failed (non-critical):", e.message);
-      }
-    });
+    // Centralized lifecycle notification — in-app to the listing owner,
+    // plus WhatsApp via the request-received template. Fire-and-forget,
+    // called after the connection is already saved above, so nothing
+    // here can affect the response. dedupeKey = the connection's own id,
+    // since exactly one CONNECTION_REQUEST_RECEIVED notification should
+    // ever exist per connection.
+    (async () => {
+      const requesterDoc = await Student.findById(req.student.id).select("firstName").lean().catch(() => null);
+      const receiverDoc = await Student.findById(listing.student).select("phone").lean().catch(() => null);
+      const requesterName = requesterDoc?.firstName || "Someone";
+      const listingSummaryText = `${listing.bhk} BHK · ${listing.area}, ${listing.city}`;
+      notifyFlatmateEvent("CONNECTION_REQUEST_RECEIVED", {
+        userId: listing.student,
+        title: `${requesterName} wants to connect`,
+        body: `New request on your ${listingSummaryText} listing.`,
+        link: `/messages`,
+        relatedConnection: connection._id,
+        relatedListing: listing._id,
+        dedupeKey: connection._id.toString(),
+        whatsapp: receiverDoc?.phone ? { phone: receiverDoc.phone, variables: [requesterName, listingSummaryText] } : null,
+      });
+    })();
 
     res.json({ success: true, connectionId: connection._id.toString() });
   } catch (err) {
@@ -1139,6 +1184,22 @@ router.post("/connection/:id/cancel", requireStudent, async (req, res) => {
     connection.status = "cancelled";
     connection.cancelledAt = new Date();
     await connection.save();
+
+    // Let the receiver know the request they were sitting on is gone —
+    // otherwise it just silently disappears from their pending list with
+    // no explanation. In-app only; no WhatsApp template for this event.
+    (async () => {
+      const requesterDoc = await Student.findById(connection.requester).select("firstName").lean().catch(() => null);
+      notifyFlatmateEvent("CONNECTION_REQUEST_CANCELLED", {
+        userId: connection.receiver,
+        title: `${requesterDoc?.firstName || "A user"} cancelled their connection request`,
+        link: `/messages`,
+        relatedConnection: connection._id,
+        relatedListing: connection.receiverListing,
+        dedupeKey: connection._id.toString(),
+      });
+    })();
+
     res.json({ success: true });
   } catch (err) {
     console.error("Flatmate cancel connection error:", err);

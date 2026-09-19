@@ -24,8 +24,13 @@ const notificationSchema = new mongoose.Schema({
       "FLATMATE_CONNECTION_REQUEST",
       "FLATMATE_REQUEST_ACCEPTED",
       "FLATMATE_REQUEST_DECLINED",
+      "FLATMATE_REQUEST_CANCELLED",
+      "FLATMATE_CONNECTION_REMOVED",
       "FLATMATE_NEW_MESSAGE",
       "LISTING_CLOSED",
+      "FLATMATE_LISTING_PAUSED",
+      "FLATMATE_REPORT_RECEIVED",
+      "FLATMATE_LISTING_PUBLISHED",
     ],
     required: true,
   },
@@ -38,7 +43,13 @@ const notificationSchema = new mongoose.Schema({
   relatedConversation:  { type: mongoose.Schema.Types.ObjectId, ref: "Conversation", default: null },
   relatedListing:       { type: mongoose.Schema.Types.ObjectId, ref: "FlatmateListing", default: null },
 
+  // Best-effort duplicate guard for the centralized notification
+  // service (utils/flatmateNotifications.js) — see that file for how
+  // it's used. Not unique-indexed on purpose (see that file's header).
+  dedupeKey: { type: String, default: null, index: true },
+
   isRead: { type: Boolean, default: false, index: true },
+  readAt: { type: Date, default: null },
 
 }, { timestamps: true });
 
