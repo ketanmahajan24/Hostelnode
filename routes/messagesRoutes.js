@@ -65,6 +65,40 @@ function getUnread(conv, viewerId) {
   return conv.unreadCounts[viewerId] || 0;
 }
 
+/* ── Suggested opening messages ─────────────────────────────────
+   Shown as tappable chips on a new/near-empty Flatmate chat, so
+   people aren't staring at a blank box. Two fixed sets — "seeker"
+   (the person who sent the connection request) and "lister" (the
+   listing owner who received it) — since the useful opening lines
+   are genuinely different for each side. Tapping a chip fills the
+   input box (never auto-sends), so the person can edit it — these
+   are prompts, not claims HostelNode is making on anyone's behalf.
+──────────────────────────────────────────────────────────────── */
+const SEEKER_SUGGESTIONS = [
+  "Hi! I'm still looking for a flatmate — is the room still available?",
+  "What's the exact move-in date you're looking at?",
+  "Is the rent negotiable, and what's included (wifi, maintenance, etc.)?",
+  "Could you share a few more photos of the room and common areas?",
+  "What's the vibe like — similar schedules, food preferences, etc.?",
+  "Is the deposit refundable, and how much notice is needed to move out?",
+  "Would it be possible to see the place in person this week?",
+  "Are pets allowed in the flat?",
+  "How far is it from the nearest metro/bus stop?",
+  "Just to confirm — is this a shared room or an independent room?",
+];
+const LISTER_SUGGESTIONS = [
+  "Hi! Thanks for reaching out — yes, the room is still available.",
+  "When are you looking to move in?",
+  "A bit about you — are you a student or a working professional?",
+  "Do you have any specific requirements (veg/non-veg, pets, smoking, etc.)?",
+  "I can show you around — are you free this week for a visit?",
+  "Let me know your budget and I'll confirm if it works.",
+  "Feel free to ask me anything about the flat or the area!",
+  "How many flatmates are you looking to move in with?",
+  "Let me know if you'd like more details about the amenities.",
+  "Would you like to do a video call first before visiting in person?",
+];
+
 /* ─────────────────────────────────────────────
    INBOX  →  GET /messages
 ───────────────────────────────────────────── */
@@ -388,13 +422,30 @@ router.get("/:conversationId", requireStudent, async (req, res) => {
       connection = await FlatmateConnection.findById(conv.connection).lean();
     }
 
-    // Mark as read for this viewer — reset their unread counter and
-    // stamp readAt on the counterpart's messages.
+    // Opening the chat is itself proof the viewer's device received
+    // everything sent so far AND that they're looking at it right now —
+    // so this is the one place both "delivered" and "read" are stamped
+    // together for the counterpart's messages.
+    const now = new Date();
     await Conversation.updateOne({ _id: conv._id }, { $set: { [`unreadCounts.${viewerId}`]: 0 } });
     await Message.updateMany(
       { conversation: conv._id, sender: { $ne: viewerId }, readAt: null },
-      { $set: { readAt: new Date() } }
+      { $set: { readAt: now } }
     );
+    await Message.updateMany(
+      { conversation: conv._id, sender: { $ne: viewerId }, deliveredAt: null },
+      { $set: { deliveredAt: now } }
+    );
+
+    // Suggested opening lines — only for a Flatmate chat that's still
+    // basically empty (the carried-over original request message may
+    // already be the sole entry), and only while the connection is
+    // still active. Which set depends on which side of the original
+    // request the viewer was on.
+    let suggestions = [];
+    if (connection && conv.status === "active" && messages.length <= 2) {
+      suggestions = connection.requester.toString() === viewerId ? SEEKER_SUGGESTIONS : LISTER_SUGGESTIONS;
+    }
 
     res.render("messages/conversation", {
       conversation: conv,
@@ -403,6 +454,7 @@ router.get("/:conversationId", requireStudent, async (req, res) => {
       connection,
       viewerId,
       listingText: listingSummary(conv.listing, conv.listingModel),
+      suggestions,
     });
   } catch (err) {
     console.error("Conversation view error:", err);
@@ -467,7 +519,10 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
 
     res.json({
       success: true,
-      message: { _id: message._id.toString(), text: message.text, createdAt: message.createdAt, mine: true },
+      message: {
+        _id: message._id.toString(), text: message.text, createdAt: message.createdAt, mine: true,
+        deliveredAt: null, readAt: null,
+      },
     });
   } catch (err) {
     console.error("Send message error:", err);
@@ -476,9 +531,47 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
 });
 
 /* ─────────────────────────────────────────────
+   MARK READ  →  POST /messages/:conversationId/read
+   Called by the chat page whenever it's actually visible and focused
+   (on load, on tab refocus, and right after a new incoming message is
+   appended while focused) — this is the real "the person looked at
+   it" signal driving the blue double-tick, distinct from delivery.
+───────────────────────────────────────────── */
+router.post("/:conversationId/read", requireStudent, async (req, res) => {
+  try {
+    const viewerId = req.student.id;
+    const conv = await Conversation.findById(req.params.conversationId);
+    if (!conv || !conv.participants.some((p) => p.toString() === viewerId)) {
+      return res.status(403).json({ success: false, error: "Not authorized." });
+    }
+
+    const now = new Date();
+    await Conversation.updateOne({ _id: conv._id }, { $set: { [`unreadCounts.${viewerId}`]: 0 } });
+    await Message.updateMany(
+      { conversation: conv._id, sender: { $ne: viewerId }, readAt: null },
+      { $set: { readAt: now } }
+    );
+    // Read implies delivered — cover the (rare) case a message was read
+    // via this route before a poll cycle had a chance to mark it delivered.
+    await Message.updateMany(
+      { conversation: conv._id, sender: { $ne: viewerId }, deliveredAt: null },
+      { $set: { deliveredAt: now } }
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Could not mark as read." });
+  }
+});
+
+/* ─────────────────────────────────────────────
    POLL FOR NEW MESSAGES  →  GET /messages/:conversationId/poll?after=<ISO date>
    Lightweight alternative to websockets (no socket.io in this project) —
    the chat page calls this every few seconds for near-real-time updates.
+   Also doubles as the "delivered" signal: the viewer's client reaching
+   this endpoint at all proves their device is live and has received
+   whatever the other participant sent, independent of whether the tab
+   is actually focused (that distinction is "read", handled above).
 ───────────────────────────────────────────── */
 router.get("/:conversationId/poll", requireStudent, async (req, res) => {
   try {
@@ -488,16 +581,35 @@ router.get("/:conversationId/poll", requireStudent, async (req, res) => {
       return res.status(403).json({ success: false, error: "Not authorized." });
     }
 
+    await Message.updateMany(
+      { conversation: conv._id, sender: { $ne: viewerId }, deliveredAt: null },
+      { $set: { deliveredAt: new Date() } }
+    );
+
     const after = req.query.after ? new Date(req.query.after) : new Date(0);
-    const messages = await Message.find({ conversation: conv._id, createdAt: { $gt: after } })
+    const newMessages = await Message.find({ conversation: conv._id, createdAt: { $gt: after } })
       .sort({ createdAt: 1 })
+      .lean();
+
+    // Status (delivered/read) for the viewer's OWN messages the other
+    // side hasn't read yet, so ticks on already-rendered bubbles can be
+    // upgraded live without a full page reload. Bounded to "not yet
+    // read" ones since once a message is read its ticks never change
+    // again, so there's nothing left to push.
+    const pendingMine = await Message.find({ conversation: conv._id, sender: viewerId, readAt: null })
+      .select("_id deliveredAt readAt")
       .lean();
 
     res.json({
       success: true,
       status: conv.status,
-      messages: messages.map((m) => ({
-        _id: m._id.toString(), text: m.text, createdAt: m.createdAt, mine: m.sender.toString() === viewerId,
+      messages: newMessages.map((m) => ({
+        _id: m._id.toString(), text: m.text, createdAt: m.createdAt,
+        mine: m.sender.toString() === viewerId,
+        deliveredAt: m.deliveredAt, readAt: m.readAt,
+      })),
+      statusUpdates: pendingMine.map((m) => ({
+        _id: m._id.toString(), deliveredAt: m.deliveredAt, readAt: m.readAt,
       })),
     });
   } catch (err) {

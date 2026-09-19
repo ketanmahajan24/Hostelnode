@@ -43,9 +43,25 @@
     .bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.5; }
     .bubble.mine { align-self: flex-end; background: var(--green); color: #fff; border-bottom-right-radius: 4px; }
     .bubble.theirs { align-self: flex-start; background: var(--card-bg); border: 1px solid var(--border); color: var(--ink); border-bottom-left-radius: 4px; }
-    .bubble .time { display: block; font-size: 10px; opacity: .65; margin-top: 4px; }
+    .bubble .time { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 10px; opacity: .8; margin-top: 4px; }
+    .bubble .tick { font-size: 11px; }
+    .bubble .tick.tick-sent { opacity: .75; }
+    .bubble .tick.tick-delivered { opacity: .85; }
+    .bubble .tick.tick-read { color: #53d1ff; opacity: 1; }
 
     .chat-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 0; }
+
+    .suggestion-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: thin; }
+    .suggestion-row::-webkit-scrollbar { height: 4px; }
+    .suggestion-chip {
+      flex-shrink: 0; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+      background: var(--bg2); border: 1.5px solid var(--border); color: var(--ink-mid); font-size: 12px;
+      padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .suggestion-chip:hover { border-color: var(--green); background: var(--green-glow); }
+    .suggestion-dismiss { flex-shrink: 0; align-self: center; background: none; border: none; color: var(--muted); font-size: 13px; padding: 0 4px; cursor: pointer; }
+    .suggestion-wrap { display: none; }
+    .suggestion-wrap.visible { display: flex; align-items: center; }
 
     .chat-input-row { display: flex; gap: 10px; padding: 12px 0 16px; border-top: 1px solid var(--border); }
     .chat-input-row textarea { flex: 1; border: 1.5px solid var(--border); border-radius: 16px; padding: 11px 14px; font-size: 13.5px; font-family: inherit; resize: none; outline: none; }
@@ -133,14 +149,30 @@
       <div class="chat-empty">No messages yet — say hello 👋</div>
     <% } %>
     <% messages.forEach(function(m) { %>
-      <div class="bubble <%= m.sender.toString() === viewerId ? 'mine' : 'theirs' %>">
+      <% const mine = m.sender.toString() === viewerId; %>
+      <div class="bubble <%= mine ? 'mine' : 'theirs' %>" data-id="<%= m._id %>">
         <%= m.text %>
-        <span class="time"><%= new Date(m.createdAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }) %></span>
+        <span class="time">
+          <%= new Date(m.createdAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }) %>
+          <% if (mine) { %>
+            <i class="fa-solid tick <%= m.readAt ? 'fa-check-double tick-read' : (m.deliveredAt ? 'fa-check-double tick-delivered' : 'fa-check tick-sent') %>"></i>
+          <% } %>
+        </span>
       </div>
     <% }) %>
   </div>
 
   <% if (conversation.status === 'active') { %>
+    <% if (suggestions && suggestions.length) { %>
+      <div class="suggestion-wrap visible" id="suggestionWrap">
+        <div class="suggestion-row" id="suggestionRow">
+          <% suggestions.forEach(function(s) { %>
+            <button type="button" class="suggestion-chip" onclick="useSuggestion(this)"><%= s %></button>
+          <% }) %>
+        </div>
+        <button type="button" class="suggestion-dismiss" onclick="dismissSuggestions()" title="Hide suggestions"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    <% } %>
     <div class="chat-input-row">
       <textarea id="chatInput" rows="1" placeholder="Type a message…" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
       <button class="chat-send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
@@ -283,14 +315,32 @@ async function removeConnection() {
   } catch (err) { alert('Network error — please try again.'); }
 }
 
+function tickHtml(msg) {
+  if (msg.readAt) return '<i class="fa-solid fa-check-double tick tick-read"></i>';
+  if (msg.deliveredAt) return '<i class="fa-solid fa-check-double tick tick-delivered"></i>';
+  return '<i class="fa-solid fa-check tick tick-sent"></i>';
+}
+
 function appendBubble(msg) {
   const div = document.createElement('div');
   div.className = 'bubble ' + (msg.mine ? 'mine' : 'theirs');
+  if (msg._id) div.dataset.id = msg._id;
   const time = new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-  div.innerHTML = msg.text.replace(/</g,'&lt;') + '<span class="time">' + time + '</span>';
+  div.innerHTML = msg.text.replace(/</g,'&lt;') + '<span class="time">' + time + (msg.mine ? tickHtml(msg) : '') + '</span>';
   thread.appendChild(div);
   thread.scrollTop = thread.scrollHeight;
   lastMessageTime = msg.createdAt;
+}
+
+// Upgrade ticks on an already-rendered bubble (called from the poll
+// loop's statusUpdates — never re-renders the whole bubble, just the
+// tick icon, so it can't clobber anything else in it).
+function updateTicks(id, deliveredAt, readAt) {
+  const bubble = thread.querySelector('[data-id="' + id + '"]');
+  if (!bubble) return;
+  const tick = bubble.querySelector('.tick');
+  if (!tick) return;
+  tick.outerHTML = tickHtml({ deliveredAt, readAt });
 }
 
 async function sendMessage() {
@@ -298,6 +348,7 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
+  hideSuggestions();
   try {
     const res = await fetch('/messages/' + CONVERSATION_ID + '/messages', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }),
@@ -308,16 +359,56 @@ async function sendMessage() {
   } catch (err) { alert('Network error — please try again.'); }
 }
 
+function useSuggestion(btn) {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  input.value = btn.textContent;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+function hideSuggestions() {
+  const wrap = document.getElementById('suggestionWrap');
+  if (wrap) wrap.classList.remove('visible');
+}
+function dismissSuggestions() { hideSuggestions(); }
+
+// "Read" is a real signal, not a poll side-effect: only ack it while
+// this tab is actually visible AND focused, so switching away or
+// backgrounding the tab correctly leaves messages at "delivered" (grey
+// double tick) rather than falsely showing them as read. Debounced so
+// rapid focus/visibility churn or several incoming messages in a row
+// don't fire a flood of requests.
+let readAckTimer = null;
+function ackReadIfFocused() {
+  if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+  clearTimeout(readAckTimer);
+  readAckTimer = setTimeout(function () {
+    fetch('/messages/' + CONVERSATION_ID + '/read', { method: 'POST' }).catch(function () {});
+  }, 600);
+}
+document.addEventListener('visibilitychange', ackReadIfFocused);
+window.addEventListener('focus', ackReadIfFocused);
+ackReadIfFocused();
+
 /* Lightweight polling (no socket.io in this project) — check for new
-   messages from the other side every 4s. */
+   messages from the other side every 4s, and pick up delivered/read
+   tick updates for the viewer's own messages. */
 setInterval(async function () {
   try {
     const qs = lastMessageTime ? '?after=' + encodeURIComponent(lastMessageTime) : '';
     const res = await fetch('/messages/' + CONVERSATION_ID + '/poll' + qs);
     const data = await res.json();
-    if (data.success && data.messages.length) {
-      data.messages.forEach(function(m) { if (!m.mine) appendBubble(m); });
+    if (!data.success) return;
+    let gotIncoming = false;
+    if (data.messages.length) {
+      data.messages.forEach(function(m) {
+        if (!m.mine) { appendBubble(m); gotIncoming = true; }
+      });
     }
+    if (data.statusUpdates && data.statusUpdates.length) {
+      data.statusUpdates.forEach(function(s) { updateTicks(s._id, s.deliveredAt, s.readAt); });
+    }
+    if (gotIncoming) ackReadIfFocused();
   } catch (err) { /* silent — network hiccups shouldn't spam the user */ }
 }, 4000);
 </script>

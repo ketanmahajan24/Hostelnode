@@ -32,6 +32,14 @@ const messageSchema = new mongoose.Schema({
 
   attachments: [{ type: String }],
 
+  // WhatsApp-style status, backend-driven only (never set from the client):
+  // created  → "sent" (single grey tick)
+  // deliveredAt set → the recipient's own client actually fetched this
+  //   message (via poll or opening the chat) — "delivered" (double grey tick)
+  // readAt set → the recipient had the chat open/focused when this was
+  //   seen, or opened the conversation after it arrived — "read" (double
+  //   blue tick). Read always implies delivered.
+  deliveredAt: { type: Date, default: null },
   readAt: { type: Date, default: null },
 
 }, { timestamps: true });
