@@ -253,9 +253,10 @@
               <% Object.keys(categoryMeta).forEach(function(cat) { %>
                 <% const hit = listing.nearbyCache[cat]; %>
                 <% if (hit) { %>
-                  <button type="button" class="fm-nearby-highlight-chip" aria-label="View route to <%= hit.name %>, <%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' meters' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away" onclick='openRoutePanel(<%- JSON.stringify(Object.assign({}, hit, {category: cat})).replace(/</g,"\\u003c") %>)'>
+                  <button type="button" class="fm-nearby-highlight-chip" aria-label="Get route to <%= hit.name %>, <%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' meters' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away" onclick='openRoutePanel(<%- JSON.stringify(Object.assign({}, hit, {category: cat})).replace(/</g,"\\u003c") %>)'>
                     <span class="fm-nhc-icon"><%= categoryMeta[cat][0] %></span>
                     <div class="fm-nhc-text"><div class="fm-nhc-name"><%= categoryMeta[cat][1] %> &middot; <%= hit.name %></div><div class="fm-nhc-dist"><%= hit.distanceMeters < 1000 ? hit.distanceMeters + ' m' : (hit.distanceMeters/1000).toFixed(1) + ' km' %> away</div></div>
+                    <i class="fa-solid fa-diamond-turn-right fm-nhc-route-icon" aria-hidden="true" title="Get route"></i>
                   </button>
                 <% } %>
               <% }) %>
@@ -287,6 +288,9 @@
               <button class="fm-route-mode-tab" data-mode="transit" onclick="loadRoute('transit', this)">🚌 Transit</button>
             </div>
             <div id="routeResult" class="fm-route-result">Loading…</div>
+            <button type="button" id="getRouteBtn" class="fm-get-route-btn" onclick="openGetRouteInMaps()" style="display:none">
+              <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> Get Route
+            </button>
           </div>
         </section>
       <% } %>
@@ -355,7 +359,16 @@
         </div>
 
         <div class="bc-trust">
-          <div class="trust-item"><i class="fa-solid fa-circle-check"></i><span>Verified listing</span></div>
+          <% /* "Verified listing" is a specific claim about THIS listing —
+               it must only appear when isVerified is actually true (an
+               admin action, see models/FlatmateListing.js), matching the
+               badges shown elsewhere on this page. Never show it
+               unconditionally: most listings default to unverified, so
+               showing it for everyone would be a fabricated trust claim
+               on exactly the listings that need it least. */ %>
+          <% if (listing.isVerified) { %>
+            <div class="trust-item"><i class="fa-solid fa-circle-check"></i><span>Verified listing</span></div>
+          <% } %>
           <div class="trust-item"><i class="fa-solid fa-ban"></i><span>Zero broker fee</span></div>
         </div>
         <div class="bc-emi"><i class="fa-solid fa-calendar-days"></i> <%= listing.views || 0 %> views</div>
@@ -479,6 +492,7 @@ let flatmateMarker = null;
 let destMarker = null;
 let routePolyline = null;
 let currentDestination = null;
+let currentRouteMode = 'driving';
 let mapLoaded = false;
 
 function showMapUnavailable() {
@@ -555,10 +569,10 @@ async function loadNearby(category, btn) {
     box.innerHTML = data.places.map(function (p, i) {
       const distText = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' m' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
       const distLabel = p.distanceMeters != null ? (p.distanceMeters < 1000 ? p.distanceMeters + ' meters' : (p.distanceMeters / 1000).toFixed(1) + ' km') : '';
-      return '<button type="button" class="fm-nearby-result-item" aria-label="View route to ' + escapeHtml(p.name) + (distLabel ? ', ' + distLabel + ' away' : '') + '" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
+      return '<button type="button" class="fm-nearby-result-item" aria-label="Get route to ' + escapeHtml(p.name) + (distLabel ? ', ' + distLabel + ' away' : '') + '" onclick=\'openRoutePanel(' + JSON.stringify(p).replace(/'/g, "&#39;") + ')\'>' +
         '<div><div class="fm-nearby-result-name">' + escapeHtml(p.name) + '</div>' +
         (p.address ? '<div class="fm-nearby-result-addr">' + escapeHtml(p.address) + '</div>' : '') + '</div>' +
-        '<div class="fm-nearby-result-dist">' + distText + '</div></button>';
+        '<div class="fm-nearby-result-right"><div class="fm-nearby-result-dist">' + distText + '</div><i class="fa-solid fa-diamond-turn-right fm-nearby-result-route-icon" aria-hidden="true" title="Get route"></i></div></button>';
     }).join('');
   } catch (err) {
     box.innerHTML = '<div class="fm-nearby-error">Network error — please try again.</div>';
@@ -572,12 +586,23 @@ function escapeHtml(s) {
 /* ── ROUTE PANEL ── */
 function openRoutePanel(place) {
   currentDestination = place;
+  currentRouteMode = 'driving';
   document.getElementById('routePanel').style.display = 'block';
   document.getElementById('routeDestName').textContent = place.name;
   document.querySelectorAll('.fm-route-mode-tab').forEach(t => t.classList.remove('active'));
   document.querySelector('.fm-route-mode-tab[data-mode="driving"]').classList.add('active');
   loadRoute('driving');
   document.getElementById('routePanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // "Get Route" hands off to Google Maps for real turn-by-turn navigation,
+  // using the listing's own real coordinates (already public on this page
+  // via MAP_DATA — see the map init above) and this place's real
+  // coordinates from the Places API result. It only needs those two real
+  // points, so it's shown independently of whether our own in-page
+  // distance/duration lookup below succeeds — if that call fails (rate
+  // limit, no coverage for a mode), the person can still get there.
+  const getRouteBtn = document.getElementById('getRouteBtn');
+  if (getRouteBtn) getRouteBtn.style.display = (MAP_DATA && MAP_DATA.precise && place.lat != null && place.lng != null) ? 'flex' : 'none';
 
   if (flatmateMap && place.lat && place.lng) {
     if (destMarker) destMarker.setMap(null);
@@ -597,10 +622,29 @@ function closeRoutePanel() {
   currentDestination = null;
   if (destMarker) { destMarker.setMap(null); destMarker = null; }
   if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+  const getRouteBtn = document.getElementById('getRouteBtn');
+  if (getRouteBtn) getRouteBtn.style.display = 'none';
+}
+
+// Opens real Google Maps turn-by-turn directions in a new tab, from the
+// listing's real coordinates to the selected place's real coordinates —
+// both already known to this page (see openRoutePanel above for why
+// that's safe/correct to use here). This is a genuine hand-off to
+// navigation, distinct from the distance/duration preview + polyline
+// this page already draws inline.
+function openGetRouteInMaps() {
+  if (!MAP_DATA || !MAP_DATA.precise || !currentDestination) return;
+  const modeParam = { driving: 'driving', walking: 'walking', transit: 'transit' }[currentRouteMode] || 'driving';
+  const url = 'https://www.google.com/maps/dir/?api=1'
+    + '&origin=' + encodeURIComponent(MAP_DATA.lat + ',' + MAP_DATA.lng)
+    + '&destination=' + encodeURIComponent(currentDestination.lat + ',' + currentDestination.lng)
+    + '&travelmode=' + modeParam;
+  window.open(url, '_blank', 'noopener');
 }
 
 async function loadRoute(mode, tabBtn) {
   if (!currentDestination) return;
+  currentRouteMode = mode;
   if (tabBtn) {
     document.querySelectorAll('.fm-route-mode-tab').forEach(t => t.classList.remove('active'));
     tabBtn.classList.add('active');

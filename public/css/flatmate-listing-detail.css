@@ -94,6 +94,8 @@ body { overflow-x: hidden; }
     .fm-nhc-icon { font-size: 18px; flex-shrink: 0; }
     .fm-nhc-name { font-size: 0.8rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .fm-nhc-dist { font-size: 0.72rem; color: var(--green-dark); font-weight: 600; margin-top: 1px; }
+    .fm-nhc-route-icon { flex-shrink: 0; font-size: 13px; color: var(--green-dark); opacity: .75; margin-left: auto; }
+    .fm-nearby-highlight-chip:hover .fm-nhc-route-icon { opacity: 1; }
     .fm-nearby-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
     .fm-nearby-cat-btn { background: var(--bg2); border: 1.5px solid transparent; border-radius: 999px; padding: 8px 14px; font-size: 0.8rem; font-weight: 600; color: var(--ink-mid); cursor: pointer; transition: all .15s; }
     .fm-nearby-cat-btn:hover { border-color: var(--green-border); }
@@ -103,7 +105,10 @@ body { overflow-x: hidden; }
     .fm-nearby-result-item:hover { background: var(--green-light); }
     .fm-nearby-result-name { font-size: 0.82rem; font-weight: 700; color: var(--ink); }
     .fm-nearby-result-addr { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
-    .fm-nearby-result-dist { font-size: 0.75rem; font-weight: 700; color: var(--green-dark); white-space: nowrap; margin-left: 10px; }
+    .fm-nearby-result-right { display: flex; align-items: center; gap: 10px; margin-left: 10px; flex-shrink: 0; }
+    .fm-nearby-result-dist { font-size: 0.75rem; font-weight: 700; color: var(--green-dark); white-space: nowrap; }
+    .fm-nearby-result-route-icon { font-size: 13px; color: var(--green-dark); opacity: .75; }
+    .fm-nearby-result-item:hover .fm-nearby-result-route-icon { opacity: 1; }
     .fm-nearby-empty, .fm-nearby-loading, .fm-nearby-error { text-align: center; padding: 16px; font-size: 0.8rem; color: var(--muted); }
     .fm-route-panel { margin-top: 14px; border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px; background: var(--white); box-shadow: var(--shadow-sm); animation: fmFadeSlideUp .25s ease; }
     .fm-route-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -121,6 +126,10 @@ body { overflow-x: hidden; }
     @media (prefers-reduced-motion: reduce) { .fm-route-panel { animation: none; } }
     .fm-route-result .fm-route-stat .val { font-size: 1.1rem; font-weight: 700; color: var(--ink); font-family: var(--font-d); }
     .fm-route-result .fm-route-stat .lbl { font-size: 0.68rem; color: var(--muted); }
+    /* "Get Route" — hands off to Google Maps for real navigation, distinct
+       from the distance/duration preview above it. */
+    .fm-get-route-btn { width: 100%; margin-top: 12px; padding: 11px; border-radius: var(--radius-md); border: none; background: var(--green); color: #fff; font-size: 0.82rem; font-weight: 700; font-family: var(--font-d); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s, box-shadow .15s; }
+    .fm-get-route-btn:hover { background: var(--green-dark); box-shadow: var(--shadow-green); }
 
     /* Sidebar CTA button (Send Request / Request Pending / Chat Now /
        Manage / Closed) — reuses bc-btn-primary sizing, adds status colors */
@@ -204,6 +213,7 @@ body { overflow-x: hidden; }
     .fm-gallery-save:focus-visible,
     .fm-nearby-highlight-chip:focus-visible,
     .fm-nearby-result-item:focus-visible,
+    .fm-get-route-btn:focus-visible,
     .rc-close:focus-visible,
     .fm-route-panel-close:focus-visible {
       outline: 2.5px solid var(--green);
