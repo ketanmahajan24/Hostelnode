@@ -156,6 +156,7 @@
   <form class="wiz-card" id="haveForm">
     <input type="hidden" name="type" value="have">
     <input type="hidden" name="draftId" id="draftIdField" value="<%= draft ? draft._id : '' %>">
+    <input type="hidden" name="clientRequestId" id="clientRequestIdField" value="<%= draft && draft.clientRequestId ? draft.clientRequestId : '' %>">
 
     <!-- STEP 1 — Flat -->
     <div class="wiz-step active" data-step="1">
@@ -863,49 +864,99 @@ function buildFormData() {
   return fd;
 }
 
+/* ── Submit helper — distinguishes a genuine network/connectivity failure
+   (fetch() itself throws: offline, DNS, CORS, timeout) from a server
+   response that just isn't valid JSON (a 500 with an HTML error page, a
+   proxy error page, etc.) or a well-formed error response. Only the first
+   case is an actual "network error" — the second is a real server-side
+   failure and should say so, and the third already carries its own
+   specific message. Previously a single catch-all turned ALL of these
+   into "Network Error", which is exactly what issue 11.18/Problem E
+   flagged. ── */
+async function submitListingForm(url) {
+  let res;
+  try {
+    res = await fetch(url, { method: 'POST', body: buildFormData() });
+  } catch (networkErr) {
+    return { networkFailure: true };
+  }
+  let data;
+  try {
+    data = await res.json();
+  } catch (parseErr) {
+    return {
+      networkFailure: false,
+      data: {
+        success: false,
+        error: res.status >= 500
+          ? 'Something went wrong on our end while saving your listing. Please try again.'
+          : 'Unexpected response from the server. Please try again.',
+      },
+    };
+  }
+  return { networkFailure: false, data };
+}
+
 /* ── Save draft ── */
 async function saveDraft() {
   const btn = event.target.closest('button');
   const original = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = 'Saving…';
-  try {
-    const res = await fetch('/flatmate/create/draft', { method: 'POST', body: buildFormData() });
-    const data = await res.json();
-    btn.disabled = false; btn.innerHTML = original;
-    if (data.success) {
-      document.getElementById('draftIdField').value = data.draftId;
-      showErrors([]);
-      alert('Draft saved! You can come back to finish this listing anytime.');
-    } else {
-      showErrors([data.error || 'Could not save draft.']);
-    }
-  } catch (err) {
-    btn.disabled = false; btn.innerHTML = original;
-    showErrors(['Network error — please try again.']);
+
+  const { networkFailure, data } = await submitListingForm('/flatmate/create/draft');
+  btn.disabled = false; btn.innerHTML = original;
+
+  if (networkFailure) {
+    showErrors(['Upload failed. Please check your connection and try again.']);
+    return;
+  }
+  if (data.success) {
+    document.getElementById('draftIdField').value = data.draftId;
+    showErrors([]);
+    alert('Draft saved! You can come back to finish this listing anytime.');
+  } else {
+    showErrors([data.error || 'Could not save draft.']);
   }
 }
 
-/* ── Publish ── */
+/* ── Publish ──
+   clientRequestId: one UUID generated the first time this listing is
+   ever submitted, resent on every publish attempt for it (survives a
+   draft save too — see hydrateForm). Lets the backend recognize a
+   retried/duplicated submit and update the same listing instead of
+   creating a second one, even before a draftId exists. See
+   models/FlatmateListing.js's clientRequestId field. */
+function getOrCreateClientRequestId() {
+  const field = document.getElementById('clientRequestIdField');
+  if (field.value) return field.value;
+  const id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('cr-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+  field.value = id;
+  return id;
+}
+
 async function publishListing() {
   const errors = validateStep(6);
   if (errors.length) { showErrors(errors); return; }
 
+  getOrCreateClientRequestId();
+
   const btn = document.getElementById('btnPublish');
   const original = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = 'Publishing…';
-  try {
-    const res = await fetch('/flatmate/create/publish', { method: 'POST', body: buildFormData() });
-    const data = await res.json();
-    if (data.success) {
-      window.location.href = data.redirect;
-    } else {
-      btn.disabled = false; btn.innerHTML = original;
-      showErrors(data.errors || [data.error || 'Something went wrong.']);
-      if (data.draftId) document.getElementById('draftIdField').value = data.draftId;
-    }
-  } catch (err) {
+
+  const { networkFailure, data } = await submitListingForm('/flatmate/create/publish');
+
+  if (networkFailure) {
     btn.disabled = false; btn.innerHTML = original;
-    showErrors(['Network error — please try again.']);
+    showErrors(['Upload failed. Please check your connection and try again.']);
+    return;
+  }
+  if (data.success) {
+    window.location.href = data.redirect;
+  } else {
+    btn.disabled = false; btn.innerHTML = original;
+    showErrors(data.errors || [data.error || 'Something went wrong. Please try again.']);
+    if (data.draftId) document.getElementById('draftIdField').value = data.draftId;
   }
 }
 

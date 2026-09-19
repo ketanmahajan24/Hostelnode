@@ -222,6 +222,27 @@ async function saveCompressedImage(fileBuffer) {
   return filename; // stored in FlatmateListing.images[]; served at /flatmate-images/<filename>
 }
 
+// Runs saveCompressedImage() for every file with at most `limit` sharp
+// operations in flight at once — was previously a strict sequential
+// for-loop (one image's full resize+encode had to finish before the next
+// one even started), which was the single biggest contributor to
+// "Publishing…" taking a long time on multi-photo listings. Bounded
+// concurrency instead of Promise.all(unbounded) so 15 large images can't
+// spike memory by decoding all of them into libvips buffers at once.
+async function saveCompressedImagesConcurrently(files, limit = 4) {
+  const results = new Array(files.length);
+  let next = 0;
+  async function worker() {
+    while (next < files.length) {
+      const i = next++;
+      results[i] = await saveCompressedImage(files[i].buffer);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, files.length) }, worker);
+  await Promise.all(workers);
+  return results;
+}
+
 // Best-effort disk cleanup for a removed image — never allowed to block
 // or fail the request it's called from (fire-and-forget).
 function deleteImageFileSafe(filename) {
@@ -281,10 +302,7 @@ async function applyImageChanges(listing, req) {
     };
   }
 
-  const newFilenames = [];
-  if (incomingCount) {
-    for (const file of req.files) newFilenames.push(await saveCompressedImage(file.buffer));
-  }
+  const newFilenames = incomingCount ? await saveCompressedImagesConcurrently(req.files, 4) : [];
 
   listing.images = [...keptImages, ...newFilenames];
 
@@ -772,6 +790,7 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
     let coordsBeforeSave = { lat: null, lng: null };
     let cacheAgeBeforeSave = null;
     let cacheCompleteBeforeSave = false;
+    const clientRequestId = (req.body.clientRequestId || "").trim() || null;
     if (req.body.draftId) {
       listing = await FlatmateListing.findOne({ _id: req.body.draftId, student: req.student.id });
       if (!listing) return res.status(404).json({ success: false, error: "Listing not found." });
@@ -780,7 +799,24 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
       cacheCompleteBeforeSave = listing.nearbyCacheComplete;
       Object.assign(listing, fields);
     } else {
-      listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT" });
+      // No draftId — this is either a genuinely brand-new listing, OR a
+      // retried/duplicate submit of one that WAS just created moments ago
+      // (double-click past the disabled button, a fetch retry, a
+      // resubmitted form). clientRequestId disambiguates the two: the
+      // wizard generates one UUID per listing and resends it on every
+      // attempt, so a matching recent listing means "this exact submit,
+      // again" — reuse it instead of creating a duplicate.
+      listing = clientRequestId
+        ? await FlatmateListing.findOne({ student: req.student.id, clientRequestId })
+        : null;
+      if (listing) {
+        Object.assign(listing, fields);
+        coordsBeforeSave = { lat: listing.coordinates?.lat ?? null, lng: listing.coordinates?.lng ?? null };
+        cacheAgeBeforeSave = listing.nearbyCacheAt;
+        cacheCompleteBeforeSave = listing.nearbyCacheComplete;
+      } else {
+        listing = new FlatmateListing({ ...fields, student: req.student.id, status: "DRAFT", clientRequestId });
+      }
     }
 
     if (type === "HAVE_FLAT") {
@@ -814,7 +850,25 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
     }
     listing.publishedAt = listing.publishedAt || new Date();
     if (!listing.slug) listing.generateSlug();
-    await listing.save();
+    try {
+      await listing.save();
+    } catch (saveErr) {
+      // Only realistically happens if two near-simultaneous requests with
+      // the same clientRequestId both raced past the findOne() above (a
+      // genuine network-level double-send, not a normal double-click —
+      // the disabled button already rules that out). The unique index on
+      // clientRequestId rejects the second insert here instead of
+      // silently creating a duplicate listing — recover by returning the
+      // one the other request just created, rather than erroring out on
+      // what's actually a successful publish.
+      if (saveErr.code === 11000 && clientRequestId) {
+        const winner = await FlatmateListing.findOne({ student: req.student.id, clientRequestId });
+        if (winner) {
+          return res.json({ success: true, redirect: `/flatmate/create-success/${winner._id}` });
+        }
+      }
+      throw saveErr;
+    }
 
     // Auto-sync nearby places the moment a pin exists or moves — this is
     // what makes "Nearby Highlights" appear for every viewer with zero

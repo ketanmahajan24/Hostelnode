@@ -1,4 +1,11 @@
-<!-- create-success.ejs — HostelNode Flatmate: listing submitted confirmation -->
+<!-- create-success.ejs — HostelNode Flatmate: listing submitted confirmation
+     Redesigned (Phase 2) from a bare "Listing submitted successfully" line
+     into an onboarding flow that actually explains what happens next, so a
+     first-time lister isn't left wondering whether anything worked. Every
+     claim here matches what the product actually does today — no WhatsApp
+     mention, because no WhatsApp template exists yet for "listing created"
+     or "listing approved" (only request-received/request-accepted do —
+     see routes/flatmateRoutes.js's FLATMATE_WA_TEMPLATES). -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,22 +16,63 @@
   <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/findhostel.css">
   <link rel="stylesheet" href="/css/style.css">
   <style>
     body { background: var(--bg); }
-    .success-wrap { max-width: 480px; margin: 0 auto; padding: 60px 20px; text-align: center; }
-    .success-icon { width: 76px; height: 76px; border-radius: 50%; background: var(--green-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; }
+    .success-wrap { max-width: 560px; margin: 0 auto; padding: 48px 20px 80px; }
+    .success-head { text-align: center; margin-bottom: 34px; }
+    .success-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--green-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; position: relative; }
     .success-icon::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--green-border); animation: pulse 1.8s ease-out infinite; }
     @keyframes pulse { 0% { transform: scale(.9); opacity: .8; } 100% { transform: scale(1.4); opacity: 0; } }
-    .success-icon i { font-size: 32px; color: var(--green); }
-    h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
-    p.sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
-    .status-pill { display: inline-flex; align-items: center; gap: 6px; background: #fffbeb; color: #92400e; border: 1px solid #fde68a; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 999px; margin: 14px 0 26px; }
+    .success-icon i { font-size: 28px; color: var(--green); }
+    h1 { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; text-align: center; }
+    p.sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 6px; text-align: center; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; background: #fffbeb; color: #92400e; border: 1px solid #fde68a; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 999px; margin: 14px auto 0; }
+    .status-pill-wrap { text-align: center; }
+
+    /* ── Journey timeline ── */
+    .journey { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 26px 22px; margin: 30px 0; }
+    .journey-title { font-size: 12.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; }
+    .journey-steps { position: relative; }
+    .journey-step { position: relative; display: flex; gap: 16px; padding-bottom: 26px; opacity: 0; transform: translateY(8px); animation: stepIn .4s ease forwards; }
+    .journey-step:last-child { padding-bottom: 0; }
+    .journey-step:nth-child(1) { animation-delay: .05s; }
+    .journey-step:nth-child(2) { animation-delay: .15s; }
+    .journey-step:nth-child(3) { animation-delay: .25s; }
+    .journey-step:nth-child(4) { animation-delay: .35s; }
+    .journey-step:nth-child(5) { animation-delay: .45s; }
+    .journey-step:nth-child(6) { animation-delay: .55s; }
+    @keyframes stepIn { to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .journey-step { animation: none; opacity: 1; transform: none; }
+      .success-icon::after { animation: none; display: none; }
+    }
+    .journey-step:not(:last-child)::before {
+      content: ''; position: absolute; left: 18px; top: 38px; bottom: -8px; width: 2px; background: var(--border);
+    }
+    .journey-step.done:not(:last-child)::before { background: var(--green); }
+    .journey-icon {
+      flex: 0 0 auto; width: 37px; height: 37px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; background: var(--bg2); color: var(--muted); border: 2px solid var(--border); z-index: 1;
+    }
+    .journey-step.done .journey-icon { background: var(--green-light); color: var(--green-dark); border-color: var(--green); }
+    .journey-step.current .journey-icon { background: var(--green); color: #fff; border-color: var(--green); }
+    .journey-body { padding-top: 4px; }
+    .journey-body h3 { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+    .journey-body p { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 0; }
+    .journey-step.current .journey-body h3 { color: var(--green-dark); }
+
     .actions { display: flex; flex-direction: column; gap: 10px; }
-    .btn-primary { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; padding: 13px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; box-shadow: var(--shadow-green); }
-    .btn-secondary { background: var(--bg2); color: var(--ink-mid); padding: 13px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; }
+    .btn-primary { background: linear-gradient(135deg, var(--green), #00c264); color: #fff; padding: 13px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; box-shadow: var(--shadow-green); text-align: center; }
+    .btn-secondary { background: var(--bg2); color: var(--ink-mid); padding: 13px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; text-align: center; }
+    .btn-tertiary { color: var(--muted); padding: 10px; font-weight: 600; font-size: 13px; text-decoration: none; text-align: center; }
+    .btn-tertiary:hover { color: var(--ink-mid); }
+
+    @media (max-width: 420px) {
+      .journey { padding: 20px 16px; }
+    }
   </style>
 </head>
 <body>
@@ -32,18 +80,75 @@
 <%- include("../includes/navbar-user.ejs") %>
 
 <div class="success-wrap">
-  <div class="success-icon"><i class="fa-solid fa-check"></i></div>
-  <h1>Listing submitted successfully!</h1>
-  <p class="sub">
-    Your <%= listing.type === 'HAVE_FLAT' ? 'flat listing' : 'requirement' %> for
-    <%= listing.bhk %> BHK · <%= listing.area %>, <%= listing.city %> is under review.
-  </p>
-  <p class="sub">We'll notify you as soon as it's approved and live in search.</p>
-  <div class="status-pill"><i class="fa-solid fa-clock"></i> Pending Review</div>
+  <div class="success-head">
+    <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+    <h1>🎉 Your listing is submitted!</h1>
+    <p class="sub">
+      Your <%= listing.type === 'HAVE_FLAT' ? 'flat listing' : 'requirement' %> for
+      <%= listing.bhk %> BHK · <%= listing.area %>, <%= listing.city %> is under review.
+    </p>
+    <div class="status-pill-wrap"><div class="status-pill"><i class="fa-solid fa-clock"></i> Pending Review</div></div>
+  </div>
+
+  <div class="journey">
+    <div class="journey-title">What happens next</div>
+    <div class="journey-steps">
+
+      <div class="journey-step done">
+        <div class="journey-icon"><i class="fa-solid fa-check"></i></div>
+        <div class="journey-body">
+          <h3>Listing submitted</h3>
+          <p>Saved and sent for a quick review.</p>
+        </div>
+      </div>
+
+      <div class="journey-step current">
+        <div class="journey-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+        <div class="journey-body">
+          <h3>Under review</h3>
+          <p>We check it before it goes live and searchable — usually quick. You'll see it update on My Listings once it's approved.</p>
+        </div>
+      </div>
+
+      <div class="journey-step">
+        <div class="journey-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <div class="journey-body">
+          <h3>Someone discovers your listing</h3>
+          <p>Once live, it's searchable by people looking for a flatmate in <%= listing.city %>.</p>
+        </div>
+      </div>
+
+      <div class="journey-step">
+        <div class="journey-icon"><i class="fa-solid fa-paper-plane"></i></div>
+        <div class="journey-body">
+          <h3>They send you a request</h3>
+          <p>You'll get a notification the moment someone's interested, along with their message.</p>
+        </div>
+      </div>
+
+      <div class="journey-step">
+        <div class="journey-icon"><i class="fa-solid fa-user-check"></i></div>
+        <div class="journey-body">
+          <h3>You review &amp; accept</h3>
+          <p>Check their profile and accept when you're ready — declining costs nothing and re-requesting later is still possible.</p>
+        </div>
+      </div>
+
+      <div class="journey-step">
+        <div class="journey-icon"><i class="fa-solid fa-comments"></i></div>
+        <div class="journey-body">
+          <h3>Chat &amp; take it from there</h3>
+          <p>Once connected, message each other directly to discuss a visit, rent and move-in — right inside HostelNode.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <div class="actions">
-    <a href="/flatmate/my-listings" class="btn-primary">View My Listings</a>
-    <a href="/flatmate" class="btn-secondary">Browse Flatmates</a>
+    <a href="/flatmate/<%= listing.slug %>" class="btn-primary">View My Listing</a>
+    <a href="/flatmate/create/<%= listing.type === 'HAVE_FLAT' ? 'have' : 'need' %>?draft=<%= listing._id %>" class="btn-secondary">Manage Listing</a>
+    <a href="/flatmate/my-listings" class="btn-tertiary">Go to Dashboard →</a>
   </div>
 </div>
 

@@ -170,6 +170,16 @@ const flatmateListingSchema = new mongoose.Schema({
   rejectionReason: { type: String, default: null },
   publishedAt: { type: Date, default: null },
 
+  // A UUID the create-wizard generates once per browser session and
+  // resubmits with every publish attempt for that listing. Lets the
+  // publish route recognize "this is the same submit, retried" (a
+  // double-click that got past the disabled button, a network retry,
+  // a resubmitted form) and update the existing listing instead of
+  // creating a duplicate — even on a brand-new listing that has no
+  // draftId yet. Optional/sparse so it's fully backward compatible
+  // with every listing that already exists.
+  clientRequestId: { type: String, default: null, index: true, sparse: true, unique: true },
+
 }, { timestamps: true });
 
 /* ── Indexes for the search/results page ── */
