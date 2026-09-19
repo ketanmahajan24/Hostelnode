@@ -641,6 +641,9 @@ function hydrateForm(d) {
   setFieldValue('company', d.about && d.about.company);
   setFieldValue('college', d.about && d.about.college);
   // phone is no longer a form field — always the account's verified number
+  // Same real gap as create-have.ejs (found in the Phase 7 hydration
+  // audit): this <select> was never restored on edit.
+  setFieldValue('preferredMethod', d.contact && d.contact.preferredMethod);
 
   setRadioValue('gender', d.gender);
 

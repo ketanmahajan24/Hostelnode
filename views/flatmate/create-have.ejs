@@ -104,7 +104,13 @@
     .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .photo-thumb .cover-tag { position: absolute; bottom: 4px; left: 4px; background: var(--green); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; display: flex; align-items: center; gap: 3px; }
     .photo-thumb .cover-btn { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .15s; }
-    .photo-thumb:hover .cover-btn { opacity: 1; }
+    .photo-thumb:hover .cover-btn, .photo-thumb .cover-btn:focus-visible { opacity: 1; }
+    /* Accessibility audit (Phase 7): a hover-only reveal is unusable for
+       keyboard users (they can tab to it but never see it, only fixed
+       above for :focus-visible) and for any touch device (no hover event
+       at all) — so on a device with no real hover, show it always. */
+    @media (hover: none) { .photo-thumb .cover-btn { opacity: 1; } }
+    .photo-thumb .cover-btn:focus-visible, .photo-drop:focus-visible { outline: 2.5px solid var(--green); outline-offset: 2px; }
     .photo-thumb .rm-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 11px; cursor: pointer; }
 
     /* Preview card (step 6) */
@@ -403,7 +409,7 @@
       <h2>Photos</h2>
       <p class="step-sub">3–15 photos recommended. Show the living room, bedroom, kitchen and common areas — no personal photos needed. Photos are auto-optimized for fast loading.</p>
 
-      <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoInput').click()">
+      <div class="photo-drop" id="photoDrop" role="button" tabindex="0" aria-label="Add photos" onclick="document.getElementById('photoInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('photoInput').click();}">
         <i class="fa-solid fa-cloud-arrow-up"></i>
         <span>Click or drag photos here &middot; JPG, PNG or WebP &middot; up to 5 MB each</span>
         <input type="file" id="photoInput" name="photos" accept="image/jpeg,image/png,image/webp" multiple hidden>
@@ -1020,6 +1026,11 @@ function hydrateForm(d) {
   setFieldValue('college', d.about && d.about.college);
   // phone is no longer a form field — always the account's verified number,
   // rendered server-side and never submitted/edited here
+  // Real gap found in the Phase 7 hydration audit: this <select> was never
+  // restored on edit, so it silently reset to the first option
+  // ("HostelNode Messages") every time someone edited a listing where
+  // they'd actually chosen WhatsApp or Both.
+  setFieldValue('preferredMethod', d.contact && d.contact.preferredMethod);
 
   if (d.have) {
     if (!d.have.depositNegotiable) setFieldValue('depositAmount', d.have.depositAmount);

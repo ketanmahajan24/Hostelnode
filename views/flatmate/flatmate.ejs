@@ -1315,7 +1315,7 @@ document.addEventListener('keydown', function (e) {
 }
 </style>
 
-<div class="enq-overlay" id="enqOverlay">
+<div class="enq-overlay" id="enqOverlay" role="dialog" aria-modal="true" aria-label="Log in or sign up">
   <div class="enq-box" onclick="event.stopPropagation()">
     <button class="enq-close" onclick="closeNudgeModal()">
       <i class="fa-solid fa-xmark"></i>
@@ -1491,6 +1491,11 @@ function closeNudgeModal(isLogin = false) {
 // Close on overlay background click
 document.getElementById('enqOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeNudgeModal();
+});
+// Accessibility audit (Phase 7): no Escape handler existed for this
+// modal at all — background-click already closed it, Escape didn't.
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && document.getElementById('enqOverlay').classList.contains('open')) closeNudgeModal();
 });
 
 function showNudgeAlert(msg, type) {

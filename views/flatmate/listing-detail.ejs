@@ -889,9 +889,15 @@ function fmCloseModal(overlayId) {
 document.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape') return;
   const openOverlay = document.querySelector('.rc-overlay.open');
-  if (!openOverlay) return;
-  if (openOverlay.id === 'reportListingOverlay') closeReportListingModal();
-  else if (openOverlay.id === 'rcOverlay') closeConnectModal();
+  if (openOverlay) {
+    if (openOverlay.id === 'reportListingOverlay') closeReportListingModal();
+    else if (openOverlay.id === 'rcOverlay') closeConnectModal();
+    return;
+  }
+  // Accessibility audit (Phase 7): the login/signup modal had no Escape
+  // handler at all in any of the 3 files it's duplicated into — this
+  // closes it the same way the overlays above already do.
+  if (document.getElementById('enqOverlay')?.classList.contains('open')) closeNudgeModal();
 });
 
 function openReportListingModal() {
@@ -1072,7 +1078,7 @@ async function cancelRequest(connectionId) {
 }
 </style>
 
-<div class="enq-overlay" id="enqOverlay">
+<div class="enq-overlay" id="enqOverlay" role="dialog" aria-modal="true" aria-label="Log in or sign up">
   <div class="enq-box" onclick="event.stopPropagation()">
     <button class="enq-close" onclick="closeNudgeModal()">
       <i class="fa-solid fa-xmark"></i>
