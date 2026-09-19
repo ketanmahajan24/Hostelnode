@@ -268,13 +268,21 @@ router.post("/connection/:id/decline", requireStudent, async (req, res) => {
     connection.declinedAt = new Date();
     await connection.save();
 
-    notifyFlatmateEvent("CONNECTION_REQUEST_DECLINED", {
-      userId: connection.requester,
-      title: "Your connection request was declined",
-      link: `/messages`,
-      relatedConnection: connection._id,
-      dedupeKey: connection._id.toString(),
-    });
+    (async () => {
+      const [requesterDoc, listing] = await Promise.all([
+        Student.findById(connection.requester).select("phone").lean().catch(() => null),
+        FlatmateListing.findById(connection.receiverListing).select("bhk area city").lean().catch(() => null),
+      ]);
+      const listingSummaryText = listing ? `${listing.bhk} BHK · ${listing.area}, ${listing.city}` : "the listing";
+      notifyFlatmateEvent("CONNECTION_REQUEST_DECLINED", {
+        userId: connection.requester,
+        title: "Your connection request was declined",
+        link: `/messages`,
+        relatedConnection: connection._id,
+        dedupeKey: connection._id.toString(),
+        whatsapp: requesterDoc?.phone ? { phone: requesterDoc.phone, variables: [listingSummaryText] } : null,
+      });
+    })();
 
     res.json({ success: true });
   } catch (err) {
@@ -308,15 +316,20 @@ router.post("/connection/:id/remove", requireStudent, async (req, res) => {
     await Conversation.updateOne({ connection: connection._id }, { $set: { status: "closed" } });
 
     // Tell the OTHER participant — whoever didn't click Remove has no
-    // other way to find out the connection just ended. In-app only.
+    // other way to find out the connection just ended.
     const otherId = connection.requester.toString() === viewerId ? connection.receiver : connection.requester;
     (async () => {
-      const actorDoc = await Student.findById(viewerId).select("firstName").lean().catch(() => null);
+      const [actorDoc, otherDoc] = await Promise.all([
+        Student.findById(viewerId).select("firstName").lean().catch(() => null),
+        Student.findById(otherId).select("phone").lean().catch(() => null),
+      ]);
+      const actorName = actorDoc?.firstName || "A user";
       notifyFlatmateEvent("CONNECTION_REMOVED", {
         userId: otherId,
-        title: `${actorDoc?.firstName || "A user"} ended your connection`,
+        title: `${actorName} ended your connection`,
         link: `/messages`,
         relatedConnection: connection._id,
+        whatsapp: otherDoc?.phone ? { phone: otherDoc.phone, variables: [actorName] } : null,
         dedupeKey: connection._id.toString(),
       });
     })();
@@ -399,12 +412,16 @@ router.post("/report", requireStudent, async (req, res) => {
     // A "we got it" receipt for the reporter — not a moderation outcome
     // (that's an admin/Phase-7 concern), just confirmation the report
     // was actually logged, since the modal closes immediately after.
-    notifyFlatmateEvent("REPORT_RECEIVED", {
-      userId: req.student.id,
-      title: "Your report was received",
-      body: "Our team will review it shortly.",
-      dedupeKey: report._id.toString(),
-    });
+    (async () => {
+      const reporterDoc = await Student.findById(req.student.id).select("phone").lean().catch(() => null);
+      notifyFlatmateEvent("REPORT_RECEIVED", {
+        userId: req.student.id,
+        title: "Your report was received",
+        body: "Our team will review it shortly.",
+        dedupeKey: report._id.toString(),
+        whatsapp: reporterDoc?.phone ? { phone: reporterDoc.phone, variables: [] } : null,
+      });
+    })();
 
     res.json({ success: true });
   } catch (err) {
@@ -527,14 +544,23 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
     // dedupeKey = this message's own id — each message is inherently a
     // distinct event, so this is just consistency with every other call
     // site rather than a real collision risk.
-    notifyFlatmateEvent("NEW_MESSAGE", {
-      userId: receiverId,
-      title: "New message",
-      body: text.slice(0, 80),
-      link: `/messages/${conv._id}`,
-      relatedConversation: conv._id,
-      dedupeKey: message._id.toString(),
-    });
+    (async () => {
+      const [senderDoc, receiverDoc] = await Promise.all([
+        Student.findById(viewerId).select("firstName").lean().catch(() => null),
+        Student.findById(receiverId).select("phone").lean().catch(() => null),
+      ]);
+      notifyFlatmateEvent("NEW_MESSAGE", {
+        userId: receiverId,
+        title: "New message",
+        body: text.slice(0, 80),
+        link: `/messages/${conv._id}`,
+        relatedConversation: conv._id,
+        dedupeKey: message._id.toString(),
+        // No message text in the WhatsApp variables on purpose — see
+        // the registry comment above NEW_MESSAGE.
+        whatsapp: receiverDoc?.phone ? { phone: receiverDoc.phone, variables: [senderDoc?.firstName || "Someone"] } : null,
+      });
+    })();
 
     res.json({
       success: true,

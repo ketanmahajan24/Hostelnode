@@ -1,32 +1,29 @@
 // ============================================================
 //  utils/flatmateNotifications.js — HostelNode Flatmate
-//  Centralized lifecycle notification service (Phase 5)
+//  Centralized lifecycle notification service (Phase 5, WhatsApp
+//  coverage extended to all 10 events in Phase 8)
 // ============================================================
 /* ============================================================
    Single entry point for every Flatmate lifecycle event: writes the
-   in-app Notification, and — ONLY for the two events this codebase
-   already had a WhatsApp template wired up for before this phase
-   (request received, request accepted; see FLATMATE_WA_TEMPLATES in
-   flatmateRoutes.js) — also sends the WhatsApp template message.
-   Every other event stays in-app only, on purpose: a WhatsApp
-   business-initiated message needs a template actually approved in
-   Meta Business Manager, and this codebase cannot verify that status
-   for you — the existing comment above FLATMATE_WA_TEMPLATES already
-   flags that, as of Phase 1, those two templates still needed to be
-   submitted for approval. Treat "wired up" and "approved" as separate
-   facts: this service will happily call Meta's API for these two
-   events, but if the template isn't actually approved yet, Meta will
-   reject the send (logged as a 🔴 WA failure, not a crash) — please
-   confirm current approval status in Meta Business Manager before
-   relying on WhatsApp delivery for these two. Fabricating WhatsApp
-   *code* for an event Meta was never asked to approve at all (the
-   other eight events here) is what this file refuses to do — the
-   EVENTS registry below is the single source of truth for which
-   events even attempt WhatsApp, and a caller cannot accidentally turn
-   it on for an event that isn't wired for it (see the hard guard in
-   notifyFlatmateEvent below). Flip an event's `whatsapp` from `null`
-   to a template-name function once a template for it exists and is
-   approved — nothing else about the call sites needs to change.
+   in-app Notification, and — for every event below whose `whatsapp`
+   entry is a function rather than `null` — also sends a WhatsApp
+   template message. As of Phase 8, all 10 events have a template
+   name wired up (env var, with a fallback literal name matching the
+   existing FLATMATE_WA_TEMPLATES pattern). Treat "wired up" and
+   "approved" as separate facts: this service will happily call
+   Meta's API for any of these, but until each template is actually
+   submitted and approved in Meta Business Manager, Meta will reject
+   the send (logged as a 🔴 WA failure, not a crash — never affects
+   the in-app notification or the request that triggered it). See the
+   final-report doc's "Remaining limitations" section for the
+   env-var-to-template mapping and draft wording to submit. Fabricating
+   WhatsApp *code* for an event Meta was never asked to approve at all
+   is what this file refuses to do — the EVENTS registry below is the
+   single source of truth for which events even attempt WhatsApp, and
+   a caller cannot accidentally turn it on for an event that isn't
+   wired for it (see the hard guard in notifyFlatmateEvent below).
+   Flip an event's `whatsapp` back to `null` if you ever need to pull
+   WhatsApp for it without touching any call site.
 
    Contract for every call site:
    - Call this AFTER the core action's own .save()/.create() has
@@ -73,30 +70,64 @@ const EVENTS = {
     notificationType: "FLATMATE_REQUEST_ACCEPTED",
     whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_ACCEPTED || "hostelnode_flatmate_accepted",
   },
-  // A request is declined → notify the requester. No approved
-  // template for this yet — in-app only.
-  CONNECTION_REQUEST_DECLINED: { notificationType: "FLATMATE_REQUEST_DECLINED", whatsapp: null },
+  // A request is declined → notify the requester.
+  // Template: WA_TEMPLATE_FLATMATE_DECLINED — 1 var: listing summary.
+  CONNECTION_REQUEST_DECLINED: {
+    notificationType: "FLATMATE_REQUEST_DECLINED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_DECLINED || "hostelnode_flatmate_declined",
+  },
   // The requester cancels their own pending request → notify the
   // receiver, who otherwise has no way to know it's gone.
-  CONNECTION_REQUEST_CANCELLED: { notificationType: "FLATMATE_REQUEST_CANCELLED", whatsapp: null },
+  // Template: WA_TEMPLATE_FLATMATE_CANCELLED — 1 var: requester's name.
+  CONNECTION_REQUEST_CANCELLED: {
+    notificationType: "FLATMATE_REQUEST_CANCELLED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_CANCELLED || "hostelnode_flatmate_cancelled",
+  },
   // Either side ends an accepted connection → notify the other side.
-  CONNECTION_REMOVED: { notificationType: "FLATMATE_CONNECTION_REMOVED", whatsapp: null },
+  // Template: WA_TEMPLATE_FLATMATE_REMOVED — 1 var: the other person's name.
+  CONNECTION_REMOVED: {
+    notificationType: "FLATMATE_CONNECTION_REMOVED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_REMOVED || "hostelnode_flatmate_removed",
+  },
   // A new chat message → notify the recipient.
-  NEW_MESSAGE: { notificationType: "FLATMATE_NEW_MESSAGE", whatsapp: null },
+  // Template: WA_TEMPLATE_FLATMATE_NEW_MESSAGE — 1 var: sender's name.
+  // Deliberately does NOT include the message text as a variable — a
+  // WhatsApp Utility template is visible in notification previews, and
+  // putting private chat content there would leak it beyond the app.
+  NEW_MESSAGE: {
+    notificationType: "FLATMATE_NEW_MESSAGE",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_NEW_MESSAGE || "hostelnode_flatmate_new_message",
+  },
   // A listing owner closes their listing → notify anyone with a
   // still-pending request on it, since it will never be actioned now.
-  LISTING_CLOSED: { notificationType: "LISTING_CLOSED", whatsapp: null },
+  // Template: WA_TEMPLATE_FLATMATE_LISTING_CLOSED — 1 var: listing summary.
+  LISTING_CLOSED: {
+    notificationType: "LISTING_CLOSED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_CLOSED || "hostelnode_flatmate_listing_closed",
+  },
   // A listing owner pauses their listing → same reasoning as above,
   // kept as a distinct (softer) notification type since a pause is
   // reversible and the requester's chances aren't necessarily gone.
-  LISTING_PAUSED: { notificationType: "FLATMATE_LISTING_PAUSED", whatsapp: null },
+  // Template: WA_TEMPLATE_FLATMATE_LISTING_PAUSED — 1 var: listing summary.
+  LISTING_PAUSED: {
+    notificationType: "FLATMATE_LISTING_PAUSED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PAUSED || "hostelnode_flatmate_listing_paused",
+  },
   // Confirms to the REPORTER that their report was logged — purely a
   // "we got it" receipt, not a moderation outcome.
-  REPORT_RECEIVED: { notificationType: "FLATMATE_REPORT_RECEIVED", whatsapp: null },
+  // Template: WA_TEMPLATE_FLATMATE_REPORT_RECEIVED — 0 vars.
+  REPORT_RECEIVED: {
+    notificationType: "FLATMATE_REPORT_RECEIVED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_REPORT_RECEIVED || "hostelnode_flatmate_report_received",
+  },
   // Confirms to the OWNER that their listing was published/submitted —
   // separate from the create-success page (Phase 2), which only the
   // owner sees at that moment; this is the durable record of it.
-  LISTING_PUBLISHED: { notificationType: "FLATMATE_LISTING_PUBLISHED", whatsapp: null },
+  // Template: WA_TEMPLATE_FLATMATE_LISTING_PUBLISHED — 1 var: listing summary.
+  LISTING_PUBLISHED: {
+    notificationType: "FLATMATE_LISTING_PUBLISHED",
+    whatsapp: () => process.env.WA_TEMPLATE_FLATMATE_LISTING_PUBLISHED || "hostelnode_flatmate_listing_published",
+  },
 };
 
 /**

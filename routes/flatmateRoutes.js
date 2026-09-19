@@ -274,16 +274,21 @@ function orderImagesByCover(images, coverImage) {
 function notifyPendingRequesters(listing, eventKey, reasonText) {
   setImmediate(async () => {
     try {
-      const pending = await FlatmateConnection.find({ receiverListing: listing._id, status: "pending" }).select("_id requester");
+      const pending = await FlatmateConnection.find({ receiverListing: listing._id, status: "pending" })
+        .select("_id requester")
+        .populate("requester", "phone");
+      const listingSummaryText = `${listing.bhk} BHK · ${listing.area}, ${listing.city}`;
       for (const conn of pending) {
+        const requesterPhone = conn.requester && conn.requester.phone;
         notifyFlatmateEvent(eventKey, {
-          userId: conn.requester,
+          userId: conn.requester?._id || conn.requester,
           title: `A listing you requested to connect on ${reasonText}`,
-          body: `${listing.bhk} BHK · ${listing.area}, ${listing.city}`,
+          body: listingSummaryText,
           link: `/messages`,
           relatedConnection: conn._id,
           relatedListing: listing._id,
           dedupeKey: `${eventKey}:${conn._id.toString()}`,
+          whatsapp: requesterPhone ? { phone: requesterPhone, variables: [listingSummaryText] } : null,
         });
       }
     } catch (err) {
@@ -941,14 +946,19 @@ router.post("/create/publish", requireStudent, handleFlatmateUploadError(flatmat
     }
 
     if (isFreshPublish) {
-      notifyFlatmateEvent("LISTING_PUBLISHED", {
-        userId: listing.student,
-        title: "Your listing is live",
-        body: `${listing.bhk} BHK · ${listing.area}, ${listing.city} is now under review / visible to seekers.`,
-        link: `/flatmate/${listing.slug}`,
-        relatedListing: listing._id,
-        dedupeKey: `LISTING_PUBLISHED:${listing._id.toString()}`,
-      });
+      const listingSummaryText = `${listing.bhk} BHK · ${listing.area}, ${listing.city}`;
+      (async () => {
+        const ownerDoc = await Student.findById(listing.student).select("phone").lean().catch(() => null);
+        notifyFlatmateEvent("LISTING_PUBLISHED", {
+          userId: listing.student,
+          title: "Your listing is live",
+          body: `${listingSummaryText} is now under review / visible to seekers.`,
+          link: `/flatmate/${listing.slug}`,
+          relatedListing: listing._id,
+          dedupeKey: `LISTING_PUBLISHED:${listing._id.toString()}`,
+          whatsapp: ownerDoc?.phone ? { phone: ownerDoc.phone, variables: [listingSummaryText] } : null,
+        });
+      })();
     }
 
     res.json({ success: true, redirect: `/flatmate/create-success/${listing._id}` });
@@ -1187,16 +1197,21 @@ router.post("/connection/:id/cancel", requireStudent, async (req, res) => {
 
     // Let the receiver know the request they were sitting on is gone —
     // otherwise it just silently disappears from their pending list with
-    // no explanation. In-app only; no WhatsApp template for this event.
+    // no explanation.
     (async () => {
-      const requesterDoc = await Student.findById(connection.requester).select("firstName").lean().catch(() => null);
+      const [requesterDoc, receiverDoc] = await Promise.all([
+        Student.findById(connection.requester).select("firstName").lean().catch(() => null),
+        Student.findById(connection.receiver).select("phone").lean().catch(() => null),
+      ]);
+      const requesterName = requesterDoc?.firstName || "A user";
       notifyFlatmateEvent("CONNECTION_REQUEST_CANCELLED", {
         userId: connection.receiver,
-        title: `${requesterDoc?.firstName || "A user"} cancelled their connection request`,
+        title: `${requesterName} cancelled their connection request`,
         link: `/messages`,
         relatedConnection: connection._id,
         relatedListing: connection.receiverListing,
         dedupeKey: connection._id.toString(),
+        whatsapp: receiverDoc?.phone ? { phone: receiverDoc.phone, variables: [requesterName] } : null,
       });
     })();
 
