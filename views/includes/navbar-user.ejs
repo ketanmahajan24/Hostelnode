@@ -1,425 +1,614 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     HostelNode — Student/Guest Navbar (v2 "modern floating" design)
+     Replaces: views/includes/navbar-user.ejs
+     `student` comes from res.student (set by global middleware) — same as before.
+     Included, unchanged, by 18 views. Nothing about how it's included needs
+     to change: same include() call as before, no new locals to pass.
+═══════════════════════════════════════════════════════════════════════ -->
 
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700;800&family=Outfit:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
-  .hn-notif-wrap { position: relative; display: inline-flex; align-items: center; margin-right: 6px; }
-  .hn-notif-bell {
-    position: relative; width: 38px; height: 38px; border-radius: 50%; border: none;
-    background: rgba(9,184,80,.08); color: #0a1628; font-size: 15px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; transition: background .15s;
+  :root{
+    --hn2-brand-1:#09B850; --hn2-brand-2:#00D98A;
+    --hn2-ink:#0B120D; --hn2-ink-soft:#233029;
+    --hn2-muted:#6E7D74; --hn2-muted-2:#4B5A52;
+    --hn2-line:rgba(14,26,18,.10); --hn2-line-soft:rgba(14,26,18,.06);
+    --hn2-pill-bg:#EEF3EE; --hn2-danger:#DC2626;
+    --hn2-gold-1:#6b3e00; --hn2-gold-2:#c8860a; --hn2-gold-3:#f7d060; --hn2-gold-4:#e8a812; --hn2-gold-ink:#3b2000;
+    --hn2-font-d:'Instrument Sans','Outfit',system-ui,sans-serif; --hn2-font-b:'Inter',system-ui,sans-serif;
+    --hn2-nav-h:68px;
   }
-  .hn-notif-bell:hover { background: rgba(9,184,80,.16); }
-  .hn-notif-badge {
-    position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 3px;
-    border-radius: 999px; background: #e53e3e; color: #fff; font-size: 10px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center; line-height: 1;
+  .hn2-nav *{box-sizing:border-box}
+
+  /* ---------- floating shell ----------
+     Solid background on the wrapper itself — NOT transparent — so the
+     14px gap around the floating card never reveals whatever a given
+     page's own background happens to be (some pages/hero sections use a
+     dark background there, which showed through as a black strip behind
+     the navbar). This keeps the gap a consistent light strip on every
+     page regardless of what's under it. */
+  .hn2-navwrap{position:sticky;top:0;z-index:1000;padding:14px 16px 0;background:#F3F6F3}
+  .hn2-nav{
+    max-width:1360px;margin:0 auto;height:var(--hn2-nav-h);
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:0 10px 0 18px;border-radius:18px;
+    background:rgba(255,255,255,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--hn2-line-soft);
+    box-shadow:0 1px 2px rgba(14,26,18,.04),0 16px 36px -16px rgba(14,26,18,.18);
+    font-family:var(--hn2-font-b);
+    transition:box-shadow .2s;
   }
-  .hn-notif-dropdown {
-    position: absolute; top: calc(100% + 10px); right: 0; width: 320px; max-height: 420px;
-    background: #fff; border-radius: 16px; border: 1px solid #e8f0ea;
-    box-shadow: 0 8px 40px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.06);
-    overflow: hidden; z-index: 9999; opacity: 0; transform: translateY(-6px);
-    pointer-events: none; transition: opacity .18s ease, transform .18s ease; display: flex; flex-direction: column;
+  /* Several pages (findHostels.ejs, hostel-view.ejs, etc.) toggle this
+     class on scroll via their own listener targeting #hnNav; the
+     fallback listener at the bottom of this file's <script> covers every
+     other page. Either way, same visual result: a slightly deeper shadow
+     once the page has scrolled past the top. */
+  .hn2-nav.scrolled{box-shadow:0 2px 4px rgba(14,26,18,.06),0 20px 44px -14px rgba(14,26,18,.24)}
+
+  /* ---------- brand ---------- */
+  .hn2-brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}
+  /* Your logo PNG is already a transparent cutout icon (no square edges
+     to hide), so no border-radius/box-shadow chip behind it — that was
+     rendering as an unwanted rounded green-glow box. object-fit:contain
+     keeps the full icon visible without cropping. */
+  .hn2-brand img{width:46px;height:46px;object-fit:contain}
+  .hn2-wordmark{font-family:var(--hn2-font-d);font-size:25px;font-weight:700;color:var(--hn2-ink);letter-spacing:-.01em}
+
+  /* ---------- desktop nav links ---------- */
+  .hn2-navlinks{display:flex;align-items:center;gap:2px;background:var(--hn2-pill-bg);border-radius:999px;padding:4px}
+  .hn2-navlink{font-size:13.5px;font-weight:600;color:var(--hn2-muted-2);padding:8px 16px;border-radius:999px;text-decoration:none;white-space:nowrap;transition:color .18s,background .18s}
+  .hn2-navlink.active{color:#fff;background:linear-gradient(135deg,var(--hn2-brand-1),var(--hn2-brand-2));box-shadow:0 4px 14px -3px rgba(9,184,80,.5)}
+  .hn2-navlink:not(.active):hover{color:var(--hn2-ink);background:rgba(255,255,255,.9)}
+
+  /* ---------- desktop actions ---------- */
+  .hn2-actions{display:flex;align-items:center;gap:8px}
+  .hn2-vdiv{width:1px;height:22px;background:var(--hn2-line)}
+  .hn2-btn{font-size:13px;font-weight:700;border-radius:999px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:all .18s;cursor:pointer;border:none;font-family:inherit}
+  .hn2-btn--ghost{color:var(--hn2-ink-soft);background:transparent;border:1.5px solid var(--hn2-line);padding:8px 18px}
+  .hn2-btn--ghost:hover{border-color:var(--hn2-brand-1);background:#EAF9EF;color:#079148}
+  .hn2-btn--green{color:#fff;padding:9px 20px;background:linear-gradient(135deg,var(--hn2-brand-1),var(--hn2-brand-2));box-shadow:0 8px 22px -6px rgba(9,184,80,.55)}
+  .hn2-btn--green:hover{transform:translateY(-2px);box-shadow:0 12px 28px -6px rgba(9,184,80,.65)}
+  .hn2-btn--block{width:100%;padding:13px}
+
+  /* ---------- icon button (bell) ---------- */
+  .hn2-icon-btn{position:relative;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--hn2-line);background:#fff;color:var(--hn2-muted-2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px}
+  .hn2-icon-btn:hover{border-color:var(--hn2-brand-1);color:var(--hn2-brand-1);background:#EAF9EF}
+  .hn2-dot-badge{position:absolute;top:4px;right:4px;min-width:8px;height:8px;padding:0;border-radius:50%;background:#EF4444;border:1.5px solid #fff}
+  .hn2-dot-badge.has-count{min-width:15px;height:15px;padding:0 3px;font-size:9px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1}
+
+  /* ---------- notification panel ---------- */
+  .hn2-notif-panel{position:absolute;top:calc(100% + 10px);right:0;width:320px;max-height:420px;background:#fff;border:1px solid var(--hn2-line-soft);border-radius:18px;box-shadow:0 24px 48px -16px rgba(14,26,18,.24);overflow:hidden;z-index:1001;opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .18s ease,transform .18s ease;display:flex;flex-direction:column}
+  .hn2-notif-panel.open{opacity:1;transform:translateY(0);pointer-events:all}
+  .hn2-notif-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-weight:800;font-size:13.5px;color:var(--hn2-ink);border-bottom:1px solid var(--hn2-line-soft);flex-shrink:0}
+  .hn2-notif-head button{background:none;border:none;color:var(--hn2-brand-1);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .hn2-notif-list{overflow-y:auto;flex:1}
+  .hn2-notif-empty{padding:30px 16px;text-align:center;font-size:13px;color:var(--hn2-muted)}
+  .hn2-notif-item{display:block;padding:12px 16px;border-bottom:1px solid #f5f8f6;text-decoration:none;transition:background .12s}
+  .hn2-notif-item:hover{background:#f7fbf8}
+  .hn2-notif-item.unread{background:#f0fdf4}
+  .hn2-notif-item .n-title{font-size:13px;font-weight:700;color:var(--hn2-ink);margin-bottom:2px}
+  .hn2-notif-item .n-body{font-size:12px;color:var(--hn2-muted-2)}
+  .hn2-notif-item .n-time{font-size:10.5px;color:var(--hn2-muted);margin-top:4px}
+
+  /* ---------- avatar / profile dropdown ---------- */
+  .hn2-avatar-pill{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--hn2-line);border-radius:999px;padding:4px 10px 4px 4px;cursor:pointer;position:relative;font-family:inherit}
+  .hn2-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid transparent;background:linear-gradient(#e8faf0,#e8faf0) padding-box,linear-gradient(135deg,var(--hn2-brand-1),var(--hn2-brand-2)) border-box}
+  .hn2-avatar img{width:100%;height:100%;object-fit:cover}
+  .hn2-name{font-size:13px;font-weight:600;color:var(--hn2-ink-soft);max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hn2-chev{width:12px;height:12px;color:var(--hn2-muted-2);transition:transform .18s}
+  .hn2-avatar-pill.open .hn2-chev{transform:rotate(180deg)}
+
+  .hn2-dropdown{position:absolute;top:calc(100% + 10px);right:0;width:250px;background:#fff;border:1px solid var(--hn2-line-soft);border-radius:18px;box-shadow:0 24px 48px -16px rgba(14,26,18,.24);overflow:hidden;z-index:1001;opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+  .hn2-avatar-pill.open .hn2-dropdown{opacity:1;transform:translateY(0);pointer-events:all}
+  .hn2-dd-header{padding:16px;background:linear-gradient(135deg,var(--hn2-brand-1),var(--hn2-brand-2));position:relative;overflow:hidden}
+  .hn2-dd-header::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:16px 16px}
+  .hn2-dd-avatar{position:relative;width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;margin-bottom:10px;box-shadow:0 0 0 3px rgba(255,255,255,.15)}
+  .hn2-dd-avatar img{width:100%;height:100%;object-fit:cover}
+  .hn2-dd-name{position:relative;font-family:var(--hn2-font-d);font-size:14.5px;font-weight:800;color:#fff}
+  .hn2-dd-phone{position:relative;font-size:11.5px;color:rgba(255,255,255,.78);margin-top:2px}
+  .hn2-nudge{display:flex;align-items:center;gap:8px;margin:10px 12px 0;padding:9px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:11px;font-size:12px;font-weight:600;color:#92400e;text-decoration:none;transition:background .15s}
+  .hn2-nudge:hover{background:#fef3c7}
+  .hn2-dd-items{padding:8px}
+  .hn2-drow{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:11px;font-size:13.5px;font-weight:600;color:var(--hn2-ink-soft);text-decoration:none;background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:inherit}
+  .hn2-drow:hover{background:#F3F6F3}
+  .hn2-drow i{width:16px;text-align:center;color:var(--hn2-brand-1);font-size:13px;flex-shrink:0}
+  .hn2-drow--logout, .hn2-drow--logout i{color:var(--hn2-danger)}
+  .hn2-divider{height:1px;background:#EEF3EE;margin:6px 4px}
+
+  /* ---------- gold owner-CTA capsule — guests only ---------- */
+  @keyframes hn2GoldSheen{0%{background-position:-200% center}100%{background-position:200% center}}
+  @keyframes hn2PulseGlow{0%,100%{box-shadow:0 6px 18px -4px rgba(180,130,0,.45)}50%{box-shadow:0 8px 26px -2px rgba(200,150,10,.7)}}
+  @keyframes hn2FlipFront{0%,45%{transform:rotateX(0deg);opacity:1}50%,95%{transform:rotateX(180deg);opacity:0}100%{transform:rotateX(360deg);opacity:1}}
+  @keyframes hn2FlipBack{0%,45%{transform:rotateX(180deg);opacity:0}50%,95%{transform:rotateX(360deg);opacity:1}100%{transform:rotateX(540deg);opacity:0}}
+  .hn2-capsule{position:relative;height:38px;min-width:174px;border-radius:999px;overflow:hidden;text-decoration:none;display:block;flex-shrink:0;
+    background:linear-gradient(105deg,var(--hn2-gold-1) 0%,var(--hn2-gold-2) 15%,var(--hn2-gold-3) 35%,var(--hn2-gold-4) 50%,var(--hn2-gold-2) 65%,var(--hn2-gold-3) 82%,var(--hn2-gold-1) 100%);
+    background-size:300% 100%;animation:hn2GoldSheen 3.2s linear infinite,hn2PulseGlow 2.6s ease-in-out infinite;perspective:600px}
+  .hn2-cface{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 15px;backface-visibility:hidden;transform-style:preserve-3d}
+  .hn2-cface i{font-size:13px;color:var(--hn2-gold-ink);flex-shrink:0}
+  .hn2-cface span{font-size:12px;font-weight:800;color:var(--hn2-gold-ink);white-space:nowrap}
+  .hn2-cface--front{animation:hn2FlipFront 6s ease-in-out infinite}
+  .hn2-cface--back{animation:hn2FlipBack 6s ease-in-out infinite}
+  /* .hn2-cface span{color:...} above is a class+type selector, which
+     beats a single-class selector like .hn2-ctag{color:...} on
+     specificity regardless of source order — that's why the "in 2min"
+     text stayed invisible even after changing its color. Qualifying the
+     selector as .hn2-cface .hn2-ctag (two classes) outranks it. */
+  .hn2-cface .hn2-ctag{display:inline-flex;align-items:center;gap:3px;background:var(--hn2-gold-ink);color:#FFD700 !important;text-shadow:0 0 6px rgba(255,215,0,.6);font-size:8px;font-weight:900;letter-spacing:.06em;padding:3px 7px 3px 5px;border-radius:999px;text-transform:uppercase}
+  .hn2-cface .hn2-ctag i{font-size:7px;color:#FFD700 !important}
+  @media (prefers-reduced-motion: reduce){
+    .hn2-capsule,.hn2-cface{animation:none !important}
+    .hn2-cface--back{display:none}
+    .hn2-cface--front{position:relative;opacity:1;transform:none}
   }
-  .hn-notif-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: all; }
-  .hn-notif-dd-head {
-    display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
-    border-bottom: 1px solid #eef3ee; font-size: 13.5px; font-weight: 700; color: #0a1628; flex-shrink: 0;
+
+  /* Capsule as it sits inside the mobile drawer footer, directly above
+     Login — full width like the buttons below it, instead of the old
+     floating bottom-left FAB (which overlapped/clipped page content —
+     e.g. the Filters row on the flatmate page). */
+  .hn2-capsule--drawer{width:100%;min-width:0;flex-shrink:0}
+
+  /* ---------- mobile-only cluster ---------- */
+  .hn2-mobile-right{display:none;align-items:center;gap:6px}
+  .hn2-hamburger{display:flex;flex-direction:column;justify-content:center;gap:5px;width:36px;height:36px;border:none;background:transparent;cursor:pointer;position:relative;flex-shrink:0}
+  .hn2-hamburger span{display:block;width:19px;height:2px;background:var(--hn2-ink);border-radius:2px;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .2s;transform-origin:center}
+  .hn2-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+  .hn2-hamburger.open span:nth-child(2){opacity:0}
+  .hn2-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+  /* ---------- mobile drawer overlay ----------
+     #mobileNav IS the dimmed backdrop itself (like your original
+     .mobile-nav), not a separate element — .hn2-drawer is its flex
+     child, pinned to the right via justify-content. Toggled purely by
+     adding/removing the 'open' class on #mobileNav (openMobileNav /
+     closeMobileNav above do exactly that), so this works whether it's
+     triggered by this file's own hamburger or by another page's copy
+     of those functions. */
+  #mobileNav{
+    display:none;position:fixed;inset:0;z-index:1002;
+    background:rgba(11,18,13,.36);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+    justify-content:flex-end;
   }
-  .hn-notif-dd-head button { background: none; border: none; color: #09b850; font-size: 12px; font-weight: 700; cursor: pointer; }
-  .hn-notif-list { overflow-y: auto; flex: 1; }
-  .hn-notif-empty { padding: 30px 16px; text-align: center; font-size: 13px; color: #94a3a8; }
-  .hn-notif-item { display: block; padding: 12px 16px; border-bottom: 1px solid #f5f8f6; text-decoration: none; transition: background .12s; }
-  .hn-notif-item:hover { background: #f7fbf8; }
-  .hn-notif-item.unread { background: #f0fdf4; }
-  .hn-notif-item .n-title { font-size: 13px; font-weight: 700; color: #0a1628; margin-bottom: 2px; }
-  .hn-notif-item .n-body { font-size: 12px; color: #64748b; }
-  .hn-notif-item .n-time { font-size: 10.5px; color: #94a3a8; margin-top: 4px; }
+  #mobileNav.open{display:flex}
+
+  @keyframes hn2DrawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  .hn2-drawer{width:min(80vw,320px);height:100%;background:#fff;box-shadow:-16px 0 40px -10px rgba(14,26,18,.2);display:flex;flex-direction:column;overflow:hidden;animation:hn2DrawerIn .32s cubic-bezier(.16,1,.3,1) both}
+
+  .hn2-drawer-brand{display:flex;align-items:center;gap:8px;padding:22px 18px 14px}
+  .hn2-drawer-brand img{width:32px;height:32px;object-fit:contain}
+
+  .hn2-drawer-strip{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;padding:24px 18px 16px;background:linear-gradient(135deg,var(--hn2-brand-1),var(--hn2-brand-2))}
+  .hn2-drawer-strip::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:16px 16px}
+  .hn2-savatar{position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;font-family:var(--hn2-font-d);font-size:18px;font-weight:800;color:#fff}
+  .hn2-savatar img{width:100%;height:100%;object-fit:cover}
+  .hn2-sname{position:relative;font-family:var(--hn2-font-d);font-size:14.5px;font-weight:800;color:#fff}
+  .hn2-sphone{position:relative;font-size:11px;color:rgba(255,255,255,.78);margin-top:2px}
+
+  .hn2-drawer-list{padding:10px 12px 16px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+  .hn2-drawer-list .hn2-drow{padding:12px 12px;font-size:14px}
+  .hn2-drawer-list .hn2-drow.active{background:linear-gradient(135deg,#EAF9EF,#F1FBF4);color:#079148}
+  .hn2-drawer-list .hn2-drow.active i{color:#079148}
+
+  .hn2-drawer-footer{margin-top:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:8px}
+  .hn2-drawer-footer .hn2-divider{margin:0 0 6px}
+
+  /* =========================================================================
+     Breakpoint: <= 900px → mobile layout
+     ========================================================================= */
+  @media (max-width:900px){
+    .hn2-navlinks, .hn2-actions{display:none}
+    .hn2-mobile-right{display:flex}
+    .hn2-navwrap{padding:10px 10px 0}
+    .hn2-nav{padding:0 8px 0 14px}
+    .hn2-wordmark{font-size:21px}
+    .hn2-brand img{width:38px;height:38px}
+  }
 </style>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MOBILE NAV
-     student comes from res.student (set by global middleware)
-═══════════════════════════════════════════════════════════ -->
-<div class="mobile-nav" id="mobileNav" onclick="closeMobileNav(event)">
-  <div class="mobile-nav-drawer">
+<div class="hn2-navwrap">
+  <!-- id="hnNav" kept ON PURPOSE — findHostels.ejs, hostel-view.ejs, and
+       others already have their own scroll listener that targets
+       #hnNav directly (without ?. in several cases); a missing element
+       throws on every scroll event. See README. -->
+  <nav class="hn2-nav" id="hnNav">
 
-    <% if (student) { %>
+    <!-- Brand -->
+    <a href="/" class="hn2-brand">
+      <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+      <span class="hn2-wordmark">HostelNode</span>
+    </a>
 
-      <!-- Logged-in: green profile strip at top -->
-      <div class="sn-mob-strip">
-        <div class="sn-mob-avatar">
-          <% if (student.profileImage) { %>
-            <img src="/student-images/<%= student.profileImage %>"
-                 alt="<%= student.firstName %>">
-          <% } else { %>
-            🧑‍🎓
-          <% } %>
-        </div>
-        <div>
-          <div class="sn-mob-name">
-            <%= student.firstName %> <%= student.lastName %>
-          </div>
-          <div class="sn-mob-phone">+91 <%= student.phone %></div>
-        </div>
-      </div>
-
-      <a href= "/#search-card" class="active">Find Hostel</a>
-      <a href="/flatmate">Flatmate</a>
-      <a href="/messages">Messages</a>
-      <a href="/flatmate/my-listings">My Listings</a>
-      <a href="/student/saved" class="sn-dd-link">
-        <i class="fa-solid fa-heart"></i> Saved Properties
-      </a>
-      <a href="/student/recently-viewed" class="sn-dd-link">
-        <i class="fa-solid fa-clock"></i> Recently Viewed
-      </a>
-      <a href="/#feature-list">Features</a>
-      <a href="/#cotactus">Contact</a>
-      <a href="/#aboutus">About</a>
-      <div class="divider"></div>
-      <a href="/student/edit-profile">Edit Profile</a>
-      <a href="/student/logout" class="sn-logout-link">Logout</a>
-
-    <% } else { %>
-
-      <!-- Guest links -->
-      <a href= "/#search-card" class="active">Find Hostel</a>
-      <a href="/flatmate">Flatmate</a>
-      <a href="/student/saved" class="sn-dd-link">
-        <i class="fa-solid fa-heart"></i> Saved Properties
-      </a>
-      <!-- <a href="/StartManagingYourHostel">Start Managing Your Hostel </a> -->
-       <!-- <a href="/signup">List Your Hostel for Free </a> -->
-      <a href="/#feature-list">Features</a>
-      <a href="/#cotactus">Contact</a>
-      <a href="/#aboutus">About</a>
-      
-      <div class="divider"></div>
-     
-      <a href="#" onclick="openNudgeModal('login'); return false;" class="btn-ghost">Login</a>
-        <a href="#" onclick="openNudgeModal('signup'); return false;" class="btn-nav-green">Sign up free</a>
-
-    <% } %>
-
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     NAVBAR
-═══════════════════════════════════════════════════════════ -->
-<nav class="hn-nav" id="hnNav">
-
-  <a href="/" class="hn-nav-brand">
-    <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
-    HostelNode 
-  </a>
-
-  <ul class="hn-nav-links">
-    <li><a href="/#search-card" class="active">Find Hostel</a></li>
-    <li><a href="/flatmate">Flatmate</a></li>
-    <li>
-       <!-- <a href="/signup"> List Your Hostel for Free </a> -->
-    </li>
-    <li><a href="/#feature-list">Features</a></li>
-    <li><a href="/#cotactus">Contact</a></li>
-    <li><a href="/#aboutus">About</a></li>
-    <% if (student) { %>
-    <li><a href="/messages">Messages</a></li>
-    <li><a href="/flatmate/my-listings">My Listings</a></li>
-    <%} else { %>
-    <li><a href="#" onclick="openNudgeModal('login'); return false;" class="btn-ghost">Login</a></li>
-    <li>   <a href="#" onclick="openNudgeModal('signup'); return false;" class="btn-nav-green">Sign up free</a></li>
-    <% } %>
-  </ul>
-
-  <div class="hn-nav-actions">
-
-    <% if (student) { %>
-    <!-- ══ NOTIFICATION BELL ══ -->
-    <div class="hn-notif-wrap" id="notifWrap">
-      <button class="hn-notif-bell" id="notifBellBtn" onclick="toggleNotifDropdown(event)" aria-label="Notifications">
-        <i class="fa-solid fa-bell"></i>
-        <span class="hn-notif-badge" id="notifBadge" style="display:none">0</span>
-      </button>
-      <div class="hn-notif-dropdown" id="notifDropdown">
-        <div class="hn-notif-dd-head">
-          <span>Notifications</span>
-          <button onclick="markAllNotifsRead()">Mark all read</button>
-        </div>
-        <div class="hn-notif-list" id="notifList">
-          <div class="hn-notif-empty">Loading…</div>
-        </div>
-      </div>
+    <!-- Desktop nav links -->
+    <!-- No "active" class hardcoded here — every page includes this same
+         file, so a hardcoded active link would (and did) show "Find Hostel"
+         as current on every page. data-nav is matched against the real
+         URL client-side, at the bottom of this file's <script>. -->
+    <div class="hn2-navlinks">
+      <a href="/#search-card" class="hn2-navlink" data-nav="find-hostel">Find Hostel</a>
+      <a href="/flatmate" class="hn2-navlink" data-nav="flatmate">Flatmate</a>
+      <a href="/#feature-list" class="hn2-navlink" data-nav="features">Features</a>
+      <a href="/#cotactus" class="hn2-navlink" data-nav="contact">Contact</a>
+      <a href="/#aboutus" class="hn2-navlink" data-nav="about">About</a>
+      <% if (student) { %>
+        <a href="/messages" class="hn2-navlink" data-nav="messages">Messages</a>
+        <a href="/flatmate/my-listings" class="hn2-navlink" data-nav="my-listings">My Listings</a>
+      <% } %>
     </div>
 
-    <!-- ══ LOGGED IN: profile pill with dropdown ══ -->
-
-      <div class="sn-pill" id="snPill" onclick="snToggle(event)">
-
-        <!-- Avatar -->
-        <div class="sn-avatar">
-          <% if (student.profileImage) { %>
-            <img src="/student-images/<%= student.profileImage %>"
-                 alt="<%= student.firstName %>">
-          <% } else { %>
-            🧑‍🎓
-          <% } %>
-        </div>
-
-        <!-- Name -->
-        <span class="sn-name"><%= student.firstName %></span>
-
-        <!-- Chevron -->
-        <i class="fa-solid fa-chevron-down sn-chevron"></i>
-
-        <!-- ── Dropdown ── -->
-        <div class="sn-dropdown">
-
-          <!-- Green header -->
-          <div class="sn-dd-header">
-            <div class="sn-dd-avatar">
-              <% if (student.profileImage) { %>
-                <img src="/student-images/<%= student.profileImage %>"
-                     alt="<%= student.firstName %>">
-              <% } else { %>
-                🧑‍🎓
-              <% } %>
-            </div>
-            <div class="sn-dd-name">
-              <%= student.firstName %> <%= student.lastName %>
-            </div>
-            <div class="sn-dd-phone">+91 <%= student.phone %></div>
-          </div>
-
-          <!-- Profile incomplete nudge -->
-          <% if (!student.city || !student.collegeName) { %>
-            <a href="/student/edit-profile" class="sn-nudge">
-              <i class="fa-solid fa-circle-exclamation"></i>
-              Complete your profile
-            </a>
-          <% } %>
-
-          <!-- Menu items -->
-          <div class="sn-dd-items">
-            
-      <a href="/signup" class="capsule-btn" id="capsule" aria-label="List Property Free">
-         <div class="capsule-face face-front">
+    <!-- Desktop actions -->
+    <div class="hn2-actions">
+      <% if (!student) { %>
+        <!-- Guest: gold owner-CTA capsule -->
+        <a href="/signup" class="hn2-capsule" aria-label="List Property Free">
+          <span class="hn2-cface hn2-cface--front">
             <i class="fa-solid fa-building"></i>
-            <span class="face-text">List Property</span>
-            <span class="free-tag">
-              <i class="fa-solid fa-bolt"></i> in 2min
-            </span>
-        </div>
-        <div class="capsule-face face-back">
-          <i class="fa-solid fa-chart-line"></i>
-          <span class="back-text">Get More Admissions</span>
-        </div>
-      </a>
-
-            <a href= "/#search-card" class="sn-dd-link">
-              <i class="fa-solid fa-magnifying-glass"></i> Find Hostel
-            </a>
-            <a href="/student/saved" class="sn-dd-link">
-              <i class="fa-solid fa-heart"></i> Saved Properties
-            </a>
-            <a href="/student/recently-viewed" class="sn-dd-link">
-              <i class="fa-solid fa-clock"></i> Recently Viewed
-            </a>
-            <a href="/student/edit-profile" class="sn-dd-link">
-              <i class="fa-solid fa-user-pen"></i> Edit Profile
-            </a>
-
-            <div class="sn-dd-divider"></div>
-
-            <a href="/student/logout" class="sn-dd-logout">
-              <i class="fa-solid fa-right-from-bracket"></i> Logout
-            </a>
-
+            <span>List Property</span>
+            <span class="hn2-ctag"><i class="fa-solid fa-bolt"></i>in 2min</span>
+          </span>
+          <span class="hn2-cface hn2-cface--back">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Get More Admissions</span>
+          </span>
+        </a>
+        <div class="hn2-vdiv"></div>
+        <a href="#" onclick="openNudgeModal('login'); return false;" class="hn2-btn hn2-btn--ghost">Login</a>
+        <a href="#" onclick="openNudgeModal('signup'); return false;" class="hn2-btn hn2-btn--green">Sign up free</a>
+      <% } else { %>
+        <!-- Logged-in: notification bell -->
+        <div style="position:relative" id="hn2NotifWrap">
+          <button class="hn2-icon-btn" id="hn2BellBtn" aria-haspopup="true" aria-expanded="false" aria-label="Notifications">
+            <i class="fa-solid fa-bell"></i>
+            <span class="hn2-dot-badge" id="hn2NotifBadge" style="display:none">0</span>
+          </button>
+          <div class="hn2-notif-panel" id="hn2NotifPanel">
+            <div class="hn2-notif-head">
+              <span>Notifications</span>
+              <button id="hn2MarkAllRead" type="button">Mark all read</button>
+            </div>
+            <div class="hn2-notif-list" id="hn2NotifList">
+              <div class="hn2-notif-empty">Loading…</div>
+            </div>
           </div>
-        </div><!-- /sn-dropdown -->
-
-      </div><!-- /sn-pill -->
-
-    <% } else { %>
-        <!-- ══ GUEST: login + signup buttons ══ -->
-    <!-- <a href="#" onclick="openNudgeModal('login'); closeMobileNav({target:document.getElementById('mobileNav')}); return false;" class="btn-ghost">Login</a>
-    <a href="#" onclick="openNudgeModal('signup'); closeMobileNav({target:document.getElementById('mobileNav')}); return false;" class="btn-green">Sign up free</a> -->
-        <!-- <i class="fa-solid fa-user-plus"></i> List Property *free -->
-      </a>
-      <a href="/signup" class="capsule-btn" id="capsule" aria-label="List Property Free">
-         <div class="capsule-face face-front">
-            <i class="fa-solid fa-building"></i>
-            <span class="face-text">List Property</span>
-            <span class="free-tag">
-              <i class="fa-solid fa-bolt"></i> in 2min
-            </span>
         </div>
-        <div class="capsule-face face-back">
+
+        <!-- Logged-in: avatar / profile dropdown
+             id="snPill" is kept ON PURPOSE — several real pages
+             (findHostels.ejs, hostel-view.ejs, cityLanding.ejs, etc.)
+             have their own copies of snToggle() that call
+             document.getElementById('snPill') directly. Renaming this
+             id breaks those pages. See README. -->
+        <div class="hn2-avatar-pill" id="snPill" onclick="snToggle(event)">
+          <span class="hn2-avatar">
+            <% if (student.profileImage) { %>
+              <img src="/student-images/<%= student.profileImage %>" alt="<%= student.firstName %>">
+            <% } else { %>🧑‍🎓<% } %>
+          </span>
+          <span class="hn2-name"><%= student.firstName %></span>
+          <svg class="hn2-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+
+          <div class="hn2-dropdown">
+            <div class="hn2-dd-header">
+              <div class="hn2-dd-avatar">
+                <% if (student.profileImage) { %>
+                  <img src="/student-images/<%= student.profileImage %>" alt="<%= student.firstName %>">
+                <% } else { %>🧑‍🎓<% } %>
+              </div>
+              <div class="hn2-dd-name"><%= student.firstName %> <%= student.lastName %></div>
+              <div class="hn2-dd-phone">+91 <%= student.phone %></div>
+            </div>
+
+            <% if (!student.city || !student.collegeName) { %>
+              <a href="/student/edit-profile" class="hn2-nudge">
+                <i class="fa-solid fa-circle-exclamation"></i> Complete your profile
+              </a>
+            <% } %>
+
+            <div class="hn2-dd-items">
+              <a href="/#search-card" class="hn2-drow"><i class="fa-solid fa-magnifying-glass"></i> Find Hostel</a>
+              <a href="/student/saved" class="hn2-drow"><i class="fa-solid fa-heart"></i> Saved Properties</a>
+              <a href="/student/recently-viewed" class="hn2-drow"><i class="fa-solid fa-clock"></i> Recently Viewed</a>
+              <a href="/student/edit-profile" class="hn2-drow"><i class="fa-solid fa-user-pen"></i> Edit Profile</a>
+              <div class="hn2-divider"></div>
+              <a href="/student/logout" class="hn2-drow hn2-drow--logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Mobile-only right cluster -->
+    <div class="hn2-mobile-right">
+      <% if (student) { %>
+        <div style="position:relative" id="hn2NotifWrapMobile">
+          <button class="hn2-icon-btn" id="hn2BellBtnMobile" aria-label="Notifications">
+            <i class="fa-solid fa-bell"></i>
+            <span class="hn2-dot-badge" id="hn2NotifBadgeMobile" style="display:none">0</span>
+          </button>
+        </div>
+      <% } %>
+      <button class="hn2-hamburger" id="hn2Hamburger" onclick="openMobileNav()" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+</div>
+
+<!-- Mobile drawer — id="mobileNav" kept ON PURPOSE, same reason as #snPill
+     above: findHostels.ejs, hostel-view.ejs, studentWishlist.ejs,
+     cityLanding.ejs and their backups all have their own copies of
+     openMobileNav()/closeMobileNav() that target getElementById('mobileNav')
+     directly, several WITHOUT an optional-chain (?.), so a missing element
+     throws on every call. Structure (outer = the backdrop itself, drawer
+     nested inside as a flex child) mirrors your original .mobile-nav /
+     .mobile-nav-drawer pattern exactly, just mirrored to slide from the
+     right instead of the left, with the new look. -->
+<div class="hn2-mobile-overlay" id="mobileNav" onclick="closeMobileNav(event)">
+  <div class="hn2-drawer" id="hn2Drawer" aria-hidden="true">
+  <% if (student) { %>
+    <div class="hn2-drawer-strip">
+      <span class="hn2-savatar">
+        <% if (student.profileImage) { %>
+          <img src="/student-images/<%= student.profileImage %>" alt="<%= student.firstName %>">
+        <% } else { %>🧑‍🎓<% } %>
+      </span>
+      <div>
+        <div class="hn2-sname"><%= student.firstName %> <%= student.lastName %></div>
+        <div class="hn2-sphone">+91 <%= student.phone %></div>
+      </div>
+    </div>
+    <div class="hn2-drawer-list">
+      <a href="/#search-card" class="hn2-drow" data-nav="find-hostel"><i class="fa-solid fa-magnifying-glass"></i> Find Hostel</a>
+      <a href="/flatmate" class="hn2-drow" data-nav="flatmate"><i class="fa-solid fa-people-roof"></i> Flatmate</a>
+      <a href="/messages" class="hn2-drow" data-nav="messages"><i class="fa-solid fa-message"></i> Messages</a>
+      <a href="/flatmate/my-listings" class="hn2-drow" data-nav="my-listings"><i class="fa-solid fa-list"></i> My Listings</a>
+      <a href="/student/saved" class="hn2-drow"><i class="fa-solid fa-heart"></i> Saved Properties</a>
+      <a href="/student/recently-viewed" class="hn2-drow"><i class="fa-solid fa-clock"></i> Recently Viewed</a>
+      <a href="/#feature-list" class="hn2-drow"><i class="fa-solid fa-star"></i> Features</a>
+      <a href="/#cotactus" class="hn2-drow"><i class="fa-solid fa-envelope"></i> Contact</a>
+      <a href="/#aboutus" class="hn2-drow"><i class="fa-solid fa-circle-info"></i> About</a>
+      <div class="hn2-divider"></div>
+      <a href="/student/edit-profile" class="hn2-drow"><i class="fa-solid fa-user-pen"></i> Edit Profile</a>
+      <a href="/student/logout" class="hn2-drow hn2-drow--logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+  <% } else { %>
+    <div class="hn2-drawer-brand">
+      <img src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+      <span class="hn2-wordmark">HostelNode</span>
+    </div>
+    <div class="hn2-drawer-list">
+      <a href="/#search-card" class="hn2-drow" data-nav="find-hostel"><i class="fa-solid fa-magnifying-glass"></i> Find Hostel</a>
+      <a href="/flatmate" class="hn2-drow" data-nav="flatmate"><i class="fa-solid fa-people-roof"></i> Flatmate</a>
+      <a href="/student/saved" class="hn2-drow"><i class="fa-solid fa-heart"></i> Saved Properties</a>
+      <a href="/#feature-list" class="hn2-drow"><i class="fa-solid fa-star"></i> Features</a>
+      <a href="/#cotactus" class="hn2-drow"><i class="fa-solid fa-envelope"></i> Contact</a>
+      <a href="/#aboutus" class="hn2-drow"><i class="fa-solid fa-circle-info"></i> About</a>
+    </div>
+    <div class="hn2-drawer-footer">
+      <div class="hn2-divider"></div>
+      <!-- Gold capsule now lives HERE, directly above Login — no longer a
+           floating FAB over page content (it was overlapping/clipping
+           content like the Filters row on the flatmate page). Only
+           reachable via the hamburger drawer now, guest-only. -->
+      <a href="/signup" class="hn2-capsule hn2-capsule--drawer" aria-label="List Property Free">
+        <span class="hn2-cface hn2-cface--front">
+          <i class="fa-solid fa-building"></i>
+          <span>List Property</span>
+          <span class="hn2-ctag"><i class="fa-solid fa-bolt"></i>in 2min</span>
+        </span>
+        <span class="hn2-cface hn2-cface--back">
           <i class="fa-solid fa-chart-line"></i>
-          <span class="back-text">Get More Admissions</span>
-        </div>
+          <span>Get More Admissions</span>
+        </span>
       </a>
+      <a href="#" onclick="openNudgeModal('login'); closeMobileNav({target:document.getElementById('mobileNav')}); return false;" class="hn2-btn hn2-btn--ghost hn2-btn--block">Login</a>
+      <a href="#" onclick="openNudgeModal('signup'); closeMobileNav({target:document.getElementById('mobileNav')}); return false;" class="hn2-btn hn2-btn--green hn2-btn--block">Sign up free</a>
+    </div>
+  <% } %>
+  </div><!-- /.hn2-drawer -->
+</div><!-- /#mobileNav -->
 
-      
-
-    <% } %>
-
-    <button class="hn-hamburger" onclick="openMobileNav()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-
-  </div>
-</nav>
-<!-- <script>
-(function () {
-  if (sessionStorage.getItem("locationSent")) return;
-  if (!navigator.geolocation) return;
-
-  navigator.geolocation.getCurrentPosition(
-    function (pos) {
-      fetch("/track-location", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat:      pos.coords.latitude,
-          lng:      pos.coords.longitude,
-          accuracy: pos.coords.accuracy
-        })
-      }).then(() => {
-        sessionStorage.setItem("locationSent", "true");
-      }).catch(() => {});
-    },
-    function () {
-      sessionStorage.setItem("locationSent", "true");
-    },
-    { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }
-  );
-})();
-</script> -->
 <script>
-  (function() {
-  var btn   = document.getElementById('capsule');
-  var front = true;
-  var locked = false;
+(function () {
+  'use strict';
 
-  function flip() {
-    if (locked) return;
-    locked = true;
-    if (front) {
-      btn.classList.add('flipped');
-      btn.classList.remove('unflipping');
-    } else {
-      btn.classList.add('unflipping');
-      btn.classList.remove('flipped');
+  /* ── Mobile drawer + profile dropdown ──
+     IMPORTANT: these use the SAME element ids (#mobileNav, #snPill) and
+     the SAME global function names (openMobileNav, closeMobileNav,
+     snToggle) as your original navbar-user.ejs did — several other real
+     pages (findHostels.ejs, hostel-view.ejs, cityLanding.ejs,
+     studentWishlist.ejs, findHostels-results.ejs and their backups) have
+     their OWN copies of these exact functions targeting these exact ids.
+     Using `function` declarations (not const/let) is deliberate, same as
+     your original code's own comment explains below — if a page defines
+     its own copy too, a function re-declaration is a harmless no-op
+     collision, not a crash, as long as the ids these functions reach for
+     actually exist in the DOM (which they now do again). ── */
+  var hamburger = document.getElementById('hn2Hamburger');
+
+  window.openMobileNav = function () {
+    var nav = document.getElementById('mobileNav');
+    if (nav) { nav.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    if (hamburger) { hamburger.classList.add('open'); hamburger.setAttribute('aria-expanded', 'true'); }
+  };
+  window.closeMobileNav = function (e) {
+    var nav = document.getElementById('mobileNav');
+    if (nav && (!e || e.target === nav)) {
+      nav.classList.remove('open');
+      document.body.style.overflow = '';
+      if (hamburger) { hamburger.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
     }
-    front = !front;
-    setTimeout(function() { locked = false; }, 700);
+  };
+  window.snToggle = function (e) {
+    if (e) e.stopPropagation();
+    var pill = document.getElementById('snPill');
+    if (pill) pill.classList.toggle('open');
+  };
+  document.addEventListener('click', function () {
+    var pill = document.getElementById('snPill');
+    if (pill) pill.classList.remove('open');
+  });
+
+  /* ── Navbar shadow-on-scroll — several pages (findHostels.ejs,
+     hostel-view.ejs, etc.) already add their own scroll listener that
+     toggles a 'scrolled' class on #hnNav; this is the fallback for pages
+     that don't (Flatmate/messages/saved/etc.), so it's consistent
+     everywhere. Harmless duplicate if a page also does its own. ── */
+  var hnNavEl = document.getElementById('hnNav');
+  if (hnNavEl) {
+    window.addEventListener('scroll', function () {
+      hnNavEl.classList.toggle('scrolled', window.scrollY > 10);
+    }, { passive: true });
   }
 
-  setInterval(flip, 3000);
-})();
-</script>
+  /* ── Notification bell + panel (desktop + mobile share one panel) ── */
+  var bellBtn       = document.getElementById('hn2BellBtn');
+  var bellBtnMobile = document.getElementById('hn2BellBtnMobile');
+  var notifPanel    = document.getElementById('hn2NotifPanel');
+  var notifBadge    = document.getElementById('hn2NotifBadge');
+  var notifBadgeM   = document.getElementById('hn2NotifBadgeMobile');
+  var notifList     = document.getElementById('hn2NotifList');
+  var markAllBtn    = document.getElementById('hn2MarkAllRead');
+  var notifLoaded   = false;
 
-<% if (student) { %>
-<script>
-(function () {
-  const dropdown = document.getElementById('notifDropdown');
-  const badge = document.getElementById('notifBadge');
-  const list = document.getElementById('notifList');
-  let loaded = false;
+  function closeAllHn2Popovers() {
+    var pill = document.getElementById('snPill');
+    if (pill) pill.classList.remove('open');
+    if (notifPanel) notifPanel.classList.remove('open');
+  }
 
-  function timeAgo(dateStr) {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diffMs / 60000);
+  function hn2TimeAgo(dateStr) {
+    var diffMs = Date.now() - new Date(dateStr).getTime();
+    var mins = Math.floor(diffMs / 60000);
     if (mins < 1) return 'just now';
     if (mins < 60) return mins + 'm ago';
-    const hrs = Math.floor(mins / 60);
+    var hrs = Math.floor(mins / 60);
     if (hrs < 24) return hrs + 'h ago';
     return Math.floor(hrs / 24) + 'd ago';
   }
 
-  async function loadNotifs() {
-    try {
-      const res = await fetch('/notifications');
-      const data = await res.json();
-      if (!data.success) return;
+  function hn2LoadNotifs() {
+    fetch('/notifications')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.success) return;
 
-      badge.style.display = data.unreadCount > 0 ? 'flex' : 'none';
-      badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+        [notifBadge, notifBadgeM].forEach(function (b) {
+          if (!b) return;
+          if (data.unreadCount > 0) {
+            b.style.display = 'flex';
+            b.classList.add('has-count');
+            b.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+          } else {
+            b.style.display = 'none';
+            b.classList.remove('has-count');
+          }
+        });
 
-      if (!data.notifications.length) {
-        list.innerHTML = '<div class="hn-notif-empty">No notifications yet</div>';
-        return;
-      }
-      list.innerHTML = data.notifications.map(function (n) {
-        const href = n.link || '#';
-        return '<a class="hn-notif-item ' + (n.isRead ? '' : 'unread') + '" href="' + href + '" onclick="markNotifRead(\'' + n._id + '\')">' +
-          '<div class="n-title">' + n.title + '</div>' +
-          (n.body ? '<div class="n-body">' + n.body + '</div>' : '') +
-          '<div class="n-time">' + timeAgo(n.createdAt) + '</div>' +
-          '</a>';
-      }).join('');
-    } catch (err) { /* silent — bell just stays empty on a network hiccup */ }
+        if (!notifList) return;
+        if (!data.notifications.length) {
+          notifList.innerHTML = '<div class="hn2-notif-empty">No notifications yet</div>';
+          return;
+        }
+        notifList.innerHTML = data.notifications.map(function (n) {
+          var href = n.link || '#';
+          return '<a class="hn2-notif-item ' + (n.isRead ? '' : 'unread') + '" href="' + href + '" onclick="markHn2NotifRead(\'' + n._id + '\')">' +
+            '<div class="n-title">' + n.title + '</div>' +
+            (n.body ? '<div class="n-body">' + n.body + '</div>' : '') +
+            '<div class="n-time">' + hn2TimeAgo(n.createdAt) + '</div>' +
+            '</a>';
+        }).join('');
+      })
+      .catch(function () { /* silent — bell just stays empty on a network hiccup */ });
   }
 
-  window.toggleNotifDropdown = function (e) {
-    e.stopPropagation();
-    const willOpen = !dropdown.classList.contains('open');
-    dropdown.classList.toggle('open');
-    if (willOpen && !loaded) { loaded = true; loadNotifs(); }
-    else if (willOpen) { loadNotifs(); }
-  };
-
-  window.markNotifRead = function (id) {
+  window.markHn2NotifRead = function (id) {
     fetch('/notifications/' + id + '/read', { method: 'POST' }).catch(function () {});
   };
 
-  window.markAllNotifsRead = async function () {
-    try {
-      await fetch('/notifications/read-all', { method: 'POST' });
-      loadNotifs();
-    } catch (err) {}
-  };
+  function toggleHn2NotifPanel(e) {
+    e.stopPropagation();
+    var willOpen = !notifPanel.classList.contains('open');
+    closeAllHn2Popovers();
+    if (willOpen) {
+      notifPanel.classList.add('open');
+      hn2LoadNotifs();
+      notifLoaded = true;
+    }
+  }
+  if (bellBtn && notifPanel) bellBtn.addEventListener('click', toggleHn2NotifPanel);
+  if (bellBtnMobile) {
+    // Mobile bell opens the drawer's notification list too — simplest UX
+    // without building a second panel: reuse the same fetch, route to the
+    // drawer isn't built out, so just open the desktop-style panel; it's
+    // positioned off the bell button which sits in the same top-right area.
+    bellBtnMobile.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!notifPanel) return;
+      var willOpen = !notifPanel.classList.contains('open');
+      closeAllHn2Popovers();
+      if (willOpen) { notifPanel.classList.add('open'); hn2LoadNotifs(); }
+    });
+  }
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', function () {
+      fetch('/notifications/read-all', { method: 'POST' })
+        .then(hn2LoadNotifs)
+        .catch(function () {});
+    });
+  }
 
+  /* ── Global closers (notification panel only — the profile pill
+     already closes itself via the document click listener next to
+     snToggle() above, matching your original behavior exactly) ── */
   document.addEventListener('click', function (e) {
-    if (!e.target.closest('.hn-notif-wrap')) dropdown.classList.remove('open');
+    if (notifPanel && notifPanel.classList.contains('open') &&
+        !notifPanel.contains(e.target) &&
+        e.target !== bellBtn && e.target !== bellBtnMobile) {
+      notifPanel.classList.remove('open');
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      window.closeMobileNav({ target: document.getElementById('mobileNav') });
+      closeAllHn2Popovers();
+    }
   });
 
-  // Refresh the unread badge periodically without opening the dropdown.
-  loadNotifs();
-  setInterval(loadNotifs, 30000);
+  <% if (student) { %>
+  // Refresh the unread badge periodically without opening the panel.
+  hn2LoadNotifs();
+  setInterval(hn2LoadNotifs, 30000);
+  <% } %>
+
+  // Auto-close the drawer if the viewport grows past the desktop breakpoint.
+  var hn2Mq = window.matchMedia('(min-width: 901px)');
+  function hn2HandleBreakpoint(e) {
+    if (e.matches) window.closeMobileNav({ target: document.getElementById('mobileNav') });
+  }
+  if (hn2Mq.addEventListener) hn2Mq.addEventListener('change', hn2HandleBreakpoint);
+  else if (hn2Mq.addListener) hn2Mq.addListener(hn2HandleBreakpoint);
+
+  /* ── Active nav link — matched against the REAL current URL, not
+     hardcoded in the markup (every page includes this same file, so a
+     hardcoded "active" class showed "Find Hostel" as current everywhere,
+     even on /flatmate). Route prefixes come from app.js's app.use()
+     mounts: "/" and "/findHostels" and "/city" all belong to the "Find
+     Hostel" flow, "/flatmate" to Flatmate ("/flatmate/my-listings" is
+     its own, more specific item), "/messages" to Messages. ── */
+  (function () {
+    var path = window.location.pathname;
+    var current = 'find-hostel'; // default: homepage + anything unmatched
+    if (path.indexOf('/flatmate/my-listings') === 0) current = 'my-listings';
+    else if (path.indexOf('/flatmate') === 0) current = 'flatmate';
+    else if (path.indexOf('/messages') === 0) current = 'messages';
+    else if (path.indexOf('/findHostels') === 0 || path.indexOf('/city') === 0 || path === '/') current = 'find-hostel';
+    else current = null; // an unrelated page (saved/recently-viewed/edit-profile/etc.) — nothing lit up, matching the old design's intent, just no longer wrong instead of right
+
+    if (current) {
+      document.querySelectorAll('[data-nav="' + current + '"]').forEach(function (el) {
+        el.classList.add('active');
+      });
+    }
+  })();
 })();
 </script>
-<% } %>
-
-<!-- ══ Navbar interactivity — mobile hamburger + profile dropdown ══
-     This partial's own markup uses onclick="openMobileNav()" and
-     onclick="snToggle(event)" above, but previously relied on whatever
-     page included this file to separately define those functions
-     itself. Only the PG/Hostel detail page actually did — every single
-     Flatmate page (landing, results, my-listings, both create wizards,
-     and the listing detail page) was missing them entirely, silently
-     breaking the hamburger menu and profile dropdown on all of them.
-     Defining them here, once, makes the navbar genuinely self-contained
-     regardless of which page includes it. Using `function` declarations
-     (not const/let) is deliberate — if a page like hostel-view.ejs still
-     has its own copy too, a function re-declaration doesn't throw the
-     way a duplicate const would; it's a harmless no-op collision. -->
-<script>
-function openMobileNav() {
-  const nav = document.getElementById('mobileNav');
-  if (nav) { nav.classList.add('open'); document.body.style.overflow = 'hidden'; }
-}
-function closeMobileNav(e) {
-  const nav = document.getElementById('mobileNav');
-  if (nav && (!e || e.target === nav)) { nav.classList.remove('open'); document.body.style.overflow = ''; }
-}
-function snToggle(e) {
-  if (e) e.stopPropagation();
-  const pill = document.getElementById('snPill');
-  if (pill) pill.classList.toggle('open');
-}
-document.addEventListener('click', function () {
-  const pill = document.getElementById('snPill');
-  if (pill) pill.classList.remove('open');
-});
-</script>
+ 
