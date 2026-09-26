@@ -948,6 +948,76 @@ router.post("/contact-owner", jwtStudentAuth, async (req, res) => {
       console.error("Lead pipeline log failed (non-critical):", e.message);
     }
 
+    // ── Mirror this enquiry into Messages (NEW — Phase 7) ────
+    // Whatever the student clicked in the Contact Owner modal, the
+    // Owner should now see it appear as a message in their existing
+    // PG/Hostel inbox too, not only as a separate Enquiry/lead record.
+    // Reuses the exact find-or-create logic POST /messages/pg/start
+    // already uses (Phase 2), via utils/pgConversation.js, so the two
+    // call sites can't drift apart. Wrapped in try/catch and placed
+    // after the Enquiry is already saved — this is purely additive;
+    // if it fails, the enquiry itself and the lead-template WhatsApp
+    // notify below still go through exactly as before.
+    if (listing.owner) {
+      try {
+        const Message = require("../models/Message");
+        const { findOrCreatePgConversation } = require("../utils/pgConversation");
+        const { notifyOwnerEvent } = require("../utils/ownerNotifications");
+
+        const ownerId = listing.owner._id || listing.owner;
+        const conversation = await findOrCreatePgConversation(student._id, hostelId, ownerId);
+
+        const actionLabelMap = {
+          request_callback:  "Requested a callback",
+          whatsapp_callback: "Requested a WhatsApp callback",
+          schedule_visit:    "Requested a physical visit",
+          virtual_tour:      "Requested a virtual tour",
+        };
+        const summaryParts = [actionLabelMap[actionType] || "Sent an enquiry"];
+        if (moveIn)      summaryParts.push(`Move-in: ${moveIn}`);
+        if (budgetRange) summaryParts.push(`Budget: ${budgetRange}`);
+        if (message)     summaryParts.push(`Message: ${message}`);
+        const summaryText = summaryParts.join(" · ").slice(0, 2000);
+
+        const enquiryMessage = await Message.create({
+          conversation: conversation._id,
+          sender:       student._id,
+          senderModel:  "Student",
+          text:         summaryText,
+        });
+
+        conversation.lastMessage   = summaryText.slice(0, 140);
+        conversation.lastMessageAt = new Date();
+        const ownerIdStr = ownerId.toString();
+        const currentUnread = (conversation.unreadCounts.get ? conversation.unreadCounts.get(ownerIdStr) : 0) || 0;
+        conversation.unreadCounts.set(ownerIdStr, currentUnread + 1);
+        await conversation.save();
+
+        // Same in-app + WhatsApp notify a real chat message would
+        // trigger (see routes/messagesRoutes.js's send-message route
+        // and utils/ownerNotifications.js's PG_NEW_MESSAGE entry).
+        const studentName  = `${student.firstName} ${student.lastName || ""}`.trim() || "Someone";
+        const notifyPhone  = listing.contact?.whatsapp || listing.contact?.phone || listing.owner?.phone;
+        notifyOwnerEvent("PG_NEW_MESSAGE", {
+          userId: ownerIdStr,
+          title:  "New enquiry message",
+          body:   summaryText.slice(0, 80),
+          link:   `/user/messages/${conversation._id}`,
+          relatedConversation: conversation._id,
+          dedupeKey: enquiryMessage._id.toString(),
+          // resolvedHostelName is already computed earlier in this
+          // route (right after `listing` is fetched) — reused here
+          // rather than queried again.
+          whatsapp: notifyPhone ? {
+            phone: notifyPhone,
+            variables: [studentName, resolvedHostelName, student.phone || "Not provided", summaryText.slice(0, 200)],
+          } : null,
+        });
+      } catch (e) {
+        console.error("contact-owner → Messages mirror failed (non-critical):", e.message);
+      }
+    }
+
     // ── Notify owner via WhatsApp template ───────────────────
     const ownerPhone = listing.contact?.whatsapp
                     || listing.contact?.phone

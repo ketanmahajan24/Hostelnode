@@ -767,10 +767,23 @@ router.post("/:conversationId/messages", resolveViewer, async (req, res) => {
       })();
     } else {
       (async () => {
-        const [senderDoc, receiverDoc] = await Promise.all([
-          Student.findById(viewer.id).select("firstName").lean().catch(() => null),
+        const [senderDoc, receiverDoc, listingDoc] = await Promise.all([
+          // Phase 7: now also selecting the sender's phone + lastName —
+          // the WhatsApp template to the Owner includes them (see
+          // utils/ownerNotifications.js's PG_NEW_MESSAGE comment for
+          // why, unlike the Student-side NEW_MESSAGE branch above,
+          // which is untouched and still omits message content).
+          Student.findById(viewer.id).select("firstName lastName phone").lean().catch(() => null),
           Owner.findById(receiverId).select("phone").lean().catch(() => null),
+          // Phase 7: conv.listing is only an ObjectId on this doc (never
+          // populated for this route), so a separate lookup for the
+          // listing's own name — this Owner-notify branch only ever
+          // runs for PG_INQUIRY conversations, whose listingModel is
+          // always "Listing" (never "FlatmateListing").
+          Listing.findById(conv.listing).select("title").lean().catch(() => null),
         ]);
+        const senderName = [senderDoc?.firstName, senderDoc?.lastName].filter(Boolean).join(" ") || "Someone";
+        const listingName = listingDoc?.title || "your PG/Hostel listing";
         notifyOwnerEvent("PG_NEW_MESSAGE", {
           userId: receiverId,
           title: "New enquiry message",
@@ -778,9 +791,16 @@ router.post("/:conversationId/messages", resolveViewer, async (req, res) => {
           link: `/user/messages/${conv._id}`,
           relatedConversation: conv._id,
           dedupeKey: message._id.toString(),
-          // No message text in the WhatsApp variables on purpose — same
-          // reasoning as the Student-side NEW_MESSAGE event above.
-          whatsapp: receiverDoc?.phone ? { phone: receiverDoc.phone, variables: [senderDoc?.firstName || "Someone"] } : null,
+          // Phase 7: name, listing name, phone, and the message text
+          // itself (capped at 200 chars — WhatsApp template bodies
+          // have a length limit) — an explicit product decision, see
+          // the registry comment above PG_NEW_MESSAGE for the
+          // trade-off and the exact template text this needs approved
+          // in Meta.
+          whatsapp: receiverDoc?.phone ? {
+            phone: receiverDoc.phone,
+            variables: [senderName, listingName, senderDoc?.phone || "Not provided", text.slice(0, 200)],
+          } : null,
         });
       })();
     }

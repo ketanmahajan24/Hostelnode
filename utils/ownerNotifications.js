@@ -36,23 +36,45 @@ function waSender() {
 }
 
 const EVENTS = {
-  // A student sends a message in a PG/Hostel conversation → notify the
-  // listing's Owner.
-  // WhatsApp template: WA_TEMPLATE_PG_NEW_MESSAGE — 1 var: student's
-  // first name. No message text in the variables, on purpose — same
-  // reasoning as flatmateNotifications.js's NEW_MESSAGE entry: a
-  // WhatsApp Utility template is visible in notification previews, and
-  // putting private chat content there would leak it beyond the app.
+  // A student sends a message in a PG/Hostel conversation (or submits
+  // one of the Contact Owner modal's enquiry options — Phase 7 mirrors
+  // those into this same event) → notify the listing's Owner.
   //
-  // IMPORTANT — unlike every Flatmate event, this template does not
-  // exist in Meta Business Manager yet. Nothing in this codebase has
-  // ever sent an Owner a WhatsApp message before this phase (checked:
-  // no existing call site references an Owner's phone via
-  // leadWhatsapp.js). Until "hostelnode_pg_new_message" (or whatever
-  // name/env var you choose) is created, submitted, and approved as a
-  // Utility template, sends will fail with a logged 🔴, exactly like
-  // an unapproved Flatmate template does — never a crash, and the
-  // in-app Notification below is unaffected either way.
+  // WhatsApp template: WA_TEMPLATE_PG_NEW_MESSAGE — 4 vars, in order:
+  //   {{1}} sender's full name
+  //   {{2}} the PG/Hostel listing's name (conv.listing's title)
+  //   {{3}} sender's phone number
+  //   {{4}} the message text itself (truncated to 200 chars by the
+  //         caller before it ever reaches here)
+  //
+  // Phase 7, explicit product decision: unlike Flatmate's NEW_MESSAGE
+  // (which deliberately omits message content — see that file's own
+  // comment), this one DOES put the student's name, phone, and actual
+  // message text in the template body, so the Owner can see and act
+  // on it straight from the WhatsApp notification. Trade-off, on the
+  // record: the message text is now visible in notification previews/
+  // lock screens, not just inside the app — accepted deliberately here.
+  //
+  // IMPORTANT — this template does not exist in Meta Business Manager
+  // yet, and even if an earlier 3-variable version was ever submitted,
+  // Meta treats a variable-count change as a DIFFERENT template that
+  // needs its own approval — editing the approved text in place does
+  // not silently apply. Submit (or resubmit) something like this as a
+  // Utility-category template named "hostelnode_pg_new_message"
+  // (asterisks = WhatsApp's own bold markup, applies to the rendered
+  // variable too):
+  //
+  //   💬 *{{1}}* sent you a message about *{{2}}*!
+  //
+  //   📱 {{3}}
+  //   📝 "{{4}}"
+  //
+  //   Reply on HostelNode to chat back.
+  //
+  // Header (static text, no variable): "New Message on HostelNode 💬"
+  //
+  // Until that's approved, sends fail with a logged 🔴 (never a
+  // crash), and the in-app Notification below is unaffected either way.
   PG_NEW_MESSAGE: {
     notificationType: "PG_NEW_MESSAGE",
     whatsapp: () => process.env.WA_TEMPLATE_PG_NEW_MESSAGE || "hostelnode_pg_new_message",
