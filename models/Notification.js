@@ -11,11 +11,29 @@ const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema({
 
+  // CHANGED (PG/Hostel chat, Phase 5) — a notification's recipient can
+  // now be a Student or an Owner, so `user` is a dynamic ref keyed off
+  // userModel below, same additive pattern already used for
+  // Message.sender/senderModel in Phase 1. Every notification created
+  // before this field existed is simply missing userModel, and
+  // userModel's default of "Student" makes that read back exactly as
+  // before — no data migration, and every existing Student-side query
+  // (Notification.find({ user: studentId }), the unread bell, etc.) is
+  // completely unaffected because none of them look at userModel at
+  // all today.
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Student",
+    refPath: "userModel",
     required: true,
     index: true,
+  },
+
+  // NEW (Phase 5) — see comment above. Absent on every pre-existing
+  // document, which is read the same as "Student".
+  userModel: {
+    type: String,
+    enum: ["Student", "Owner"],
+    default: "Student",
   },
 
   type: {
@@ -39,6 +57,13 @@ const notificationSchema = new mongoose.Schema({
       "FLATMATE_LISTING_EXPIRED",
       "FLATMATE_LISTING_VIEW_MILESTONE",
       "FLATMATE_LISTING_REACTIVATE_REMINDER",
+      // NEW (PG/Hostel chat, Phase 5) — a student messages a PG/Hostel
+      // owner. Kept as its own distinct type rather than reusing
+      // FLATMATE_NEW_MESSAGE, matching this schema's existing
+      // convention of one enum value per distinct event (every other
+      // Flatmate event already gets its own), and keeping PG/Hostel
+      // activity separately queryable from Flatmate activity.
+      "PG_NEW_MESSAGE",
     ],
     required: true,
   },

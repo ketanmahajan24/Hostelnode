@@ -125,14 +125,25 @@
     <div style="position:relative">
       <button class="chat-menu-btn" onclick="toggleChatMenu()"><i class="fa-solid fa-ellipsis-vertical"></i></button>
       <div class="chat-menu-dropdown" id="chatMenu">
-        <% if (conversation.listing) { %>
+        <% if (conversation.listing && conversation.type === 'FLATMATE_CONNECTION') { %>
           <a href="/flatmate/<%= conversation.listing.slug %>"><i class="fa-solid fa-house"></i> View Listing</a>
         <% } %>
         <% if (conversation.status === 'active' && connection) { %>
           <button onclick="openRemoveModal()"><i class="fa-solid fa-user-slash"></i> Remove Connection</button>
         <% } %>
-        <button onclick="openReportModal()"><i class="fa-solid fa-flag"></i> Report</button>
-        <button class="danger" onclick="openBlockModal()"><i class="fa-solid fa-ban"></i> Block User</button>
+        <% if (conversation.type === 'FLATMATE_CONNECTION') { %>
+          <!-- Report/Block are a Student<->Student (Flatmate) moderation
+               pair — Report.reportedUser and Block.blocked are both
+               Student-only refs today, so pointing either at a PG/Hostel
+               Owner's id would misfile the record (Report) or silently
+               do nothing (Block — the send-message route only checks
+               Block for FLATMATE_CONNECTION conversations). Hidden here
+               for PG/Hostel chats rather than left to look like they
+               work; routes/messagesRoutes.js also rejects them
+               server-side as a second guard against a direct API call. -->
+          <button onclick="openReportModal()"><i class="fa-solid fa-flag"></i> Report</button>
+          <button class="danger" onclick="openBlockModal()"><i class="fa-solid fa-ban"></i> Block User</button>
+        <% } %>
       </div>
     </div>
   </div>
@@ -144,7 +155,9 @@
           ? conversation.listing.bhk + ' BHK · ' + conversation.listing.area + ', ' + conversation.listing.city
           : (conversation.listing.title || 'Listing') %>
       </span>
-      <a href="/flatmate/<%= conversation.listing.slug %>">View Listing</a>
+      <% if (conversation.type === 'FLATMATE_CONNECTION') { %>
+        <a href="/flatmate/<%= conversation.listing.slug %>">View Listing</a>
+      <% } %>
     </div>
   <% } %>
 

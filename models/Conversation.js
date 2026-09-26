@@ -27,6 +27,18 @@ const conversationSchema = new mongoose.Schema({
     required: true,
   }],
 
+  // NEW (PG/Hostel chat) — only set when type === "PG_INQUIRY". The
+  // Student side of a PG conversation still lives in `participants`
+  // (as a single entry), exactly like before, so every existing
+  // Flatmate populate()/counterpart lookup keeps working unchanged.
+  // This field is how the Owner side attaches without redefining what
+  // `participants` means for FLATMATE_CONNECTION conversations.
+  ownerParticipant: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Owner",
+    default: null,
+  },
+
   listing: {
     type: mongoose.Schema.Types.ObjectId,
     refPath: "listingModel",

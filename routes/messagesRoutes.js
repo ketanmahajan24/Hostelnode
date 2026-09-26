@@ -10,8 +10,9 @@
    any change needed here.
 
    - GET  /messages                          → inbox (All / PG & Hostel / Flatmate)
-   - GET  /messages/:conversationId           → chat thread
-   - POST /messages/:conversationId/messages  → send a message
+   - POST /messages/pg/start                  → find-or-create a PG/Hostel chat, no request/accept step
+   - GET  /messages/:conversationId           → chat thread (Student OR the listing's Owner)
+   - POST /messages/:conversationId/messages  → send a message (Student OR Owner)
    - POST /messages/connection/:id/accept     → accept a pending request
    - POST /messages/connection/:id/decline    → decline a pending request
    - POST /messages/connection/:id/remove     → end an accepted connection
@@ -19,6 +20,19 @@
    (Cancelling your own outgoing pending request already lives at
    POST /flatmate/connection/:id/cancel — built in Phase 3 — reused
    as-is from the inbox UI rather than duplicated here.)
+
+   PG/HOSTEL CHAT (added in Phase 2 of the PG/Hostel chat feature):
+   Unlike Flatmate (Student <-> Student, gated behind an accepted
+   FlatmateConnection), a PG/Hostel conversation is Student <-> Owner
+   and needs no request/accept step at all — POST /pg/start finds or
+   creates it immediately. Because the two sides are different
+   identities (Student vs Owner, different login cookies), the 4
+   shared thread routes below use `resolveViewer` instead of the
+   Student-only `requireStudent`, and `isParticipant()` checks
+   membership against `conv.participants` (Student side) OR
+   `conv.ownerParticipant` (Owner side). Every Flatmate-only route
+   above (accept/decline/remove/block/report/inbox) is untouched and
+   still uses `requireStudent` exactly as before.
 ============================================================ */
 
 const express = require("express");
@@ -32,7 +46,10 @@ const Block              = require("../models/Block");
 const Report             = require("../models/Report");
 const Student            = require("../models/studentSchema");
 const FlatmateListing    = require("../models/FlatmateListing");
+const Listing            = require("../models/listingProperty");
+const Owner              = require("../models/owner");
 const { notifyFlatmateEvent } = require("../utils/flatmateNotifications");
+const { notifyOwnerEvent } = require("../utils/ownerNotifications"); // NEW (Phase 5) — PG/Hostel owner notifications
 
 /* ── Auth — same contract as flatmateRoutes.js's requireStudent, defined
    locally so this file has no cross-file coupling. ── */
@@ -46,6 +63,57 @@ function requireStudent(req, res, next) {
     res.clearCookie("studentToken");
     return res.redirect(`/student/login?next=${encodeURIComponent(req.originalUrl)}`);
   }
+}
+
+/* ── resolveViewer — used ONLY by the 4 shared thread routes (chat view,
+   send, read, poll). Recognizes whichever of the two cookies is
+   present and normalizes it to req.viewer = { id, kind }, where kind
+   is "Student" or "Owner". Never hard-redirects (a redirect to
+   /student/login would be wrong for an Owner hitting this from their
+   own dashboard) — routes using this check req.viewer themselves and
+   respond with 401/404 as appropriate. Doesn't touch req.student, so
+   nothing that already reads req.student elsewhere is affected. ── */
+function resolveViewer(req, res, next) {
+  const studentToken = req.cookies?.studentToken;
+  if (studentToken) {
+    try {
+      const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
+      req.viewer = { id: decoded.id, kind: "Student" };
+      return next();
+    } catch (err) {
+      res.clearCookie("studentToken");
+      // fall through — maybe an Owner cookie is present instead
+    }
+  }
+
+  const ownerToken = req.cookies?.token;
+  if (ownerToken) {
+    try {
+      const decoded = jwt.verify(ownerToken, process.env.JWT_SECRET);
+      req.viewer = { id: decoded.id, kind: "Owner" };
+      return next();
+    } catch (err) {
+      res.clearCookie("token");
+    }
+  }
+
+  req.viewer = null;
+  next();
+}
+
+/* ── isParticipant — is this resolved viewer actually part of this
+   conversation? Student side checks the existing `participants`
+   array (Flatmate's original check, unchanged in meaning). Owner side
+   checks the new `ownerParticipant` field from Phase 1. `conv` may be
+   a lean object or a full Mongoose doc — both give ObjectId/array
+   fields that respond to .toString()/.some(), so this works for
+   either. ── */
+function isParticipant(conv, viewer) {
+  if (!conv || !viewer) return false;
+  if (viewer.kind === "Owner") {
+    return !!conv.ownerParticipant && conv.ownerParticipant.toString() === viewer.id;
+  }
+  return (conv.participants || []).some((p) => (p._id || p).toString() === viewer.id);
 }
 
 function listingSummary(listing, listingModel) {
@@ -119,6 +187,7 @@ router.get("/", requireStudent, async (req, res) => {
 
     const conversations = await Conversation.find({ participants: viewerId })
       .populate("participants", "firstName")
+      .populate("ownerParticipant", "name")
       .populate("listing")
       .sort({ updatedAt: -1 })
       .lean();
@@ -140,12 +209,20 @@ router.get("/", requireStudent, async (req, res) => {
     });
 
     conversations.forEach((conv) => {
-      const counterpart = (conv.participants || []).find((p) => p._id.toString() !== viewerId);
+      // FLATMATE_CONNECTION: unchanged — counterpart is the other Student
+      // in `participants`. PG_INQUIRY: `participants` only ever holds this
+      // viewer themselves (the student), so the counterpart is the
+      // listing's Owner instead (populated via `ownerParticipant` above —
+      // this is the fix for the "PG & Hostel" inbox tab, which already
+      // existed in the view but never had a real name to show).
+      const counterpartName = conv.type === "PG_INQUIRY"
+        ? (conv.ownerParticipant?.name || "Property Owner")
+        : ((conv.participants || []).find((p) => p._id.toString() !== viewerId)?.firstName || "HostelNode User");
       rows.push({
         kind: "chat",
         category: conv.type === "PG_INQUIRY" ? "pg" : "flatmate",
         conversationId: conv._id.toString(),
-        counterpartName: counterpart?.firstName || "HostelNode User",
+        counterpartName,
         listingText: listingSummary(conv.listing, conv.listingModel),
         status: conv.status,
         lastMessage: conv.lastMessage || "",
@@ -160,6 +237,56 @@ router.get("/", requireStudent, async (req, res) => {
   } catch (err) {
     console.error("Messages inbox error:", err);
     res.status(500).send("Something went wrong loading your messages. Please try again.");
+  }
+});
+
+/* ─────────────────────────────────────────────
+   START PG/HOSTEL CHAT  →  POST /messages/pg/start
+   Student-only (Owners never initiate — they only ever reply from
+   their own inbox, Phase 4). No request/accept step, unlike Flatmate:
+   finds an existing PG_INQUIRY conversation for {this student, this
+   listing} or creates one immediately, then hands back the
+   conversation id so the "Chat with Owner" button can redirect
+   straight into /messages/:conversationId.
+───────────────────────────────────────────── */
+router.post("/pg/start", requireStudent, async (req, res) => {
+  try {
+    const studentId = req.student.id;
+    const { listingId } = req.body;
+    if (!listingId) {
+      return res.json({ success: false, error: "Missing listing." });
+    }
+
+    const listing = await Listing.findOne({ _id: listingId, status: "Approved" }).select("owner title").lean();
+    if (!listing || !listing.owner) {
+      return res.json({ success: false, error: "This listing isn't available right now." });
+    }
+
+    // One conversation per (student, listing) — scoped by listing, not
+    // by owner alone, so if a listing is ever reassigned to a
+    // different owner, that's a data-modeling question for later,
+    // not something this route needs to resolve today.
+    let conversation = await Conversation.findOne({
+      type: "PG_INQUIRY",
+      listing: listingId,
+      participants: studentId,
+    });
+
+    if (!conversation) {
+      conversation = await Conversation.create({
+        type: "PG_INQUIRY",
+        participants: [studentId],
+        ownerParticipant: listing.owner,
+        listing: listingId,
+        listingModel: "Listing",
+        status: "active",
+      });
+    }
+
+    res.json({ success: true, conversationId: conversation._id.toString() });
+  } catch (err) {
+    console.error("Start PG chat error:", err);
+    res.status(500).json({ success: false, error: "Something went wrong starting this chat." });
   }
 });
 
@@ -356,6 +483,19 @@ router.post("/block/:studentId", requireStudent, async (req, res) => {
       return res.json({ success: false, error: "You can't block yourself." });
     }
 
+    // NEW (Phase 6) — Block.blocked is a Student-only ref (see that
+    // model's header). Without this check, blocking a PG/Hostel Owner
+    // (whose id can reach here via a direct API call even though the
+    // UI now hides the button — see conversation.ejs) would silently
+    // "succeed" while doing nothing real: the send-message route only
+    // consults Block for FLATMATE_CONNECTION conversations, so an
+    // Owner would never actually be blocked, but the student would be
+    // told they were. Fail honestly instead.
+    const targetStudent = await Student.findById(targetId).select("_id").lean();
+    if (!targetStudent) {
+      return res.json({ success: false, error: "This user can't be blocked here." });
+    }
+
     await Block.updateOne(
       { blocker: viewerId, blocked: targetId },
       { $setOnInsert: { blocker: viewerId, blocked: targetId } },
@@ -400,6 +540,16 @@ router.post("/report", requireStudent, async (req, res) => {
       return res.json({ success: false, error: "You can't report yourself." });
     }
 
+    // NEW (Phase 6) — Report.reportedUser is a Student-only ref (see
+    // that model's header). Without this check, reporting a PG/Hostel
+    // Owner would create a Report doc pointing at an id the admin
+    // review page can't resolve as a Student — a silently-broken audit
+    // record rather than an outright failure. Fail honestly instead.
+    const reportedStudent = await Student.findById(reportedUserId).select("_id").lean();
+    if (!reportedStudent) {
+      return res.json({ success: false, error: "This user can't be reported here." });
+    }
+
     const report = await Report.create({
       reporter: req.student.id,
       reportedUser: reportedUserId,
@@ -433,21 +583,38 @@ router.post("/report", requireStudent, async (req, res) => {
 /* ─────────────────────────────────────────────
    CHAT THREAD  →  GET /messages/:conversationId
 ───────────────────────────────────────────── */
-router.get("/:conversationId", requireStudent, async (req, res) => {
+router.get("/:conversationId", resolveViewer, async (req, res) => {
   try {
-    const viewerId = req.student.id;
+    const viewer = req.viewer;
     const conv = await Conversation.findById(req.params.conversationId)
       .populate("participants", "firstName")
+      .populate("ownerParticipant", "name")
       .populate("listing")
       .lean();
 
-    if (!conv || !(conv.participants || []).some((p) => p._id.toString() === viewerId)) {
+    if (!conv || !isParticipant(conv, viewer)) {
       return res.status(404).render("messages/conversation", {
         conversation: null, messages: [], counterpart: null, connection: null, viewerId: null,
       });
     }
+    const viewerId = viewer.id;
 
-    const counterpart = conv.participants.find((p) => p._id.toString() !== viewerId);
+    // FLATMATE_CONNECTION: unchanged original logic — the counterpart is
+    // whichever Student in `participants` isn't the viewer.
+    // PG_INQUIRY: there's only ever one Student in `participants`, so the
+    // counterpart is derived from whichever side the OTHER identity is
+    // on. Normalized to { _id, firstName } either way, so the existing
+    // template (which only ever reads counterpart.firstName) needs no
+    // changes — an Owner's `name` field is presented through the same
+    // `firstName` key the template already expects.
+    let counterpart;
+    if (conv.type === "FLATMATE_CONNECTION") {
+      counterpart = (conv.participants || []).find((p) => p._id.toString() !== viewerId) || null;
+    } else {
+      counterpart = viewer.kind === "Owner"
+        ? (conv.participants || [])[0] || null
+        : (conv.ownerParticipant ? { _id: conv.ownerParticipant._id, firstName: conv.ownerParticipant.name } : null);
+    }
     const messages = await Message.find({ conversation: conv._id }).sort({ createdAt: 1 }).lean();
 
     let connection = null;
@@ -501,12 +668,12 @@ router.get("/:conversationId", requireStudent, async (req, res) => {
    "active", and (for Flatmate) the underlying connection must still
    be "accepted" — never trust the client's disabled input box alone.
 ───────────────────────────────────────────── */
-router.post("/:conversationId/messages", requireStudent, async (req, res) => {
+router.post("/:conversationId/messages", resolveViewer, async (req, res) => {
   try {
-    const viewerId = req.student.id;
+    const viewer = req.viewer;
     const conv = await Conversation.findById(req.params.conversationId);
 
-    if (!conv || !conv.participants.some((p) => p.toString() === viewerId)) {
+    if (!conv || !isParticipant(conv, viewer)) {
       return res.status(403).json({ success: false, error: "Not authorized." });
     }
     if (conv.status !== "active") {
@@ -519,21 +686,47 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
       }
     }
 
-    const receiverId = conv.participants.find((p) => p.toString() !== viewerId);
-    const blocked = await Block.findOne({
-      $or: [
-        { blocker: viewerId, blocked: receiverId },
-        { blocker: receiverId, blocked: viewerId },
-      ],
-    });
-    if (blocked) {
-      return res.json({ success: false, error: "You can't message this user." });
+    // The "other side" of this conversation, and what kind of identity
+    // they are — for FLATMATE_CONNECTION it's always the other Student
+    // in `participants` (unchanged). For PG_INQUIRY there's exactly one
+    // Student in `participants` plus one `ownerParticipant`, so the
+    // receiver is whichever of those two the viewer ISN'T.
+    let receiverId, receiverKind;
+    if (conv.type === "FLATMATE_CONNECTION") {
+      // Unchanged from the original logic — isParticipant() above already
+      // guarantees viewer.id is one of the two, so this is simply "the
+      // other one."
+      receiverId = conv.participants.find((p) => p.toString() !== viewer.id);
+      receiverKind = "Student";
+    } else if (viewer.kind === "Owner") {
+      receiverId = conv.participants[0];
+      receiverKind = "Student";
+    } else {
+      receiverId = conv.ownerParticipant;
+      receiverKind = "Owner";
+    }
+
+    // Block is a Student<->Student concept (Flatmate only) — skip it
+    // for PG_INQUIRY rather than running a check that was never
+    // designed to compare a Student id against an Owner id.
+    if (conv.type === "FLATMATE_CONNECTION") {
+      const blocked = await Block.findOne({
+        $or: [
+          { blocker: viewer.id, blocked: receiverId },
+          { blocker: receiverId, blocked: viewer.id },
+        ],
+      });
+      if (blocked) {
+        return res.json({ success: false, error: "You can't message this user." });
+      }
     }
 
     const text = (req.body.text || "").trim().slice(0, 2000);
     if (!text) return res.json({ success: false, error: "Message can't be empty." });
 
-    const message = await Message.create({ conversation: conv._id, sender: viewerId, text });
+    const message = await Message.create({
+      conversation: conv._id, sender: viewer.id, senderModel: viewer.kind, text,
+    });
 
     conv.lastMessage = text.slice(0, 140);
     conv.lastMessageAt = new Date();
@@ -544,23 +737,53 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
     // dedupeKey = this message's own id — each message is inherently a
     // distinct event, so this is just consistency with every other call
     // site rather than a real collision risk.
-    (async () => {
-      const [senderDoc, receiverDoc] = await Promise.all([
-        Student.findById(viewerId).select("firstName").lean().catch(() => null),
-        Student.findById(receiverId).select("phone").lean().catch(() => null),
-      ]);
-      notifyFlatmateEvent("NEW_MESSAGE", {
-        userId: receiverId,
-        title: "New message",
-        body: text.slice(0, 80),
-        link: `/messages/${conv._id}`,
-        relatedConversation: conv._id,
-        dedupeKey: message._id.toString(),
-        // No message text in the WhatsApp variables on purpose — see
-        // the registry comment above NEW_MESSAGE.
-        whatsapp: receiverDoc?.phone ? { phone: receiverDoc.phone, variables: [senderDoc?.firstName || "Someone"] } : null,
-      });
-    })();
+    //
+    // Student receiver: unchanged since Phase 2 — covers Flatmate (both
+    // directions) and the "Owner replies to a PG chat" direction.
+    // Owner receiver (Phase 5, NEW): the "Student messages a PG/Hostel
+    // Owner" direction, which Phase 2 deliberately left unwired. Uses
+    // notifyOwnerEvent (utils/ownerNotifications.js) rather than
+    // notifyFlatmateEvent, since that function and its Notification
+    // lookups are Student-shaped and Flatmate-named throughout — see
+    // that new file's header for why this is a sibling, not a branch
+    // inside it.
+    if (receiverKind === "Student") {
+      (async () => {
+        const [senderDoc, receiverDoc] = await Promise.all([
+          Student.findById(viewer.id).select("firstName").lean().catch(() => null),
+          Student.findById(receiverId).select("phone").lean().catch(() => null),
+        ]);
+        notifyFlatmateEvent("NEW_MESSAGE", {
+          userId: receiverId,
+          title: "New message",
+          body: text.slice(0, 80),
+          link: `/messages/${conv._id}`,
+          relatedConversation: conv._id,
+          dedupeKey: message._id.toString(),
+          // No message text in the WhatsApp variables on purpose — see
+          // the registry comment above NEW_MESSAGE.
+          whatsapp: receiverDoc?.phone ? { phone: receiverDoc.phone, variables: [senderDoc?.firstName || "Someone"] } : null,
+        });
+      })();
+    } else {
+      (async () => {
+        const [senderDoc, receiverDoc] = await Promise.all([
+          Student.findById(viewer.id).select("firstName").lean().catch(() => null),
+          Owner.findById(receiverId).select("phone").lean().catch(() => null),
+        ]);
+        notifyOwnerEvent("PG_NEW_MESSAGE", {
+          userId: receiverId,
+          title: "New enquiry message",
+          body: text.slice(0, 80),
+          link: `/user/messages/${conv._id}`,
+          relatedConversation: conv._id,
+          dedupeKey: message._id.toString(),
+          // No message text in the WhatsApp variables on purpose — same
+          // reasoning as the Student-side NEW_MESSAGE event above.
+          whatsapp: receiverDoc?.phone ? { phone: receiverDoc.phone, variables: [senderDoc?.firstName || "Someone"] } : null,
+        });
+      })();
+    }
 
     res.json({
       success: true,
@@ -582,11 +805,11 @@ router.post("/:conversationId/messages", requireStudent, async (req, res) => {
    appended while focused) — this is the real "the person looked at
    it" signal driving the blue double-tick, distinct from delivery.
 ───────────────────────────────────────────── */
-router.post("/:conversationId/read", requireStudent, async (req, res) => {
+router.post("/:conversationId/read", resolveViewer, async (req, res) => {
   try {
-    const viewerId = req.student.id;
+    const viewerId = req.viewer?.id;
     const conv = await Conversation.findById(req.params.conversationId);
-    if (!conv || !conv.participants.some((p) => p.toString() === viewerId)) {
+    if (!conv || !isParticipant(conv, req.viewer)) {
       return res.status(403).json({ success: false, error: "Not authorized." });
     }
 
@@ -618,11 +841,11 @@ router.post("/:conversationId/read", requireStudent, async (req, res) => {
    whatever the other participant sent, independent of whether the tab
    is actually focused (that distinction is "read", handled above).
 ───────────────────────────────────────────── */
-router.get("/:conversationId/poll", requireStudent, async (req, res) => {
+router.get("/:conversationId/poll", resolveViewer, async (req, res) => {
   try {
-    const viewerId = req.student.id;
+    const viewerId = req.viewer?.id;
     const conv = await Conversation.findById(req.params.conversationId);
-    if (!conv || !conv.participants.some((p) => p.toString() === viewerId)) {
+    if (!conv || !isParticipant(conv, req.viewer)) {
       return res.status(403).json({ success: false, error: "Not authorized." });
     }
 

@@ -1887,6 +1887,15 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
       </div>
       <div class="co-body">
         <div class="co-options">
+  <button class="co-opt" onclick="startOwnerChat(event)">
+    <div class="co-opt-icon co-icon-chat"><i class="fa-solid fa-comment-dots"></i></div>
+    <div class="co-opt-text">
+      <div class="co-opt-title">Chat with Owner</div>
+      <div class="co-opt-sub">Message the owner directly</div>
+    </div>
+    <i class="fa-solid fa-chevron-right co-opt-arrow"></i>
+  </button>
+
   <button class="co-opt" onclick="selectAction('request_callback')">
     <div class="co-opt-icon co-icon-call"><i class="fa-solid fa-phone"></i></div>
     <div class="co-opt-text">
@@ -2255,6 +2264,44 @@ function closeContactModal() {
 
 function coOverlayClick(e) {
   if (e.target.id === 'coOverlay') closeContactModal();
+}
+
+/* "Chat with Owner" — unlike the other 4 options, this skips the
+   details form entirely: no request/accept step, no moveIn/budget
+   fields. It finds-or-creates the PG_INQUIRY conversation for this
+   student + this listing (POST /messages/pg/start, Phase 2) and
+   redirects straight into the chat thread. */
+let coChatStarting = false;
+async function startOwnerChat(evt) {
+  if (coChatStarting) return;
+  coChatStarting = true;
+
+  const btn = evt.currentTarget;
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+
+  try {
+    const res = await fetch('/messages/pg/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId: HOSTEL_DATA.id }),
+    });
+    const data = await res.json();
+
+    if (data.success && data.conversationId) {
+      window.location.href = '/messages/' + data.conversationId;
+      return; // leaving the page — no need to restore the button
+    }
+    btn.style.opacity = '';
+    btn.style.pointerEvents = '';
+    coChatStarting = false;
+    alert(data.error || "Couldn't start the chat. Please try again.");
+  } catch (err) {
+    btn.style.opacity = '';
+    btn.style.pointerEvents = '';
+    coChatStarting = false;
+    alert("Couldn't start the chat. Please check your connection and try again.");
+  }
 }
 
 function showCoStep(step) {

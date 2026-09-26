@@ -17,10 +17,24 @@ const messageSchema = new mongoose.Schema({
     index: true,
   },
 
+  // CHANGED (PG/Hostel chat) — sender can now be a Student or an
+  // Owner, so it's a dynamic ref keyed off senderModel below instead
+  // of hardcoded to "Student".
   sender: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Student",
+    refPath: "senderModel",
     required: true,
+  },
+
+  // NEW — defaults to "Student" so every existing Flatmate message
+  // (saved before this field existed, so it's simply absent on those
+  // documents) is still read correctly: application code treats a
+  // missing senderModel the same as "Student". No data migration
+  // needed for existing messages.
+  senderModel: {
+    type: String,
+    enum: ["Student", "Owner"],
+    default: "Student",
   },
 
   text: {
