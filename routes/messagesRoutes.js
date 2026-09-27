@@ -165,6 +165,38 @@ const LISTER_SUGGESTIONS = [
   "Would you like to do a video call first before visiting in person?",
 ];
 
+// Phase 8 — same idea as SEEKER_SUGGESTIONS/LISTER_SUGGESTIONS above,
+// for PG/Hostel (Student <-> Owner) chats, which never had any opening
+// suggestions before now. "Tenant" = the student enquiring about a
+// listing, "Owner" = the listing owner replying — there's no
+// FlatmateConnection here to derive "which side asked", so which set
+// to show is decided by viewer.kind instead (see the GET
+// /:conversationId route below).
+const PG_TENANT_SUGGESTIONS = [
+  "Hi! Is this PG/Hostel currently accepting new tenants?",
+  "What's included in the rent (wifi, food, maintenance, etc.)?",
+  "Is the deposit refundable, and how much notice is needed to move out?",
+  "Could you share more photos of the rooms and common areas?",
+  "How far is it from the nearest college/station?",
+  "Is there a curfew or any specific hostel rules I should know?",
+  "Can I schedule a visit to see the place in person?",
+  "Do you offer single/double sharing rooms, and what's the price difference?",
+  "Is food included, and could you share a sample menu?",
+  "What's the earliest move-in date available?",
+];
+const PG_OWNER_SUGGESTIONS = [
+  "Hi! Thanks for reaching out — yes, we do have rooms available.",
+  "When are you looking to move in?",
+  "Let me know your budget and preferred sharing type (single/double/triple).",
+  "I can share more photos or arrange a visit — what works for you?",
+  "Are you a student or a working professional?",
+  "Do you have any specific requirements I should know about?",
+  "I'll need a valid ID and one month's advance to confirm the booking.",
+  "Feel free to ask me anything about the PG or the area!",
+  "Would a video call work before an in-person visit?",
+  "Let me know if you'd like more details about the amenities.",
+];
+
 /* ─────────────────────────────────────────────
    INBOX  →  GET /messages
 ───────────────────────────────────────────── */
@@ -645,6 +677,9 @@ router.get("/:conversationId", resolveViewer, async (req, res) => {
     let suggestions = [];
     if (connection && conv.status === "active" && messages.length <= 2) {
       suggestions = connection.requester.toString() === viewerId ? SEEKER_SUGGESTIONS : LISTER_SUGGESTIONS;
+    } else if (conv.type === "PG_INQUIRY" && conv.status === "active" && messages.length <= 2) {
+      // Phase 8 — PG/Hostel's equivalent of the Flatmate branch above.
+      suggestions = viewer.kind === "Owner" ? PG_OWNER_SUGGESTIONS : PG_TENANT_SUGGESTIONS;
     }
 
     res.render("messages/conversation", {
