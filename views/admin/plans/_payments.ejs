@@ -1,0 +1,100 @@
+<%# Body of /admin/payments. Every value is printed escaped. %>
+<%- include('_style') %>
+<%
+  const inr = n => '₹' + new Intl.NumberFormat('en-IN').format(Number(n) || 0);
+  const when = d => d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '—';
+  const BADGE = { paid: 'badge-green', created: 'badge-gray', failed: 'badge-red', refunded: 'badge-amber' };
+  const LABEL = { paid: 'Paid', created: 'Not paid', failed: 'Failed', refunded: 'Refunded' };
+  const VIA = { checkout: 'Owner\'s browser', webhook: 'Razorpay webhook', admin: 'Marked by admin' };
+  const q = p => '?page=' + p + (status ? '&status=' + status : '');
+%>
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Plan payments</h1>
+    <p><%= paidCount %><%= (typeof paidCapped !== 'undefined' && paidCapped) ? '+' : '' %> paid · <%= inr(paidSum) %><%= (typeof paidCapped !== 'undefined' && paidCapped) ? '+' : '' %> received online from owners. Refunds are made in your Razorpay dashboard.</p>
+  </div>
+</div>
+
+<% if (notice) { %>
+  <div class="pl-note <%= noticeIsError ? 'err' : 'ok' %>" role="status"><i class="fa-solid <%= noticeIsError ? 'fa-circle-xmark' : 'fa-circle-check' %>"></i><div><%= notice %></div></div>
+<% } %>
+
+<div class="filter-bar">
+  <form method="GET" action="/admin/payments" style="display:contents">
+    <select name="status" class="filter-select" onchange="this.form.submit()" aria-label="Filter by status">
+      <option value="" <%= !status ? 'selected' : '' %>>All payments</option>
+      <option value="paid" <%= status === 'paid' ? 'selected' : '' %>>Paid</option>
+      <option value="created" <%= status === 'created' ? 'selected' : '' %>>Not paid</option>
+      <option value="failed" <%= status === 'failed' ? 'selected' : '' %>>Failed</option>
+      <option value="refunded" <%= status === 'refunded' ? 'selected' : '' %>>Refunded</option>
+    </select>
+  </form>
+</div>
+
+<div class="card">
+  <% if (!rows.length) { %>
+    <div class="pl-empty"><h3>No payments here yet</h3><p>Online plan payments from owners will appear in this list.</p></div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Date</th><th>Owner</th><th>Plan</th><th>Amount</th><th>Status</th><th>Razorpay</th><th>Action</th></tr></thead>
+      <tbody>
+        <% rows.forEach(function (r) { const stuck = !r.subscription && r.status !== 'refunded'; %>
+        <tr>
+          <td><div class="cell-sub"><%= when(r.paidAt || r.createdAt) %></div><div class="cell-sub"><%= r.receipt %></div></td>
+          <td>
+            <% if (r.owner && r.owner._id) { %>
+              <div class="cell-name"><a href="/admin/owners/<%= r.owner._id %>" style="color:inherit"><%= r.owner.name %></a></div>
+              <div class="cell-sub"><%= r.owner.email %></div>
+            <% } else { %><div class="cell-sub">Owner deleted</div><% } %>
+          </td>
+          <td><div class="cell-name"><%= r.snapshot && r.snapshot.name %></div><div class="cell-sub"><%= r.snapshot && r.snapshot.duration ? r.snapshot.duration.value + ' ' + r.snapshot.duration.unit + (r.snapshot.duration.value === 1 ? '' : 's') : '' %></div></td>
+          <td><span class="pl-price"><%= inr(r.amount) %></span></td>
+          <td>
+            <span class="badge <%= BADGE[r.status] || 'badge-gray' %>"><%= LABEL[r.status] || r.status %></span>
+            <% if (r.status === 'paid' && !r.subscription) { %><div class="cell-sub" style="color:#92400e">Plan not active yet</div><% } %>
+            <% if (r.via) { %><div class="cell-sub"><%= VIA[r.via] || r.via %><%= r.method ? ' · ' + r.method : '' %></div><% } %>
+            <% if (r.status === 'failed' && r.failureReason) { %><div class="cell-sub"><%= r.failureReason %></div><% } %>
+          </td>
+          <td><div class="cell-sub"><%= r.razorpayOrderId %></div><div class="cell-sub"><%= r.razorpayPaymentId || '' %></div></td>
+          <td>
+            <% if (stuck) { %>
+              <form method="POST" action="/admin/payments/<%= r._id %>/mark-paid" class="pl-inline" data-pl-mark="<%= r.owner && r.owner.name ? r.owner.name : 'this owner' %>" data-pl-amt="<%= inr(r.amount) %>">
+                <input class="form-input" name="razorpayPaymentId" placeholder="pay_…" aria-label="Razorpay payment ID" style="width:150px;padding:6px 9px;font-size:0.76rem" required pattern="pay_[A-Za-z0-9]{6,40}">
+                <button type="submit" class="btn btn-outline btn-sm">Mark as paid</button>
+              </form>
+            <% } else { %><span class="cell-sub">—</span><% } %>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% if (totalPages > 1) { %>
+  <div class="card-footer">
+    <div class="pagination">
+      <a href="<%= q(Math.max(1, page - 1)) %>" class="page-btn <%= page === 1 ? 'disabled' : '' %>" aria-label="Previous page"><i class="fa-solid fa-chevron-left"></i></a>
+      <span class="page-btn active"><%= page %> / <%= totalPages %></span>
+      <a href="<%= q(Math.min(totalPages, page + 1)) %>" class="page-btn <%= page === totalPages ? 'disabled' : '' %>" aria-label="Next page"><i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+  </div>
+  <% } %>
+  <% } %>
+</div>
+
+<p class="pl-help" style="margin-top:12px"><b>Mark as paid</b> is a rescue button. Use it only when you can see the payment as captured in your Razorpay dashboard but the owner's plan did not activate. Paste the Razorpay payment ID; the owner's plan starts immediately.</p>
+
+<script>
+(function () {
+  document.querySelectorAll('[data-pl-mark]').forEach(function (f) {
+    f.addEventListener('submit', function (e) {
+      if (f.dataset.ok === '1') return;
+      e.preventDefault();
+      openConfirm('Mark as paid', 'Activate the plan for ' + f.dataset.plMark + ' (' + f.dataset.plAmt + ')? Do this only if Razorpay shows this payment as captured.', function () {
+        f.dataset.ok = '1'; f.submit();
+      }, 'btn-primary');
+    });
+  });
+})();
+</script>

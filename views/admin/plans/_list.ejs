@@ -1,0 +1,203 @@
+<%#
+  Subscriptions Phase 1 — body of /admin/plans.
+  Every value is printed escaped.
+%>
+<%- include('_style') %>
+<%
+  const inr = n => '₹' + new Intl.NumberFormat('en-IN').format(Number(n) || 0);
+  const dur = d => d ? d.value + ' ' + d.unit + (d.value === 1 ? '' : 's') : '—';
+  const day = d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+  const lim = v => (v === null || v === undefined) ? 'Unlimited' : v;
+  const featCount = p => FEATURES.filter(f => p.features && p.features[f.key]).length;
+%>
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Plans</h1>
+    <p><%= plans.length %> plan<%= plans.length !== 1 ? 's' : '' %> · subscription plans for PG owners. Tenants and flatmate users are never charged.</p>
+  </div>
+  <a href="/admin/plans/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New plan</a>
+</div>
+
+<% if (notice) { %>
+  <div class="pl-note <%= noticeIsError ? 'err' : 'ok' %>" role="status"><i class="fa-solid <%= noticeIsError ? 'fa-circle-xmark' : 'fa-circle-check' %>"></i><div><%= notice %></div></div>
+<% } %>
+<% if (plans.length && !hasTrial) { %>
+  <div class="pl-note warn"><i class="fa-solid fa-triangle-exclamation"></i><div><b>No Trial plan yet.</b> Create a plan with the role "Trial plan" — its duration is the free trial length (you chose 30 days).</div></div>
+<% } %>
+<% if (plans.length && !hasDefault) { %>
+  <div class="pl-note warn"><i class="fa-solid fa-triangle-exclamation"></i><div><b>No Default plan yet.</b> Create a plan with the role "Default plan" — the free plan owners fall back to when a paid plan expires.</div></div>
+<% } %>
+
+<div class="card">
+  <% if (!plans.length) { %>
+    <div class="pl-empty">
+      <h3>No plans yet</h3>
+      <p>Create your first plan. Owners will not see anything until the owner dashboard update (Phase 2).</p>
+      <p style="margin-top:14px"><a href="/admin/plans/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New plan</a></p>
+    </div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Order</th><th>Plan</th><th>Price</th><th>Duration</th><th>Limits</th><th>Features</th><th>Status</th><th>Owners</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        <% plans.forEach(function (p) {
+             const offerOver = p.offerEndsAt && new Date(p.offerEndsAt) < now; %>
+        <tr>
+          <td><div class="cell-sub"><%= p.sortOrder %></div></td>
+          <td>
+            <div class="cell-name"><%= p.name %> <% if (p.badge) { %><span class="badge badge-purple"><%= p.badge %></span><% } %></div>
+            <div class="cell-sub"><%= p.description || '—' %></div>
+          </td>
+          <td>
+            <% if (p.role !== 'normal' || p.price === 0) { %><span class="pl-price">Free</span>
+            <% } else { %><span class="pl-price"><%= inr(p.price) %></span><% if (p.strikePrice) { %><span class="pl-strike"><%= inr(p.strikePrice) %></span><% } %><% } %>
+          </td>
+          <td><div class="cell-sub"><%= p.role === 'default' ? 'No expiry' : dur(p.duration) %></div></td>
+          <td>
+            <div class="pl-lim">
+              <% LIMITS.forEach(function (l) { %><div><b><%= lim(p.limits && p.limits[l.key]) %></b> <%= l.label.toLowerCase() %></div><% }) %>
+            </div>
+          </td>
+          <td><div class="cell-sub"><%= featCount(p) %> of <%= FEATURES.length %> on</div></td>
+          <td>
+            <div class="pl-tags">
+              <% if (p.role === 'trial') { %><span class="badge badge-blue">Trial plan</span>
+              <% } else if (p.role === 'default') { %><span class="badge badge-teal">Default plan</span>
+              <% } else if (p.isVisible) { %><span class="badge badge-green"><span class="dot"></span>Visible</span>
+              <% } else { %><span class="badge badge-gray">Hidden</span><% } %>
+              <% if (p.role === 'normal' && p.offerEndsAt) { %>
+                <span class="badge <%= offerOver ? 'badge-red' : 'badge-amber' %>"><%= offerOver ? 'Offer ended' : 'Until' %> <%= day(p.offerEndsAt) %></span>
+              <% } %>
+            </div>
+          </td>
+          <td><div class="cell-sub"><%= p.subscribers < 0 ? '?' : p.subscribers %></div></td>
+          <td>
+            <div class="pl-actions">
+              <a href="/admin/plans/<%= p._id %>/edit" class="icon-btn" title="Edit" aria-label="Edit <%= p.name %>"><i class="fa-solid fa-pen"></i></a>
+              <form method="POST" action="/admin/plans/<%= p._id %>/duplicate"><button type="submit" class="icon-btn" title="Duplicate" aria-label="Duplicate <%= p.name %>"><i class="fa-solid fa-copy"></i></button></form>
+              <% if (p.role === 'normal') { %>
+                <button type="button" class="icon-btn" title="<%= p.isVisible ? 'Hide from owners' : 'Show to owners' %>" aria-label="<%= p.isVisible ? 'Hide' : 'Show' %> <%= p.name %>"
+                  data-pl-vis="<%= p._id %>" data-pl-to="<%= p.isVisible ? '0' : '1' %>"><i class="fa-solid <%= p.isVisible ? 'fa-eye-slash' : 'fa-eye' %>"></i></button>
+              <% } %>
+              <button type="button" class="icon-btn danger" title="Remove" aria-label="Remove <%= p.name %>"
+                data-pl-del="<%= p._id %>" data-pl-name="<%= p.name %>" data-pl-subs="<%= p.subscribers %>"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><div class="card-title"><i class="fa-solid fa-sliders"></i> Settings</div></div>
+  <div class="card-body">
+    <form method="POST" action="/admin/plans/settings">
+      <div class="pl-inline">
+        <div class="form-group" style="max-width:180px">
+          <label class="form-label" for="plGrace">Grace days after expiry</label>
+          <input class="form-input" id="plGrace" type="number" name="graceDays" min="0" max="60" step="1" value="<%= settings.graceDays %>" required>
+        </div>
+      </div>
+      <p class="pl-help" style="margin:8px 0 14px">How many days an owner keeps their plan after it expires, before moving to the Default plan.</p>
+      <label class="pl-check" style="max-width:640px">
+        <input type="checkbox" name="trialsEnabled" <%= settings.trialsEnabled ? 'checked' : '' %>>
+        <div><b>Start free trials</b><span>When on, every owner who has never had a plan gets your Trial plan the next time they open their dashboard, and their trial clock starts then. Leave off until you are ready to launch. Turning it off later does not end trials already started.</span></div>
+      </label>
+      <% if (settings.trialsEnabled && !hasTrial) { %>
+        <p class="pl-help" style="color:#92400e">Trials are on, but there is no Trial plan, so no trial can start.</p>
+      <% } %>
+      <label class="pl-check" style="max-width:640px">
+        <input type="checkbox" name="remindersEnabled" <%= settings.remindersEnabled ? 'checked' : '' %>>
+        <div><b>Remind owners before a plan ends</b><span>Owners see a banner in their dashboard in the last 7 days of a plan or trial and after it ends, and get an email 7, 3 and 1 days before and on the day it ends.</span></div>
+      </label>
+      <label class="pl-check" style="max-width:640px">
+        <input type="checkbox" name="enforcementEnabled" <%= settings.enforcementEnabled ? 'checked' : '' %>>
+        <div><b>Enforce plan limits</b><span>When on, an owner cannot add properties, tenants or listings beyond their plan's limits, and cannot open features their plan does not include. Nothing is ever deleted: they keep everything they have. Takes up to a minute to apply. Switch off at any time to unlock everyone.</span></div>
+      </label>
+      <% if (settings.enforcementEnabled && !hasDefault) { %>
+        <p class="pl-help" style="color:#92400e">Limits are on, but there is no Default plan. Owners without a current plan are not limited until you create one.</p>
+      <% } %>
+      <button type="submit" class="btn btn-primary" style="margin-top:6px">Save settings</button>
+    </form>
+  </div>
+</div>
+
+<% if (archived.length) { %>
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><div class="card-title"><i class="fa-solid fa-box-archive"></i> Archived plans</div></div>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Plan</th><th>Price</th><th>Duration</th><th>Owners</th><th>Archived</th><th>Actions</th></tr></thead>
+      <tbody>
+        <% archived.forEach(function (p) { %>
+        <tr>
+          <td><div class="cell-name"><%= p.name %></div><div class="cell-sub"><%= p.description || '—' %></div></td>
+          <td><span class="pl-price"><%= p.price === 0 ? 'Free' : inr(p.price) %></span></td>
+          <td><div class="cell-sub"><%= dur(p.duration) %></div></td>
+          <td><div class="cell-sub"><%= p.subscribers < 0 ? '?' : p.subscribers %></div></td>
+          <td><div class="cell-sub"><%= day(p.archivedAt) %></div></td>
+          <td>
+            <div class="pl-actions">
+              <button type="button" class="btn btn-outline btn-sm" data-pl-restore="<%= p._id %>">Restore</button>
+              <% if (p.subscribers === 0) { %>
+                <button type="button" class="icon-btn danger" title="Delete" aria-label="Delete <%= p.name %>"
+                  data-pl-del="<%= p._id %>" data-pl-name="<%= p.name %>" data-pl-subs="0"><i class="fa-solid fa-trash"></i></button>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer"><span class="pl-help">Archived plans are hidden and cannot be bought. Owners who already bought one keep it until it expires.</span></div>
+</div>
+<% } %>
+
+<script>
+(function () {
+  async function send(method, url, body) {
+    try {
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+      // Session expired: the server sends us to the login page.
+      if (res.redirected) { window.location.href = '/admin/login'; return null; }
+      const data = await res.json();
+      if (!data.success) { showToast(data.error || 'Failed', 'error'); return null; }
+      return data;
+    } catch (e) { showToast('Network error', 'error'); return null; }
+  }
+  document.querySelectorAll('[data-pl-vis]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      const ok = await send('PATCH', '/admin/plans/' + btn.dataset.plVis + '/visibility', { isVisible: btn.dataset.plTo === '1' });
+      if (ok) window.location.href = '/admin/plans?ok=saved';
+    });
+  });
+  document.querySelectorAll('[data-pl-restore]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      const ok = await send('PATCH', '/admin/plans/' + btn.dataset.plRestore + '/restore');
+      if (ok) window.location.href = '/admin/plans?ok=restored';
+    });
+  });
+  document.querySelectorAll('[data-pl-del]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const bought = btn.dataset.plSubs !== '0';
+      openConfirm(
+        'Remove plan',
+        bought
+          ? 'Owners have bought "' + btn.dataset.plName + '". It will be archived: hidden and not buyable, but those owners keep it until it expires.'
+          : 'Delete "' + btn.dataset.plName + '"? Nobody has bought it, so it will be deleted permanently.',
+        async function () {
+          const data = await send('DELETE', '/admin/plans/' + btn.dataset.plDel);
+          if (data) window.location.href = '/admin/plans?ok=' + (data.archived ? 'archived' : 'deleted');
+        }
+      );
+    });
+  });
+})();
+</script>

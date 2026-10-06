@@ -1,0 +1,45 @@
+<style>
+  /* Subscriptions Phase 1 — only used by the admin Plans pages (.pl-*) */
+  .pl-note { display:flex; gap:10px; align-items:flex-start; padding:12px 16px; border-radius:var(--radius-md); font-size:0.82rem; font-weight:500; margin-bottom:14px; border:1.5px solid var(--border); background:var(--surface); color:var(--ink); }
+  .pl-note i { margin-top:2px; }
+  .pl-note.ok   { background:var(--g-light); border-color:#bfe9cf; color:var(--g-dark); }
+  .pl-note.warn { background:var(--amber-l); border-color:#fde3a7; color:#92400e; }
+  .pl-note.err  { background:var(--red-l);   border-color:#fbcaca; color:#991b1b; }
+  .pl-note ul { margin:4px 0 0 18px; padding:0; }
+  .pl-price { font-weight:800; color:var(--ink); white-space:nowrap; }
+  .pl-strike { color:var(--muted-l); text-decoration:line-through; font-size:0.74rem; margin-left:4px; }
+  .pl-tags { display:flex; flex-wrap:wrap; gap:4px; }
+  .pl-lim { font-size:0.76rem; color:var(--muted); line-height:1.55; white-space:nowrap; }
+  .pl-lim b { color:var(--ink); font-weight:700; }
+  .pl-actions { display:flex; gap:6px; align-items:center; }
+  .pl-actions form { margin:0; }
+  .pl-empty { text-align:center; padding:48px 20px; color:var(--muted); }
+  .pl-empty h3 { font-size:1rem; color:var(--ink); margin:0 0 6px; }
+  .pl-inline { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .pl-inline .form-group { margin-bottom:0; }
+  .pl-help { font-size:0.74rem; color:var(--muted); line-height:1.5; }
+
+  .pl-form [hidden] { display:none !important; }
+  /* Phase 2 — owner detail page */
+  .pl-grid2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
+  .pl-grid2 .card { margin:0; }
+  .pl-kv { display:grid; grid-template-columns:140px minmax(0,1fr); gap:8px 14px; font-size:0.84rem; margin:0; }
+  .pl-kv dt { color:var(--muted); font-weight:600; }
+  .pl-kv dd { margin:0; color:var(--ink); font-weight:600; overflow-wrap:anywhere; }
+  .pl-act { border-top:1px solid var(--border); padding-top:14px; margin-top:14px; }
+  .pl-act h4 { font-size:0.8rem; font-weight:800; color:var(--ink); margin:0 0 8px; }
+  @media (max-width: 900px) { .pl-grid2 { grid-template-columns:minmax(0,1fr); } }
+  .pl-form { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
+  .pl-form .card { margin:0; }
+  .pl-span { grid-column:1 / -1; }
+  .pl-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+  .pl-row3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:end; }
+  .pl-check { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); margin-bottom:8px; cursor:pointer; background:var(--surface); }
+  .pl-check:hover { border-color:var(--g); }
+  .pl-check input { margin-top:3px; width:16px; height:16px; accent-color:var(--g); flex-shrink:0; }
+  .pl-check b { display:block; font-size:0.84rem; color:var(--ink); font-weight:600; }
+  .pl-check span { font-size:0.74rem; color:var(--muted); }
+  .pl-bar { display:flex; gap:10px; justify-content:flex-end; align-items:center; }
+  textarea.form-input { min-height:120px; resize:vertical; line-height:1.5; }
+  @media (max-width: 900px) { .pl-form, .pl-row, .pl-row3 { grid-template-columns:minmax(0,1fr); } }
+</style>

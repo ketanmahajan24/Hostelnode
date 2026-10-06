@@ -90,6 +90,20 @@
         <i class="fa-solid fa-inbox"></i> Enquiries
       </a>
 
+      <% if (process.env.HN_BILLING !== '0') { %>
+      <div class="nav-section-label">Subscriptions</div>
+
+      <a href="/admin/subscriptions" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'subscriptions' ? 'active' : '' %>">
+        <i class="fa-solid fa-chart-pie"></i> Overview
+      </a>
+      <a href="/admin/plans" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'plans' ? 'active' : '' %>">
+        <i class="fa-solid fa-tags"></i> Plans
+      </a>
+      <a href="/admin/payments" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'payments' ? 'active' : '' %>">
+        <i class="fa-solid fa-indian-rupee-sign"></i> Plan payments
+      </a>
+      <% } %>
+
       <div class="nav-section-label">Insights</div>
 
       <a href="/admin/analytics" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'analytics' ? 'active' : '' %>">

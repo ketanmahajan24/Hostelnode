@@ -111,7 +111,12 @@ app.engine("ejs", ejsMate);
 app.post("/track-location", trackGpsLocation);
 
 app.use("/webhook",     waBot);
+app.use(require("./Middlewares/planGate"));   // Subscriptions Phase 4: plan limits (only when switched on in /admin/plans)
 app.use("/user",        userRouter);
+app.use("/admin",       require("./routes/adminPlansRoutes"));   // Subscriptions Phase 1: /admin/plans
+app.use("/admin",       require("./routes/adminSubscriptionRoutes"));   // Subscriptions Phase 2: /admin/owners/:id + plan actions
+app.use("/admin",       require("./routes/adminPaymentsRoutes"));   // Subscriptions Phase 3: /admin/payments
+app.use("/admin",       require("./routes/adminBusinessRoutes"));   // Subscriptions Phase 5: /admin/subscriptions (read-only business view)
 app.use("/admin",       adminRouter);
 app.use("/student",     studentRouter);
 app.use("/findHostels", findHostelsRouter);

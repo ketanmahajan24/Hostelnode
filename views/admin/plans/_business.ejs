@@ -1,0 +1,154 @@
+<%# Body of /admin/subscriptions. Read-only. Every value is printed escaped. %>
+<%- include('_style') %>
+<%
+  const inr = n => '₹' + new Intl.NumberFormat('en-IN').format(Number(n) || 0);
+  const day = d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+  const c = o.counts, inc = o.income;
+%>
+<style>
+  .pl-two { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; margin-top:16px; }
+  .pl-two .card { margin:0; }
+  .pl-num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .admin-table th.pl-num { text-align:right; }
+  @media (max-width: 1000px) { .pl-two { grid-template-columns:minmax(0,1fr); } }
+</style>
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Subscriptions</h1>
+    <p>Who is on which plan and what has been paid online. Figures are live and match the Plan payments list.</p>
+  </div>
+  <a href="/admin/subscriptions/payments.csv" class="btn btn-outline"><i class="fa-solid fa-file-arrow-down"></i> Download payments (CSV)</a>
+</div>
+
+<% if (o.capped) { %>
+  <div class="pl-note warn"><i class="fa-solid fa-triangle-exclamation"></i><div>There are more records than this page reads at once, so some totals may be low. Tell your developer.</div></div>
+<% } %>
+
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Received in <%= o.monthLabels.thisMonth %></div>
+      <div class="stat-value"><%= inr(inc.thisMonth) %></div>
+      <div class="stat-sub"><%= o.monthLabels.lastMonth %>: <%= inr(inc.lastMonth) %></div>
+    </div>
+  </div>
+  <div class="stat-card teal">
+    <div class="stat-icon teal"><i class="fa-solid fa-sack-dollar"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Received in total</div>
+      <div class="stat-value"><%= inr(inc.all) %></div>
+      <div class="stat-sub"><%= inc.count %> payment<%= inc.count === 1 ? '' : 's' %><% if (inc.refundedCount) { %> · <%= inr(inc.refunded) %> refunded (not counted)<% } %></div>
+    </div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><i class="fa-solid fa-crown"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Owners on a plan</div>
+      <div class="stat-value"><%= c.paying %></div>
+      <div class="stat-sub">of <%= o.totalOwners %> owner<%= o.totalOwners === 1 ? '' : 's' %> · paid online or given by you</div>
+    </div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon purple"><i class="fa-solid fa-hourglass-half"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">On free trial</div>
+      <div class="stat-value"><%= c.trial %></div>
+      <div class="stat-sub"><%= c.free %> on the free plan or no plan</div>
+    </div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><i class="fa-solid fa-bell"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Ending in <%= o.soonDays %> days</div>
+      <div class="stat-value"><%= o.soonTotal %></div>
+      <div class="stat-sub"><%= c.grace %> expired, in grace period</div>
+    </div>
+  </div>
+</div>
+
+<div class="pl-two">
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-tags"></i> By plan</div></div>
+    <% if (!o.plans.length) { %>
+      <div class="pl-empty" style="padding:28px 20px">No plan has subscribers or payments yet.</div>
+    <% } else { %>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Plan</th><th class="pl-num">Owners now</th><th class="pl-num">Payments</th><th class="pl-num">Received</th></tr></thead>
+        <tbody>
+          <% o.plans.forEach(function (p) { %>
+            <tr><td><div class="cell-name"><%= p.name %></div></td><td class="pl-num"><%= p.subscribers %></td><td class="pl-num"><%= p.payments %></td><td class="pl-num"><span class="pl-price"><%= inr(p.income) %></span></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer"><span class="pl-help">"Owners now" counts owners whose current plan has not expired, whether they paid online or you gave it to them. Trials are counted separately.</span></div>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-calendar"></i> Received by month</div></div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Month</th><th class="pl-num">Payments</th><th class="pl-num">Received</th></tr></thead>
+        <tbody>
+          <% o.months.slice().reverse().forEach(function (m) { %>
+            <tr><td><div class="cell-name"><%= m.label %></div></td><td class="pl-num"><%= m.payments %></td><td class="pl-num"><span class="pl-price"><%= inr(m.income) %></span></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer"><span class="pl-help">Last 6 months, by the India date of each payment. Refunded payments are not counted.</span></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><div class="card-title"><i class="fa-solid fa-bell"></i> Ending in the next <%= o.soonDays %> days</div><span class="badge badge-amber"><%= o.soonTotal %></span></div>
+  <% if (!o.soon.length) { %>
+    <div class="pl-empty" style="padding:28px 20px">No plan or trial ends in the next <%= o.soonDays %> days.</div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Owner</th><th>Plan</th><th>Ends</th><th>Days left</th><th></th></tr></thead>
+      <tbody>
+        <% o.soon.forEach(function (x) { %>
+        <tr>
+          <td><div class="cell-name"><%= x.who ? x.who.name : 'Owner deleted' %></div><div class="cell-sub"><%= x.who ? [x.who.phone, x.who.email].filter(Boolean).join(' · ') : '' %></div></td>
+          <td><%= x.name %> <% if (x.isTrial) { %><span class="badge badge-blue">Trial</span><% } %></td>
+          <td><div class="cell-sub"><%= day(x.expiresAt) %></div></td>
+          <td><span class="badge <%= x.daysLeft <= 3 ? 'badge-red' : 'badge-amber' %>"><%= x.daysLeft === 0 ? 'Today' : x.daysLeft + (x.daysLeft === 1 ? ' day' : ' days') %></span></td>
+          <td style="text-align:right"><% if (x.who) { %><a href="/admin/owners/<%= x.who._id %>" class="btn btn-ghost btn-sm">Open owner</a><% } %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% if (o.soonTotal > o.soon.length) { %><div class="card-footer"><span class="pl-help">Showing the first <%= o.soon.length %> of <%= o.soonTotal %>.</span></div><% } %>
+  <% } %>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> Expired, in grace period (<%= o.graceDays %> day<%= o.graceDays === 1 ? '' : 's' %>)</div><span class="badge badge-red"><%= o.graceTotal %></span></div>
+  <% if (!o.inGrace.length) { %>
+    <div class="pl-empty" style="padding:28px 20px">Nobody is in the grace period.</div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Owner</th><th>Plan</th><th>Expired</th><th>Moves to the Default plan on</th><th></th></tr></thead>
+      <tbody>
+        <% o.inGrace.forEach(function (x) { %>
+        <tr>
+          <td><div class="cell-name"><%= x.who ? x.who.name : 'Owner deleted' %></div><div class="cell-sub"><%= x.who ? [x.who.phone, x.who.email].filter(Boolean).join(' · ') : '' %></div></td>
+          <td><%= x.name %> <% if (x.isTrial) { %><span class="badge badge-blue">Trial</span><% } %></td>
+          <td><div class="cell-sub"><%= day(x.expiresAt) %></div></td>
+          <td><div class="cell-sub"><%= day(x.graceEndsAt) %></div></td>
+          <td style="text-align:right"><% if (x.who) { %><a href="/admin/owners/<%= x.who._id %>" class="btn btn-ghost btn-sm">Open owner</a><% } %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>

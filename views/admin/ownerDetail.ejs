@@ -1,0 +1,3 @@
+<%# Owner page in admin. Body is plans/_ownerDetail.ejs (normal, escaped EJS).
+    Subscriptions Phase 2 — this file was missing from the repo, so /admin/owners/:id used to error. %>
+<%- include('layout', { pageTitle: 'Owner', activePage: 'owners', body: include('plans/_ownerDetail') }) %>

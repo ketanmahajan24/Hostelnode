@@ -1,0 +1,164 @@
+<%#
+  Subscriptions Phase 1 — body of the new / edit plan page.
+  Every value is printed escaped.
+%>
+<%- include('_style') %>
+<% const isArchived = !!(plan && plan.archivedAt); %>
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1><%= plan ? 'Edit plan' : 'New plan' %></h1>
+    <p><%= plan ? 'Changes apply to new purchases only. Owners who already bought this plan keep what they paid for.' : 'Fill in the plan. You can keep it hidden until you are ready.' %></p>
+  </div>
+  <a href="/admin/plans" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to plans</a>
+</div>
+
+<% if (notice) { %>
+  <div class="pl-note ok" role="status"><i class="fa-solid fa-circle-check"></i><div><%= notice %></div></div>
+<% } %>
+<% if (isArchived) { %>
+  <div class="pl-note warn"><i class="fa-solid fa-box-archive"></i><div>This plan is archived. It stays hidden until you restore it from the Plans page.</div></div>
+<% } %>
+<% if (errors.length) { %>
+  <div class="pl-note err" role="alert"><i class="fa-solid fa-circle-xmark"></i>
+    <div><b>Please fix <%= errors.length === 1 ? 'this' : 'these' %> before saving:</b>
+      <ul><% errors.forEach(function (e) { %><li><%= e %></li><% }) %></ul>
+    </div>
+  </div>
+<% } %>
+
+<form method="POST" action="<%= plan ? '/admin/plans/' + plan._id : '/admin/plans' %>" class="pl-form" novalidate>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-tag"></i> Basics</div></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label" for="plName">Plan name</label>
+        <input class="form-input" id="plName" name="name" maxlength="60" value="<%= form.name %>" placeholder="Pro Monthly" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="plDesc">Short description</label>
+        <input class="form-input" id="plDesc" name="description" maxlength="200" value="<%= form.description %>" placeholder="For single-PG owners">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="plRole">Role</label>
+        <select class="form-input form-select" id="plRole" name="role">
+          <% ROLES.forEach(function (r) { %><option value="<%= r.key %>" <%= form.role === r.key ? 'selected' : '' %>><%= r.label %></option><% }) %>
+        </select>
+        <span class="pl-help">Trial and Default plans are free and given automatically; owners never buy them. Only one of each can exist.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-indian-rupee-sign"></i> Price and duration</div></div>
+    <div class="card-body">
+      <div class="pl-row" data-pl-paid>
+        <div class="form-group">
+          <label class="form-label" for="plPrice">Price (₹)</label>
+          <input class="form-input" id="plPrice" name="price" type="number" min="0" step="1" value="<%= form.price %>" placeholder="399">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="plStrike">Strike-through price (₹, optional)</label>
+          <input class="form-input" id="plStrike" name="strikePrice" type="number" min="0" step="1" value="<%= form.strikePrice %>" placeholder="599">
+        </div>
+      </div>
+      <div class="pl-row">
+        <div class="form-group">
+          <label class="form-label" for="plDurV">Duration</label>
+          <input class="form-input" id="plDurV" name="durationValue" type="number" min="1" step="1" value="<%= form.durationValue %>" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="plDurU">Unit</label>
+          <select class="form-input form-select" id="plDurU" name="durationUnit">
+            <% DURATION_UNITS.forEach(function (u) { %><option value="<%= u.key %>" <%= form.durationUnit === u.key ? 'selected' : '' %>><%= u.label %></option><% }) %>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" data-pl-paid>
+        <label class="form-label" for="plOffer">Offer ends on (optional)</label>
+        <input class="form-input" id="plOffer" name="offerEndsAt" type="date" value="<%= form.offerEndsAt %>">
+        <span class="pl-help">After this date the plan can no longer be bought. Owners who bought it are not affected.</span>
+      </div>
+      <p class="pl-help" data-pl-free hidden>Trial and Default plans are always free. For a Trial plan the duration is the trial length; a Default plan never expires, so its duration is not used.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-gauge"></i> Limits</div></div>
+    <div class="card-body">
+      <div class="pl-row3">
+        <% LIMITS.forEach(function (l) { %>
+          <div class="form-group">
+            <label class="form-label" for="plLim_<%= l.key %>"><%= l.label %></label>
+            <input class="form-input" id="plLim_<%= l.key %>" name="limit_<%= l.key %>" type="number" min="0" step="1" value="<%= form.limits[l.key] %>" placeholder="Unlimited">
+          </div>
+        <% }) %>
+      </div>
+      <span class="pl-help">Leave a box empty for unlimited. 0 means none allowed at all (for example, 0 properties stops a new owner from adding their first one). An owner at a limit can still view and use everything they have but cannot add more.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-toggle-on"></i> Features included</div></div>
+    <div class="card-body">
+      <% FEATURES.forEach(function (f) { %>
+        <label class="pl-check">
+          <input type="checkbox" name="feat_<%= f.key %>" <%= form.features[f.key] ? 'checked' : '' %>>
+          <div><b><%= f.label %></b><span><%= f.help %></span></div>
+        </label>
+      <% }) %>
+      <span class="pl-help">Tenants, payments, receipts, rooms and the basic enquiry list are part of every plan.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-list-check"></i> How the plan card looks</div></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label" for="plPoints">Display points (one per line, up to 10)</label>
+        <textarea class="form-input" id="plPoints" name="displayPoints" placeholder="Up to 60 tenants&#10;Reports and dues&#10;Priority support"><%= form.displayPoints %></textarea>
+        <span class="pl-help">Free text shown as bullets on the plan card. These are for display only and do not lock anything.</span>
+      </div>
+      <div class="pl-row">
+        <div class="form-group">
+          <label class="form-label" for="plBadge">Badge (optional)</label>
+          <input class="form-input" id="plBadge" name="badge" maxlength="24" value="<%= form.badge %>" placeholder="Most popular">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="plOrder">Display order</label>
+          <input class="form-input" id="plOrder" name="sortOrder" type="number" min="0" step="1" value="<%= form.sortOrder %>">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-eye"></i> Visibility</div></div>
+    <div class="card-body">
+      <label class="pl-check" data-pl-paid>
+        <input type="checkbox" name="isVisible" <%= form.isVisible ? 'checked' : '' %> <%= isArchived ? 'disabled' : '' %>>
+        <div><b>Visible to owners</b><span>When on, owners can see and buy this plan once the owner dashboard update (Phase 2) is live.</span></div>
+      </label>
+      <p class="pl-help" data-pl-free hidden>Trial and Default plans are not shown in the list of plans to buy.</p>
+    </div>
+  </div>
+
+  <div class="pl-span pl-bar">
+    <a href="/admin/plans" class="btn btn-outline">Cancel</a>
+    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> <%= plan ? 'Save changes' : 'Create plan' %></button>
+  </div>
+</form>
+
+<script>
+(function () {
+  var role = document.getElementById('plRole');
+  function sync() {
+    var free = role.value !== 'normal';
+    document.querySelectorAll('[data-pl-paid]').forEach(function (el) { el.hidden = free; });
+    document.querySelectorAll('[data-pl-free]').forEach(function (el) { el.hidden = !free; });
+  }
+  role.addEventListener('change', sync);
+  sync();
+})();
+</script>

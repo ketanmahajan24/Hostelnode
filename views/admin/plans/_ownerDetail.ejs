@@ -1,0 +1,203 @@
+<%#
+  Body of /admin/owners/:id. Every value is printed escaped.
+  `sub` (plan data) is only present when subscriptions are on; without it
+  the page still shows the owner's details, properties and listings.
+%>
+<%- include('_style') %>
+<%
+  const hasSub = typeof sub !== 'undefined' && sub;
+  const msg = typeof notice !== 'undefined' ? notice : '';
+  const msgErr = typeof noticeIsError !== 'undefined' && noticeIsError;
+  const day = d => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—';
+  const inr = n => '₹' + new Intl.NumberFormat('en-IN').format(Number(n) || 0);
+  const dur = d => d && d.value ? d.value + ' ' + d.unit + (d.value === 1 ? '' : 's') : '';
+  const statusBadge = { Active: 'badge-green', Pending: 'badge-amber', Inactive: 'badge-gray', Banned: 'badge-red' };
+  const STATE = {
+    trial:   ['badge-blue',  'Free trial'],
+    active:  ['badge-green', 'Active'],
+    grace:   ['badge-amber', 'Expired — in grace period'],
+    default: ['badge-teal',  'Default plan'],
+    none:    ['badge-gray',  'No plan'],
+  };
+  const SOURCE = { trial: 'Free trial', admin: 'Given by admin', razorpay: 'Paid online' };
+  const SUBSTATUS = { active: 'Current', replaced: 'Replaced', cancelled: 'Cancelled' };
+%>
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1><%= owner.name %> <span class="badge <%= statusBadge[owner.status] || 'badge-gray' %>"><%= owner.status || '—' %></span></h1>
+    <p><%= owner.businessName || 'No business name' %> · joined <%= day(owner.createdAt) %></p>
+  </div>
+  <a href="/admin/owners" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to owners</a>
+</div>
+
+<% if (msg) { %>
+  <div class="pl-note <%= msgErr ? 'err' : 'ok' %>" role="status"><i class="fa-solid <%= msgErr ? 'fa-circle-xmark' : 'fa-circle-check' %>"></i><div><%= msg %></div></div>
+<% } %>
+
+<div class="pl-grid2">
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-user"></i> Owner</div></div>
+    <div class="card-body">
+      <dl class="pl-kv">
+        <dt>Email</dt><dd><%= owner.email || '—' %></dd>
+        <dt>Phone</dt><dd><%= owner.phone || '—' %></dd>
+        <dt>WhatsApp</dt><dd><%= owner.whatsapp || '—' %></dd>
+        <dt>Business type</dt><dd><%= owner.businessType || '—' %></dd>
+        <dt>Location</dt><dd><%= [owner.city, owner.state].filter(Boolean).join(', ') || '—' %></dd>
+        <dt>Phone verified</dt><dd><%= owner.isPhoneVerified ? 'Yes' : 'No' %></dd>
+        <% if (owner.kyc && owner.kyc.status) { %><dt>KYC</dt><dd><%= owner.kyc.status %></dd><% } %>
+      </dl>
+    </div>
+  </div>
+
+  <% if (hasSub) { const c = sub.current; const st = STATE[c.state] || STATE.none; %>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fa-solid fa-tags"></i> Plan</div>
+      <span class="badge <%= st[0] %>"><%= st[1] %></span>
+    </div>
+    <div class="card-body">
+      <dl class="pl-kv">
+        <dt>Plan</dt><dd><%= c.name %></dd>
+        <% if (c.subscription) { %>
+          <dt>How they got it</dt><dd><%= SOURCE[c.subscription.source] || c.subscription.source %></dd>
+          <dt>Started</dt><dd><%= day(c.startsAt) %></dd>
+          <dt>Expires</dt><dd><%= c.expiresAt ? day(c.expiresAt) + (c.state === 'grace' ? ' (expired)' : c.daysLeft !== null ? ' · ' + c.daysLeft + ' day' + (c.daysLeft === 1 ? '' : 's') + ' left' : '') : 'Never' %></dd>
+          <% if (c.state === 'grace') { %><dt>Grace ends</dt><dd><%= day(c.graceEndsAt) %></dd><% } %>
+          <% if (c.subscription.note) { %><dt>Note</dt><dd><%= c.subscription.note %></dd><% } %>
+        <% } else if (c.expired) { %>
+          <dt>Previous plan</dt><dd><%= c.expired.name %> · expired <%= day(c.expired.expiresAt) %></dd>
+        <% } %>
+        <% sub.LIMITS.forEach(function (l) { const lim = c.limits ? c.limits[l.key] : null; %>
+          <dt><%= l.label %></dt><dd><%= sub.usage[l.key] %> used of <%= (lim === null || lim === undefined) ? 'unlimited' : lim %></dd>
+        <% }) %>
+      </dl>
+
+      <div class="pl-act">
+        <h4>Give a plan</h4>
+        <% if (!sub.plans.length) { %>
+          <p class="pl-help">No plans to give yet. <a href="/admin/plans/new">Create a plan</a> first.</p>
+        <% } else { %>
+        <form method="POST" action="/admin/owners/<%= owner._id %>/subscription/grant">
+          <div class="pl-row">
+            <div class="form-group">
+              <label class="form-label" for="plGivePlan">Plan</label>
+              <select class="form-input form-select" id="plGivePlan" name="planId" required>
+                <option value="">Choose a plan…</option>
+                <% sub.plans.forEach(function (p) { %>
+                  <option value="<%= p._id %>"><%= p.name %> — <%= p.role === 'trial' ? 'trial' : (p.price ? inr(p.price) : 'free') %>, <%= dur(p.duration) %><%= p.role === 'normal' && !p.isVisible ? ' (hidden)' : '' %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="plGiveDays">Custom length in days (optional)</label>
+              <input class="form-input" id="plGiveDays" name="days" type="number" min="1" max="3650" step="1" placeholder="Use the plan's duration">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="plGiveNote">Note (optional, only you see it)</label>
+            <input class="form-input" id="plGiveNote" name="note" maxlength="300" placeholder="Paid ₹399 by UPI on 6 Oct, ref 1234">
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-gift"></i> Give plan</button>
+          <span class="pl-help" style="margin-left:8px">Starts now and replaces the current plan. No money is collected here.</span>
+        </form>
+        <% } %>
+      </div>
+
+      <% if (c.subscription) { %>
+      <div class="pl-act">
+        <h4>Change the current plan</h4>
+        <div class="pl-inline">
+          <% if (c.expiresAt) { %>
+          <form method="POST" action="/admin/owners/<%= owner._id %>/subscription/extend" class="pl-inline">
+            <div class="form-group" style="max-width:150px">
+              <label class="form-label" for="plExtDays">Add days</label>
+              <input class="form-input" id="plExtDays" name="days" type="number" min="1" max="3650" step="1" value="30" required>
+            </div>
+            <button type="submit" class="btn btn-outline">Extend</button>
+          </form>
+          <% } %>
+          <form method="POST" action="/admin/owners/<%= owner._id %>/subscription/cancel" data-pl-cancel>
+            <button type="submit" class="btn btn-danger">Cancel plan</button>
+          </form>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<% if (hasSub) { %>
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Plan history</div></div>
+  <% if (!sub.history.length) { %>
+    <div class="pl-empty" style="padding:28px 20px">No plan records yet for this owner.</div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Plan</th><th>How</th><th>Started</th><th>Expires</th><th>Status</th><th>Note</th></tr></thead>
+      <tbody>
+        <% sub.history.forEach(function (h) { %>
+        <tr>
+          <td><div class="cell-name"><%= h.snapshot && h.snapshot.name %></div><div class="cell-sub"><%= h.amountPaid ? inr(h.amountPaid) + ' paid' : 'No payment' %></div></td>
+          <td><div class="cell-sub"><%= SOURCE[h.source] || h.source %></div></td>
+          <td><div class="cell-sub"><%= day(h.startsAt) %></div></td>
+          <td><div class="cell-sub"><%= h.expiresAt ? day(h.expiresAt) : 'Never' %></div></td>
+          <td><span class="badge <%= h.status === 'active' ? 'badge-green' : h.status === 'cancelled' ? 'badge-red' : 'badge-gray' %>"><%= SUBSTATUS[h.status] || h.status %></span><% if (h.endedAt) { %><div class="cell-sub"><%= day(h.endedAt) %></div><% } %></td>
+          <td><div class="cell-sub"><%= h.note || '—' %></div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>
+<% } %>
+
+<div class="pl-grid2" style="margin-top:16px">
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-house-chimney"></i> Properties managed (<%= hostels.length %>)</div></div>
+    <% if (!hostels.length) { %><div class="pl-empty" style="padding:28px 20px">None yet.</div><% } else { %>
+    <div class="table-wrap"><table class="admin-table"><tbody>
+      <% hostels.forEach(function (h) { %>
+        <tr><td><div class="cell-name"><%= h.name || h.hostelName || 'Property' %></div><div class="cell-sub"><%= [h.city, h.state].filter(Boolean).join(', ') || h.address || '' %></div></td></tr>
+      <% }) %>
+    </tbody></table></div>
+    <% } %>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> Listings on hostelnode.com (<%= listings.length %>)</div></div>
+    <% if (!listings.length) { %><div class="pl-empty" style="padding:28px 20px">None yet.</div><% } else { %>
+    <div class="table-wrap"><table class="admin-table"><tbody>
+      <% listings.forEach(function (l) { %>
+        <tr>
+          <td><div class="cell-name"><%= l.title || 'Listing' %></div><div class="cell-sub"><%= typeof l.location === 'string' ? l.location : ((l.location && (l.location.area || l.location.city)) || '') %></div></td>
+          <td style="text-align:right"><span class="badge badge-gray"><%= l.status || '—' %></span></td>
+        </tr>
+      <% }) %>
+    </tbody></table></div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+(function () {
+  // A second click must not send the same form twice.
+  document.querySelectorAll('.pl-act form').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      setTimeout(function () { form.querySelectorAll('button[type=submit]').forEach(function (b) { b.disabled = true; }); }, 0);
+    });
+  });
+  var f = document.querySelector('[data-pl-cancel]');
+  if (!f) return;
+  f.addEventListener('submit', function (e) {
+    if (f.dataset.ok === '1') return;
+    e.preventDefault();
+    openConfirm('Cancel plan', 'End this owner\'s current plan now? They move to the Default plan straight away. No refund is made here.', function () {
+      f.dataset.ok = '1'; f.submit();
+    });
+  });
+})();
+</script>
