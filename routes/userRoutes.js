@@ -1687,7 +1687,7 @@ router.post('/listing/:id/edit', jwtAuthMiddleware, listingUploadMiddleware, asy
       });
     }
 
-    listing.status = "Approved";
+    listing.status = listing.planHold ? "Pending" : "Approved";   // Subscriptions: a hidden draft listing stays hidden when edited
     await listing.save();
     res.redirect("/user/my-listings");
 

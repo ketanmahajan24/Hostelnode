@@ -501,6 +501,9 @@ router.patch("/listings/:id/status", jwtAdminAuth, async (req, res) => {
     const update = {};
     if (status)     update.status     = status;
     if (isVerified !== undefined) update.isVerified = isVerified;
+    // Subscriptions: approving a listing that was a hidden draft makes it a
+    // normal listing (it then counts towards the owner's plan limit).
+    if (status === "Approved") update.planHold = false;
     await Listing.findByIdAndUpdate(req.params.id, update);
     res.json({ success: true });
   } catch (err) {
