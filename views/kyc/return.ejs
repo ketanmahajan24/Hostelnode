@@ -1,0 +1,30 @@
+<%# Property Operations Phase 4 — back from DigiLocker (student). No personal details here: this page
+    is reached from another site, so the login cookie is not sent (see routes/kycRoutes.js). %>
+<% const pending = out.state === "pending" && tries < 20; %>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aadhaar verification · HostelNode</title><meta name="robots" content="noindex">
+<% if (pending) { %><meta http-equiv="refresh" content="3;url=/kyc/return?vid=<%= encodeURIComponent(vid) %>&t=<%= tries + 1 %>"><% } %>
+<%- include("_style.ejs") %></head>
+<body class="hnk hnk-page">
+<div class="hnk-top"><a href="/">🏠 HostelNode</a></div>
+<main class="hnk-wrap">
+  <div class="hnk-card hnk-center">
+  <% if (out.state === "verified") { %>
+    <div class="hnk-big" aria-hidden="true">🎉</div><h1 style="margin-top:10px">You're verified!</h1>
+    <div class="hnk-sub">Your Aadhaar is verified with DigiLocker. PG owners on HostelNode now see a green "KYC verified" badge for you.</div>
+    <a class="hnk-btn" href="<%= next %>">Continue</a>
+  <% } else if (pending) { %>
+    <div class="hnk-big" aria-hidden="true">⏳</div><h1 style="margin-top:10px">Checking with DigiLocker…</h1>
+    <div class="hnk-sub">This takes a few seconds. The page refreshes by itself.</div>
+  <% } else if (out.state === "pending") { %>
+    <div class="hnk-big" aria-hidden="true">⏳</div><h1 style="margin-top:10px">Still checking with DigiLocker</h1><div class="hnk-sub">This is taking longer than usual. You can close this page: the result shows by itself in a few minutes.</div>
+    <div style="margin-top:16px"><a class="hnk-btn is-ghost" href="/student/edit-profile">Open my profile</a></div>
+  <% } else { %>
+    <div class="hnk-big" aria-hidden="true">⚠️</div><h1 style="margin-top:10px">Verification not finished</h1>
+    <div class="hnk-sub"><%= out.reason === "denied" ? "Sharing was not allowed on DigiLocker." : out.reason === "expired" ? "The DigiLocker link expired (it lasts 10 minutes)." : out.reason === "not_linked" ? "DigiLocker did not return an Aadhaar for this account." : out.reason === "other_person" ? "This mobile number is already verified with a different Aadhaar." : out.state === "pending" ? "DigiLocker has not confirmed yet." : "This verification link is not valid." %> Nothing was saved.</div>
+    <a class="hnk-btn" href="<%= next %>">Try again</a>
+    <a class="hnk-btn is-ghost" href="/">Not now</a>
+  <% } %>
+  </div>
+</main>
+</body></html>

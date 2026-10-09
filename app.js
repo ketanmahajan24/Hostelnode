@@ -118,7 +118,9 @@ app.use("/admin",       require("./routes/adminPlansRoutes"));   // Subscription
 app.use("/admin",       require("./routes/adminSubscriptionRoutes"));   // Subscriptions Phase 2: /admin/owners/:id + plan actions
 app.use("/admin",       require("./routes/adminPaymentsRoutes"));   // Subscriptions Phase 3: /admin/payments
 app.use("/admin",       require("./routes/adminBusinessRoutes"));   // Subscriptions Phase 5: /admin/subscriptions (read-only business view)
+app.use("/admin",       require("./routes/adminKycRoutes"));   // Property Operations Phase 4: /admin/kyc
 app.use("/admin",       adminRouter);
+app.use("/",            require("./routes/kycRoutes")); // Property Operations Phase 4 — DigiLocker KYC (/kyc, /student/kyc/start, profile card)
 app.use("/student",     studentRouter);
 app.use("/findHostels", findHostelsRouter);
 app.use("/city",        cityRouter);

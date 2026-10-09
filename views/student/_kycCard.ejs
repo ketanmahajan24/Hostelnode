@@ -1,0 +1,35 @@
+<%# Property Operations Phase 4 — Aadhaar KYC card at the top of the student's profile.
+    Data comes from routes/kycRoutes.js (res.locals.hnKyc). Shown only when verification is switched on. %>
+<% if (typeof hnKyc !== "undefined" && hnKyc && (hnKyc.on || hnKyc.record)) { const r = hnKyc.record; %>
+<%- include("../kyc/_style.ejs") %>
+<div class="hnk" style="margin-bottom:18px">
+<% if (hnKyc.byOwnerPhone) { %>
+  <div class="hnk-card is-hero">
+    <div class="hnk-h"><span class="hnk-ic" aria-hidden="true">🛡️</span><div style="flex:1"><% if (hnKyc.elsewhere === "owner") { %><h2>Verified on a PG owner's phone</h2>
+      <div class="hnk-sub">Your number was verified with DigiLocker on a PG owner's phone. Verify yourself to confirm it is your Aadhaar.</div><% } else { %><h2>Verify your Aadhaar</h2>
+      <div class="hnk-sub">Your number was verified before, from another HostelNode account. Verify yourself to confirm it is your Aadhaar.</div><% } %></div></div>
+    <form method="POST" action="/student/kyc/start" style="margin:0"><button type="submit" class="hnk-btn">Verify with DigiLocker</button></form>
+  </div>
+<% } else if (r) { %>
+  <div class="hnk-card is-done">
+    <div class="hnk-h"><span class="hnk-ic" aria-hidden="true">✅</span><div style="flex:1"><h2>KYC verified</h2><div class="hnk-sub">Verified with DigiLocker on <%= r.verifiedAt %></div></div></div>
+    <div style="margin-top:10px">
+      <div class="hnk-rw"><span>Name</span><span><%= r.name %></span></div>
+      <div class="hnk-rw"><span>Date of birth</span><span><%= r.dob %></span></div>
+      <% if (r.gender) { %><div class="hnk-rw"><span>Gender</span><span><%= r.gender %></span></div><% } %>
+      <div class="hnk-rw"><span>Aadhaar</span><span>xxxx xxxx <%= r.last4 %></span></div>
+    </div>
+    <div class="hnk-priv"><span aria-hidden="true">🔒</span><span>Only your verified name, birth date, gender, state and last 4 digits are kept.</span></div>
+  </div>
+<% } else { %>
+  <div class="hnk-card is-hero">
+    <div class="hnk-h"><span class="hnk-ic" aria-hidden="true">🛡️</span><div style="flex:1"><h2>Verify your Aadhaar with DigiLocker</h2>
+      <div class="hnk-sub">PG owners admit only verified students. Do it once and it works for every booking on HostelNode. Takes about a minute.</div></div></div>
+    <% if (hnKyc.failed) { %><div class="hnk-note is-bad">Your last try was not finished. Please try again.</div><% } %>
+    <ol class="hnk-steps"><li><b>1</b>Open DigiLocker</li><li><b>2</b>Aadhaar + OTP</li><li><b>3</b>Allow sharing</li></ol>
+    <form method="POST" action="/student/kyc/start" style="margin:0"><button type="submit" class="hnk-btn">Verify with DigiLocker</button></form>
+    <div class="hnk-priv"><span aria-hidden="true">🔒</span><span>We keep only your verified name, date of birth, gender, state and the last 4 digits. Never your full Aadhaar number, photo or Aadhaar file.</span></div>
+  </div>
+<% } %>
+</div>
+<% } %>

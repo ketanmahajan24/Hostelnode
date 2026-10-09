@@ -104,6 +104,11 @@
       </a>
       <% } %>
 
+      <div class="nav-section-label">Verification</div>
+      <a href="/admin/kyc" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'kyc' ? 'active' : '' %>">
+        <i class="fa-solid fa-id-card"></i> KYC (DigiLocker)
+      </a>
+
       <div class="nav-section-label">Insights</div>
 
       <a href="/admin/analytics" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'analytics' ? 'active' : '' %>">

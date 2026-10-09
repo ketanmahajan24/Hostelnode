@@ -1,0 +1,47 @@
+<%# Property Operations Phase 4 — hostelnode.com/kyc: the page owners send ("Sai PG asked you to verify"). %>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify your Aadhaar · HostelNode</title><meta name="robots" content="noindex">
+<%- include("_style.ejs") %></head>
+<body class="hnk hnk-page">
+<div class="hnk-top"><a href="/">🏠 HostelNode</a><% if (student) { %><a href="/student/edit-profile" style="font-size:13px;font-weight:700;color:#475569">My profile</a><% } %></div>
+<main class="hnk-wrap">
+<% if (!s.canVerify) { %>
+  <div class="hnk-card hnk-center"><div class="hnk-big" aria-hidden="true">🛡️</div><h1 style="margin-top:8px">Aadhaar verification is not open yet</h1>
+    <div class="hnk-sub">It will be available here soon. <%= property ? "Please tell " + property + " you tried." : "" %></div>
+    <a class="hnk-btn is-ghost" href="/">Go to HostelNode</a></div>
+<% } else if (record && record.status === "verified" && !byOwnerPhone) { %>
+  <div class="hnk-card is-done">
+    <div class="hnk-h"><span class="hnk-ic" aria-hidden="true">✅</span><div><h1>You're verified<%= student && student.firstName ? ", " + student.firstName : "" %>!</h1>
+      <div class="hnk-sub">Your Aadhaar is verified with DigiLocker.<%= property && shared ? " " + property + " can see your verified name, date of birth and last 4 digits." : "" %></div></div></div>
+    <% if (sharedNow) { %><div class="hnk-note" style="background:#dcfce7;color:#15803d" role="status">Shared with <%= property %>.</div><% } %>
+    <% if (property && !shared) { %>
+      <div class="hnk-sub" style="margin-top:14px"><b><%= property %></b> asked to see your verified details: name, date of birth and last 4 Aadhaar digits. Nothing else is shared.</div>
+      <form method="POST" action="/student/kyc/share" style="margin:0"><input type="hidden" name="p" value="<%= p %>"><button type="submit" class="hnk-btn">Share with <%= property %></button></form>
+      <a class="hnk-btn is-ghost" href="/student/edit-profile">Not now</a>
+    <% } else { %><a class="hnk-btn" href="/student/edit-profile">Open my profile</a><% } %>
+  </div>
+<% } else { %>
+  <div class="hnk-card is-hero">
+    <div class="hnk-h"><span class="hnk-ic" aria-hidden="true">🛡️</span><div>
+      <h1><%= property ? property + " asked you to verify your Aadhaar" : "Verify your Aadhaar with DigiLocker" %></h1>
+      <div class="hnk-sub">PG owners on HostelNode admit only verified tenants. Do it once and it works for every booking. It takes about a minute.</div></div></div>
+    <% if (err) { %><div class="hnk-note is-bad" role="alert">DigiLocker could not be opened just now. Please try again in a minute.</div><% } %>
+    <% if (byOwnerPhone) { %><div class="hnk-note" style="background:#fdf0d9;color:#7a3d06" role="status"><% if (record.via === "owner") { %>Your number was verified on a PG owner's phone.<% } else { %>Your number was verified before, from another HostelNode account.<% } %> Verify yourself to confirm it is your Aadhaar.</div><% } %>
+    <% if (record && record.status === "failed") { %><div class="hnk-note is-bad" role="status">Your last try was not finished. Please try again.</div><% } %>
+    <ol class="hnk-steps">
+      <% if (!student) { %><li><b>1</b>Log in (OTP)</li><li><b>2</b>DigiLocker</li><li><b>3</b>Done</li>
+      <% } else { %><li><b>1</b>Open DigiLocker</li><li><b>2</b>Aadhaar + OTP</li><li><b>3</b>Allow sharing</li><% } %>
+    </ol>
+    <% if (!student) { %>
+      <a class="hnk-btn" href="<%= loginHref %>">Log in and verify</a>
+      <a class="hnk-btn is-ghost" href="/student/signup">New to HostelNode? Sign up</a>
+    <% } else { %>
+      <form method="POST" action="/student/kyc/start" style="margin:0"><input type="hidden" name="p" value="<%= p %>"><button type="submit" class="hnk-btn">Verify with DigiLocker</button></form>
+    <% } %>
+    <% if (property) { %><div class="hnk-priv"><span aria-hidden="true">👁️</span><span><b><%= property %></b> will see your verified name, date of birth and last 4 Aadhaar digits.</span></div><% } %>
+    <div class="hnk-priv"><span aria-hidden="true">🔒</span><span>We keep only your verified name, date of birth, gender, state and the last 4 Aadhaar digits. Never your full Aadhaar number, photo or Aadhaar file.</span></div>
+  </div>
+<% } %>
+</main>
+<script>document.querySelectorAll('form').forEach(function (f) { f.addEventListener('submit', function () { var b = f.querySelector('button'); setTimeout(function () { b.disabled = true; b.textContent = 'Opening DigiLocker…'; }, 0); }); });</script>
+</body></html>

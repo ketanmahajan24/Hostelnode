@@ -1,0 +1,54 @@
+<%# Body of /admin/kyc. Every value is printed escaped. %>
+<%- include('../plans/_style') %>
+<style>
+  .kyc-set { display: flex; gap: 16px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid #eef2f6; }
+  .kyc-set:last-of-type { border-bottom: 0; }
+  .kyc-set b { font-size: 15px; } .kyc-set p { font-size: 13px; color: #64748b; margin: 4px 0 0; max-width: 620px; line-height: 1.5; }
+  .kyc-sw { position: relative; width: 48px; height: 28px; flex: none; }
+  .kyc-sw input { opacity: 0; width: 100%; height: 100%; position: absolute; margin: 0; cursor: pointer; z-index: 1; }
+  .kyc-sw span { position: absolute; inset: 0; border-radius: 99px; background: #cbd5e1; transition: background .15s; }
+  .kyc-sw span::after { content: ""; position: absolute; width: 22px; height: 22px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: left .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .kyc-sw input:checked + span { background: #16a34a; } .kyc-sw input:checked + span::after { left: 23px; }
+  .kyc-sw input:focus-visible + span { outline: 3px solid rgba(22,163,74,.35); outline-offset: 2px; }
+  .kyc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .kyc-stats div { background: #f8fafc; border-radius: 12px; padding: 12px 14px; font-size: 12.5px; color: #64748b; font-weight: 600; }
+  .kyc-stats b { display: block; font-size: 22px; color: #0f172a; }
+  .kyc-pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 99px; white-space: nowrap; }
+  .kyc-pill.is-off { background: #fde8e6; color: #c8372d; } .kyc-pill.is-test { background: #fdf0d9; color: #b45309; } .kyc-pill.is-live { background: #dcfce7; color: #15803d; }
+  @media (max-width: 760px) { .kyc-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<div class="page-header"><div class="page-header-left"><h1>KYC (DigiLocker)</h1><p>Aadhaar verification through Cashfree Secure ID. Students verify on hostelnode.com; owners see the result in their dashboard.</p></div></div>
+<% if (saved) { %><div class="pl-note ok" role="status"><i class="fa-solid fa-circle-check"></i><div>Saved. Owners and students see the change within 15 seconds.</div></div><% } %>
+
+<div class="card" style="padding:6px 22px 20px;max-width:900px">
+  <div class="kyc-set">
+    <div style="flex:1"><b>Cashfree connection</b>
+      <p><% if (mode === "off") { %>No Cashfree keys yet. Add CASHFREE_KYC_CLIENT_ID and CASHFREE_KYC_CLIENT_SECRET to .env on both servers (hostelnode.com and the owner dashboard), then restart. Until then nothing is blocked and the verify buttons are hidden.
+      <% } else if (mode === "test") { %>Test keys (Cashfree sandbox). Real Aadhaar is not checked. Set CASHFREE_KYC_ENV=production with live keys to go live.
+      <% } else { %>Live keys. Each verification is charged by Cashfree.<% } %>
+      <% if (mode !== "off") { %> Cashfree also needs your servers' IP addresses whitelisted, or a public key: <%= signed ? "a public key is set." : "no public key is set, so the IP addresses must be whitelisted in the Cashfree dashboard." %><% } %></p></div>
+    <span class="kyc-pill is-<%= mode %>"><%= mode === "off" ? "Not connected" : mode === "test" ? "Test mode" : "Live" %></span>
+  </div>
+
+  <form method="POST" action="/admin/kyc/settings" style="margin:0">
+    <div class="kyc-set">
+      <div style="flex:1"><label for="k-students"><b>Students can verify</b></label>
+        <p>Shows "Verify with DigiLocker" on student profiles and on the KYC link owners send.</p></div>
+      <span class="kyc-sw"><input type="checkbox" id="k-students" name="studentsCanVerify" value="1" <%= s.studentsCanVerify ? "checked" : "" %>><span></span></span>
+    </div>
+    <div class="kyc-set">
+      <div style="flex:1"><label for="k-required"><b>KYC required for admission</b></label>
+        <p>When on, owners cannot admit a tenant until their Aadhaar is verified with DigiLocker. Tenants already living are not affected. It only takes effect while Cashfree is connected<%= mode === "off" ? " (it is not, so nothing is blocked now)" : "" %>.</p></div>
+      <span class="kyc-sw"><input type="checkbox" id="k-required" name="requiredForAdmission" value="1" <%= s.requiredForAdmission ? "checked" : "" %>><span></span></span>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top:6px">Save</button>
+  </form>
+
+  <div class="kyc-stats">
+    <div><b><%= counts.verified %></b>Verified in total</div>
+    <div><b><%= counts.thisMonth %></b>Verified this month</div>
+    <div><b><%= counts.viaOwner %></b>Verified on an owner's phone</div>
+    <div><b><%= counts.unfinished %></b>Started, not finished (7 days)</div>
+  </div>
+</div>

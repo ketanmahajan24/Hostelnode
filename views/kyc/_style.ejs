@@ -1,0 +1,35 @@
+<%# Property Operations Phase 4 — look of the student KYC pages (green, like the student profile). %>
+<style>
+  .hnk, .hnk * { box-sizing: border-box; }
+  .hnk { --g: #16a34a; --g2: #0a7d40; --gt: #dcfce7; --ink: #0f172a; --body: #334155; --muted: #64748b; --line: #e9eef3; --amber: #b45309; --at: #fdf0d9; --coral: #c8372d; --ct: #fde8e6;
+         font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); }
+  .hnk-page { min-height: 100vh; background: #f6f8fa; margin: 0; }
+  .hnk-top { height: 60px; background: #fff; border-bottom: 1px solid #eef2f6; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+  .hnk-top a { color: var(--ink); font-weight: 800; text-decoration: none; }
+  .hnk-wrap { max-width: 520px; margin: 0 auto; padding: 28px 16px 40px; }
+  .hnk-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: 0 10px 30px -22px rgba(15,23,42,.35); }
+  .hnk-card.is-hero { border: 2px solid #22c55e; background: linear-gradient(180deg, #f0fdf5, #fff); }
+  .hnk-card.is-done { border: 2px solid #bbf7d0; }
+  .hnk-h { display: flex; gap: 14px; align-items: flex-start; }
+  .hnk-ic { width: 46px; height: 46px; border-radius: 14px; background: var(--gt); display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; }
+  .hnk h1, .hnk h2 { font-size: 19px; font-weight: 800; margin: 0; letter-spacing: -0.01em; line-height: 1.25; }
+  .hnk-sub { font-size: 14px; color: var(--muted); font-weight: 500; margin-top: 5px; line-height: 1.5; }
+  .hnk-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; list-style: none; padding: 0; }
+  .hnk-steps li { background: #f8fafc; border-radius: 12px; padding: 10px; font-size: 12.5px; font-weight: 600; color: var(--body); }
+  .hnk-steps b { display: block; font-size: 18px; margin-bottom: 2px; color: var(--ink); }
+  .hnk-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px; border-radius: 13px; background: var(--g); color: #fff; font-weight: 800; font-size: 15px; margin-top: 16px; border: 0; cursor: pointer; text-decoration: none; font-family: inherit; }
+  .hnk-btn:hover { background: #15803d; color: #fff; }
+  .hnk-btn.is-ghost { background: #fff; color: var(--ink); border: 1px solid #e2e8f0; margin-top: 10px; }
+  .hnk-btn:focus-visible { outline: 3px solid rgba(22,163,74,.35); outline-offset: 2px; }
+  .hnk-priv { font-size: 12.5px; color: var(--muted); margin-top: 12px; display: flex; gap: 8px; line-height: 1.45; }
+  .hnk-rw { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 600; }
+  .hnk-rw span:first-child { color: var(--muted); font-weight: 500; }
+  .hnk-rw:last-of-type { border-bottom: 0; }
+  .hnk-pill { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+  .hnk-pill.is-verified { background: var(--gt); color: #15803d; } .hnk-pill.is-pending { background: var(--at); color: var(--amber); } .hnk-pill.is-none { background: #e9eef3; color: #334155; }
+  .hnk-note { border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-top: 12px; }
+  .hnk-note.is-bad { background: var(--ct); color: #8a2219; }
+  .hnk-center { text-align: center; }
+  .hnk-big { font-size: 46px; line-height: 1; }
+  @media (max-width: 420px) { .hnk-steps { gap: 6px; } .hnk-steps li { padding: 8px; font-size: 12px; } }
+</style>
