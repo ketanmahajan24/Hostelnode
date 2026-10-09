@@ -20,7 +20,12 @@ const roomSchema = new mongoose.Schema({
   available: {
     type: Boolean,
     default: true
-  }
+  },
+  // Property Operations Phase 2 — set from manage.hostelnode.com when the listing is linked
+  // to a property. roomIds: rooms picked by hand for this type (empty = matched by beds per room).
+  // freeBeds: free beds right now (null = not linked; then "available" above is used).
+  roomIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Room" }],
+  freeBeds: { type: Number, default: null }
 }, { _id: false });
 
 /* =========================
@@ -58,6 +63,11 @@ const listingSchema = new mongoose.Schema({
     ref: "Owner",
     required: true
   },
+  // Property Operations Phase 2: the owner's property this listing shows free beds for (null = not linked).
+  linkedHostel: { type: mongoose.Schema.Types.ObjectId, ref: "Hostel", default: null },
+  // Free beds across the whole listing, kept up to date from the owner dashboard (null = not linked).
+  freeBeds: { type: Number, default: null },
+  bedsUpdatedAt: { type: Date, default: null },
 
   /* 🏷️ BASIC INFO */
   title: {
@@ -177,8 +187,8 @@ const listingSchema = new mongoose.Schema({
   },
 
   // Subscriptions: true while a listing is a hidden draft because the owner
-  // was at their plan's listing limit when they submitted it (set in the owner
-  // dashboard). A held listing stays "Pending" until the owner publishes it.
+  // was at their plan's listing limit when they submitted it. A held listing
+  // stays "Pending" (not shown on hostelnode.com) until the owner publishes it.
   planHold: {
     type: Boolean,
     default: false

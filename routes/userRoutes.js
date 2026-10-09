@@ -1653,13 +1653,21 @@ router.post('/listing/:id/edit', jwtAuthMiddleware, listingUploadMiddleware, asy
 
     // Rooms
     try {
-      listing.rooms = Object.values(req.body.rooms || {}).map(r => ({
-        type:      clean(r.type || ""),
-        price:     toNum(r.price),
-        deposit:   toNum(r.deposit),
-        features:  (Array.isArray(r.features) ? r.features : r.features ? [r.features] : []).map(f => clean(f)),
-        available: r.available === "true" || r.available === true
-      })).filter(r => r.type).slice(0, 20);
+      // Phase 2: a room type keeps its link to the property's rooms (picked rooms, free beds) when the listing is edited.
+      const oldTypes = new Map((listing.rooms || []).map(r => [String(r.type || "").trim().toLowerCase(), r]));
+      listing.rooms = Object.values(req.body.rooms || {}).map(r => {
+        const type = clean(r.type || "");
+        const was = oldTypes.get(type.trim().toLowerCase());
+        return {
+          type,
+          price:     toNum(r.price),
+          deposit:   toNum(r.deposit),
+          features:  (Array.isArray(r.features) ? r.features : r.features ? [r.features] : []).map(f => clean(f)),
+          available: r.available === "true" || r.available === true,
+          roomIds:   was && was.roomIds ? Array.from(was.roomIds) : [],
+          freeBeds:  was && typeof was.freeBeds === "number" ? was.freeBeds : null
+        };
+      }).filter(r => r.type).slice(0, 20);
     } catch (_) { /* keep existing rooms */ }
 
     // Amenities / Rules

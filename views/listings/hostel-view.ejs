@@ -831,9 +831,13 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
             <% }) } %>
           </div>
           <div class="room-card-footer">
-            <span class="room-avail <%= room.available ? 'avail-yes' : 'avail-no' %>">
+            <%# Property Operations Phase 2: when the owner links this listing to their property,
+                freeBeds is the real number of free beds, kept up to date from the owner dashboard. %>
+            <% const hnFree = (hostel.linkedHostel && typeof room.freeBeds === "number") ? room.freeBeds : null; %>
+            <% const hnOpen = hnFree === null ? room.available : hnFree > 0; %>
+            <span class="room-avail <%= hnOpen ? 'avail-yes' : 'avail-no' %>">
               <i class="fa-solid fa-circle"></i>
-              <%= room.available ? 'Available now' : 'Waitlist' %>
+              <%= hnFree === null ? (room.available ? 'Available now' : 'Waitlist') : (hnFree > 0 ? (hnFree === 1 ? '1 bed free' : hnFree + ' beds free') : 'Full right now') %>
             </span>
             <button class="btn-book-room" onclick="openBooking('<%= room.type %>', <%= room.price %>)">
               Enquire Now

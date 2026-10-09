@@ -112,6 +112,7 @@ app.post("/track-location", trackGpsLocation);
 
 app.use("/webhook",     waBot);
 app.use(require("./Middlewares/planGate"));   // Subscriptions Phase 4: plan limits (only when switched on in /admin/plans)
+app.use("/user",        require("./Middlewares/ownerOpsMoved"));   // Property Operations Phase 2: old tenant/room pages → owner dashboard
 app.use("/user",        userRouter);
 app.use("/admin",       require("./routes/adminPlansRoutes"));   // Subscriptions Phase 1: /admin/plans
 app.use("/admin",       require("./routes/adminSubscriptionRoutes"));   // Subscriptions Phase 2: /admin/owners/:id + plan actions
