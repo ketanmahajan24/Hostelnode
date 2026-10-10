@@ -12,7 +12,7 @@ node_modules/
 uploads/
 
 # Environment
-# .env
+.env
 # .env.local
 
 # OS
