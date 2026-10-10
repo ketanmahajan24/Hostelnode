@@ -1,0 +1,97 @@
+<%# Body of /admin/payouts/owner/:id. Every value is printed escaped. %>
+<%- include('_style') %>
+<%
+  const day = d => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—';
+  const L = LABEL[rec.status] || LABEL.draft;
+  const rate = (t, v) => t === 'fixed' ? '₹' + v + ' per payment' : v + '%';
+  const TYPE = { individual: 'Individual', proprietorship: 'Proprietor', partnership: 'Partnership', private_limited: 'Company', llp: 'LLP' };
+  const SAVED = { commission: 'Commission saved.', hold: 'Payouts are on hold. The owner sees the reason. Online rent not yet in their bank is being held at Razorpay too.', release: 'Payouts released. Held online rent is being sent on to the owner\'s bank.', link: 'Razorpay ids linked. Ask the owner to submit their details again.', checked: 'Checked with Razorpay.', retried: 'Payout sent again.', refunded: 'Booking refund sent.', extra: 'Marked as refunded.' };
+  const inr = n => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
+  const PST = { pending: ['On the way', 'blue'], on_hold: ['On hold', 'gray'], settled: ['In bank', 'green'], failed: ['Failed', 'red'], reversed: ['Returned', 'gray'] };
+%>
+<div class="page-header"><div class="page-header-left"><h1><%= owner.name || 'Owner' %> · payouts</h1><p><%= hostels.map(h => h.hostelName).join(', ') || 'No property' %> · <%= TYPE[rec.businessType] || '—' %><%= rec.accountId ? ' · Razorpay account ' + rec.accountId : '' %><%= rec.mode ? ' (' + rec.mode + ')' : '' %></p></div>
+  <a href="/admin/payouts" class="btn btn-outline">All owners</a></div>
+<% if (saved && SAVED[saved]) { %><div class="pl-note ok" role="status"><i class="fa-solid fa-circle-check"></i><div><%= SAVED[saved] %></div></div><% } %>
+<% if (error) { %><div class="pl-note err" role="alert"><i class="fa-solid fa-circle-xmark"></i><div><%= error %></div></div><% } %>
+<div class="pl-grid2">
+  <div>
+    <div class="po-status <%= L[1] %>"><b><%= L[0] %><%= rec.status === 'active' && rec.activatedAt ? ' since ' + day(rec.activatedAt) : '' %></b>
+      <%= rec.bankLast4 ? (rec.bankName || 'Bank') + ' ••' + rec.bankLast4 + ' · ' + rec.ifsc + (rec.beneficiaryName ? ' · ' + rec.beneficiaryName : '') : 'No bank account yet' %>
+      <% if (rec.status === 'needs_attention' && rec.requirements && rec.requirements.length) { %><ul style="margin:6px 0 0 18px;padding:0"><% rec.requirements.forEach(function (r) { %><li><%= r.reason %></li><% }) %></ul><% } %>
+      <% if (rec.lastError) { %><div style="margin-top:6px;font-weight:500">Last error: <%= rec.lastError %></div><% } %>
+    </div>
+    <div class="card"><div class="card-body" style="padding:16px 18px">
+      <dl class="pl-kv">
+        <dt>Legal name</dt><dd><%= rec.legalName || '—' %></dd>
+        <dt>Contact</dt><dd><%= [rec.contactName, rec.email, rec.phone].filter(Boolean).join(' · ') || '—' %></dd>
+        <dt>PAN</dt><dd><%= rec.panLast4 ? '••••••' + rec.panLast4 : '—' %></dd>
+        <dt>City</dt><dd><%= [rec.city, rec.state].filter(Boolean).join(', ') || '—' %></dd>
+        <dt>Submitted</dt><dd><%= day(rec.submittedAt) %></dd>
+        <dt>Last checked</dt><dd><%= rec.lastCheckedAt ? new Date(rec.lastCheckedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '—' %></dd>
+      </dl>
+    </div></div>
+    <div class="card"><div class="card-body" style="padding:16px 18px"><h3 style="margin:0 0 8px;font-size:1rem">History</h3>
+      <% if (!(rec.history || []).length) { %><p class="pl-help">Nothing yet.</p><% } %>
+      <% (rec.history || []).slice().reverse().forEach(function (h) { %><div class="po-hist"><%= h.text %><small><%= day(h.at) %><%= h.by ? ' · ' + h.by : '' %></small></div><% }) %>
+    </div></div>
+    <div class="card"><div class="card-body" style="padding:16px 18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><h3 style="margin:0;font-size:1rem">Online rent (paid by tenants)</h3>
+        <% if (online.length) { %><form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/check" style="margin:0"><button type="submit" class="btn btn-outline" style="padding:6px 12px;font-size:13px">Check with Razorpay</button></form><% } %></div>
+      <p class="pl-help" style="margin:0 0 8px">Online rent: <%= hostels.map(h => h.hostelName + (h.onlineRent === false ? ' (cash only)' : '')).join(', ') || '—' %></p>
+      <% if (extra && extra.length) { %><div class="po-status red" role="alert" style="margin-bottom:10px"><b>Second payments to refund</b>A tenant paid an order that was already paid. These are not counted as rent: refund them in Razorpay Dashboard → Payments.
+        <% extra.forEach(function (o) { %><div style="margin-top:4px"><%= o.extraPayments.join(', ') %> · order <%= o.razorpayOrderId %> · <%= inr(o.total) %></div><% }) %></div><% } %>
+      <% if (typeof bookingIssues !== "undefined" && bookingIssues.length) { %><div class="po-status amber" role="alert" style="margin-bottom:10px"><b>Bookings needing attention</b>
+        <% bookingIssues.forEach(function (bi) { %><div style="margin-top:6px"><%= bi.bookingNo %> · <%= bi.studentName %>:
+          <% if (bi.refund && bi.refund.status === "failed") { %>refund of <%= inr((bi.refund.target || 0) / 100) %> failed (<%= bi.refund.error || "Razorpay refused" %>)
+            <form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/booking/<%= bi._id %>/refund" style="display:inline;margin-left:6px"><button type="submit" class="btn btn-outline" style="padding:3px 10px;font-size:12px">Try again</button></form><% } %>
+          <% (bi.extraPayments || []).forEach(function (xp) { %> second payment <%= xp %> not counted: refund it in Razorpay Dashboard → Payments, then
+            <form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/booking/<%= bi._id %>/extra-done" style="display:inline;margin-left:4px"><input type="hidden" name="payment" value="<%= xp %>"><button type="submit" class="btn btn-outline" style="padding:3px 10px;font-size:12px">Mark refunded</button></form><% }) %></div><% }) %></div><% } %>
+      <% if (unrecorded && unrecorded.length) { %><div class="po-status red" role="alert" style="margin-bottom:10px"><b>Paid but not recorded</b>Razorpay collected these but the tenant record no longer exists. Refund them in Razorpay, or record them by hand.
+        <% unrecorded.forEach(function (o) { %><div style="margin-top:4px">order <%= o.razorpayOrderId %> · <%= inr(o.total) %></div><% }) %></div><% } %>
+      <% if (!online.length) { %><p class="pl-help">No online payments yet.</p><% } else { %>
+      <div style="overflow-x:auto"><table class="po-tbl"><thead><tr><th>Date</th><th>Tenant</th><th class="r">Paid</th><th class="r">To owner</th><th>Payout</th></tr></thead><tbody>
+      <% online.forEach(function (p) { const po = p.payout || {}, st = PST[po.status] || PST.pending; %>
+        <tr><td><%= day(p.paymentDate) %></td><td><%= p.tenantName || '—' %><small><%= p.receiptNo || '' %><%= p.online && p.online.paymentId ? ' · ' + p.online.paymentId : '' %></small></td>
+          <td class="r"><%= inr(p.online && p.online.total ? p.online.total : p.amountPaid) %></td><td class="r"><%= inr(po.amount) %></td>
+          <td><span class="po-pill <%= st[1] %>"><%= st[0] %><%= po.status === 'settled' && po.settledAt ? ' ' + day(po.settledAt) : '' %></span><% if (po.transferId) { %><small><%= po.transferId %></small><% } %><% if (po.error) { %><small style="color:#991b1b"><%= po.error %></small><% } %><% if (p.cancelledAt) { %><small style="color:#991b1b"><%= p.cancelReason || 'Cancelled' %><%= po.status !== 'reversed' ? ' · the owner still gets this payout unless you reverse the transfer in Razorpay' : '' %></small><% } %>
+            <% if (po.status === 'failed') { %><form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/payment/<%= p._id %>/retry" style="margin:6px 0 0"><button type="submit" class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="return confirm('Send <%= inr(po.amount) %> to the owner\'s bank again?')">Send again</button></form><% } %></td></tr>
+      <% }) %>
+      </tbody></table></div><% } %>
+    </div></div>
+  </div>
+  <div>
+    <div class="card"><div class="card-body" style="padding:16px 18px">
+      <h3 style="margin:0 0 4px;font-size:1rem">Commission for this owner</h3><p class="pl-help" style="margin:0 0 12px">Default: <%= rate(fees.commissionType, fees.commissionValue) %>.</p>
+      <form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/commission">
+        <div class="po-seg" role="radiogroup" aria-label="Commission"><label><input type="radio" name="own" value="" <%= rec.commission && rec.commission.own ? '' : 'checked' %>><span>Use default</span></label><label><input type="radio" name="own" value="1" <%= rec.commission && rec.commission.own ? 'checked' : '' %>><span>Own rate</span></label></div>
+        <div class="pl-inline"><div class="form-group"><label class="form-label" for="oc-type">Type</label><select id="oc-type" class="form-select" name="type"><option value="percent" <%= rec.commission && rec.commission.type === 'fixed' ? '' : 'selected' %>>Percentage</option><option value="fixed" <%= rec.commission && rec.commission.type === 'fixed' ? 'selected' : '' %>>Fixed ₹ per payment</option></select></div>
+          <div class="form-group"><label class="form-label" for="oc-val">Rate</label><input id="oc-val" class="form-input" name="value" value="<%= rec.commission ? rec.commission.value : 0 %>" inputmode="decimal" style="max-width:120px"></div>
+          <button type="submit" class="btn btn-primary">Save</button></div>
+      </form>
+    </div></div>
+    <div class="card"><div class="card-body" style="padding:16px 18px">
+      <h3 style="margin:0 0 4px;font-size:1rem">Hold payouts</h3>
+      <% if (rec.hold && rec.hold.on) { %>
+        <p class="pl-help" style="margin:0 0 12px">On hold since <%= day(rec.hold.at) %> by <%= rec.hold.by || 'admin' %>: “<%= rec.hold.reason %>”. Online rent is still received but held before it reaches the owner's bank.</p>
+        <form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/release"><button type="submit" class="btn btn-primary">Release payouts</button></form>
+      <% } else { %>
+        <p class="pl-help" style="margin:0 0 12px">Online rent is still received, but held by Razorpay before it reaches the owner's bank, until you release it. The owner sees the reason.</p>
+        <form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/hold">
+          <div class="form-group"><label class="form-label" for="oh-r">Reason (shown to the owner)</label><input id="oh-r" class="form-input" name="reason" maxlength="200" required minlength="3" placeholder="e.g. Tenant complaint under review"></div>
+          <button type="submit" class="btn btn-outline" onclick="return confirm('Hold this owner\'s payouts?')">Hold payouts</button>
+        </form>
+      <% } %>
+    </div></div>
+    <% if (!rec.accountId || !rec.productId) { %>
+    <div class="card"><div class="card-body" style="padding:16px 18px">
+      <h3 style="margin:0 0 4px;font-size:1rem">Link an existing Razorpay account</h3>
+      <p class="pl-help" style="margin:0 0 12px">Only when an earlier try was finished at Razorpay but HostelNode never got the answer (the owner sees "Razorpay already has a payout account"). Copy the ids from Razorpay Dashboard → Route → Accounts for this owner, then ask the owner to submit their details again.</p>
+      <form method="POST" action="/admin/payouts/owner/<%= rec.owner %>/link">
+        <% if (!rec.accountId) { %><div class="form-group"><label class="form-label" for="ol-a">Account id</label><input id="ol-a" class="form-input" name="accountId" maxlength="40" placeholder="acc_…" pattern="acc_[A-Za-z0-9]{6,30}"></div><% } %>
+        <div class="form-group"><label class="form-label" for="ol-p">Route product id <span style="font-weight:400">(if Razorpay shows one)</span></label><input id="ol-p" class="form-input" name="productId" maxlength="40" placeholder="acc_prd_…" pattern="acc_prd_[A-Za-z0-9]{6,30}"></div>
+        <button type="submit" class="btn btn-outline" onclick="return confirm('Link these Razorpay ids to this owner?')">Link</button>
+      </form>
+    </div></div>
+    <% } %>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+<%# Property Operations Phase 7 — My PG when not logged in. %>
+<%- include("_head.ejs", { title: "My PG" }) %>
+<body class="mp">
+<%- include("_top.ejs") %>
+<main class="mp-page" style="padding-top:28px">
+  <section class="mp-card">
+    <div class="mp-row" style="justify-content:flex-start;gap:14px;align-items:flex-start"><span class="mp-ini" aria-hidden="true">🏠</span>
+      <div><h1 style="font-size:20px;margin:0">Pay your PG rent on HostelNode</h1>
+        <div class="mp-soft" style="margin-top:6px">See what is due, pay by UPI, card or netbanking, and get your receipt at once. Log in with the mobile number your PG has for you.</div></div></div>
+    <a class="mp-btn" href="<%= loginHref %>" style="margin-top:16px">Log in with OTP</a>
+    <a class="mp-btn is-ghost" href="/student/signup" style="margin-top:10px">New to HostelNode? Sign up</a>
+    <div class="mp-trust">🔒 Payments are processed by Razorpay</div>
+  </section>
+</main>
+</body></html>

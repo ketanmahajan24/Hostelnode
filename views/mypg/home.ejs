@@ -1,0 +1,89 @@
+<%# Property Operations Phase 7 — My PG: due now, months, receipts, deposit, notice to leave. %>
+<%- include("_head.ejs", { title: "My PG" }) %>
+<body class="mp">
+<%- include("_top.ejs") %>
+<% const q = "?m=" + v.id; %>
+<header class="mp-hero"><div class="mp-hero-in">
+  <span class="mp-tag">MY PG</span>
+  <h1><%= v.property %></h1>
+  <p><%= [v.roomLine, "since " + v.since].filter(Boolean).join(" · ") %><span class="mp-hide-m"><%= v.rent ? " · " + "₹" + Math.round(v.rent).toLocaleString("en-IN") + " a month" + (v.dueDay ? ", due on " + v.dueDay : "") : "" %></span></p>
+  <% if (others.length > 1) { %><nav class="mp-switch" aria-label="Your PGs"><% others.forEach(function (o) { %><a href="/student/my-pg?m=<%= o.id %>" <%- o.on ? 'aria-current="page"' : '' %>><%= o.name %></a><% }) %></nav><% } %>
+</div></header>
+
+<main class="mp-wrap">
+  <% if (flash.msg) { %><div class="mp-note ok mp-flash" role="status">✅ <span><%= flash.msg %></span></div><% } %>
+  <% if (flash.err) { %><div class="mp-note bad mp-flash" role="alert">⚠️ <span><%= flash.err %></span></div><% } %>
+  <div class="mp-grid">
+    <div>
+      <section class="mp-card" aria-labelledby="h-due">
+        <div class="mp-row"><div><div class="mp-k">Rent</div><div class="mp-v"><%= v.rent ? "₹" + Math.round(v.rent).toLocaleString("en-IN") + " a month" : "—" %><%= v.dueDay ? " · due on " + v.dueDay : "" %></div></div>
+          <% if (v.duePill) { %><span class="mp-pill <%= v.duePill.tone %>"><%= v.duePill.text %></span><% } %></div>
+        <h2 id="h-due" style="position:absolute;left:-9999px">Due now</h2>
+        <% if (v.due > 0) { %>
+          <div class="mp-due <%= v.duePill && v.duePill.tone === 'blue' ? 'is-blue' : '' %>"><small><%= v.duePill && v.duePill.tone === "blue" ? "Coming up" : "Due now" %></small><b>₹<%= Math.round(v.due).toLocaleString("en-IN") %></b>
+            <% v.owing.slice(0, 4).forEach(function (o) { %><div class="ln"><span><%= o.label %></span><span>₹<%= Math.round(o.amount).toLocaleString("en-IN") %></span></div><% }) %>
+            <% if (v.owing.length > 4) { %><div class="ln"><span>and <%= v.owing.length - 4 %> more month<%= v.owing.length - 4 === 1 ? "" : "s" %></span><span></span></div><% } %>
+          </div>
+          <% if (v.online.can) { %>
+            <a class="mp-btn" href="/student/my-pg/pay<%= q %>">Pay ₹<%= Math.round(v.due).toLocaleString("en-IN") %></a>
+            <a class="mp-link" href="/student/my-pg/pay<%= q %>&change=1">Pay a different amount</a>
+            <div class="mp-trust">🔒 Secured by Razorpay · UPI, cards, netbanking</div>
+          <% } else if (why) { %>
+            <div class="mp-note blue">💵 <span><%= why %></span></div>
+          <% } %>
+        <% } else { %>
+          <div class="mp-clear">✅ <%= v.advance > 0 ? "All paid, with ₹" + Math.round(v.advance).toLocaleString("en-IN") + " in advance for the next rent." : "All paid. Nothing is due right now." %></div>
+        <% } %>
+      </section>
+
+      <% if (v.deposit.held > 0) { %>
+      <section class="mp-card" aria-label="Deposit">
+        <div class="mp-row"><div style="font-weight:800">🔒 Deposit held</div><div style="font-weight:800">₹<%= Math.round(v.deposit.held).toLocaleString("en-IN") %></div></div>
+        <div class="mp-soft" style="margin-top:4px">Refunded or adjusted when you move out</div>
+      </section>
+      <% } %>
+
+      <section class="mp-card" aria-labelledby="h-leave">
+        <h2 id="h-leave">Leaving?</h2>
+        <% if (v.notice.state === "set") { %>
+          <div class="mp-note ok">✅ <span>Your leaving date is <b><%= v.notice.date %></b><%= v.notice.fromRequest ? ", confirmed by " + v.property : "" %>. Your deposit is settled when you move out.</span></div>
+        <% } else if (v.notice.state === "pending") { %>
+          <div class="mp-note warn">⏳ <span>You asked to leave on <b><%= v.notice.date %></b>. Waiting for <%= v.property %> to confirm.</span></div>
+          <form method="POST" action="/student/my-pg/notice/withdraw" style="margin:0" onsubmit="return confirm('Take back your request? You stay on.')"><input type="hidden" name="m" value="<%= v.id %>"><button type="submit" class="mp-link">Take back the request</button></form>
+        <% } else { %>
+          <% if (v.notice.state === "declined") { %><div class="mp-note bad" style="margin-bottom:10px">✖️ <span><%= v.property %> did not accept leaving on <%= v.notice.date %>. Talk to the owner, or ask for another date.</span></div><% } %>
+          <div class="mp-soft" style="margin-bottom:12px">Tell <%= v.property %> the date you plan to leave. The owner confirms it.</div>
+          <a class="mp-btn is-ghost" href="/student/my-pg/notice<%= q %>">Give notice to leave</a>
+        <% } %>
+      </section>
+    </div>
+
+    <div>
+      <section class="mp-card" aria-labelledby="h-months">
+        <h2 id="h-months">Months</h2>
+        <% if (!v.months.length) { %><div class="mp-soft">Your rent shows here month by month once the owner charges it.</div><% } %>
+        <% v.months.forEach(function (mo, i) { %>
+          <div class="mp-m" <%- i >= 6 ? 'data-more hidden' : '' %>><div><%= mo.label %><small><%= mo.sub %></small></div><span class="mp-pill <%= mo.pill.tone %>"><%= mo.pill.text %></span></div>
+        <% }) %>
+        <% if (v.months.length > 6) { %><button type="button" class="mp-link" data-show="more">Show all <%= v.months.length %> months</button><% } %>
+      </section>
+
+      <section class="mp-card" aria-labelledby="h-rc">
+        <h2 id="h-rc">Receipts</h2>
+        <% if (!v.receipts.length) { %><div class="mp-soft">No payments yet. Each payment gets a receipt here, cash ones too.</div><% } %>
+        <% v.receipts.forEach(function (r, i) { %>
+          <div class="mp-r" <%- i >= 8 ? 'data-rmore hidden' : '' %>><div><%= r.amount %><%= r.way ? " · " + r.way : "" %><small><%= [r.when, r.no, r.by].filter(Boolean).join(" · ") %></small></div>
+            <% if (r.pdf) { %><a href="/student/my-pg/receipt/<%= r.id %>.pdf" target="_blank" rel="noopener" aria-label="Receipt PDF for <%= r.amount %> on <%= r.when %>">PDF</a><% } %></div>
+        <% }) %>
+        <% if (v.receipts.length > 8) { %><button type="button" class="mp-link" data-show="rmore">Show all receipts</button><% } %>
+      </section>
+    </div>
+  </div>
+</main>
+<style>@media (max-width: 560px) { .mp-hide-m { display: none; } }</style>
+<script>
+document.querySelectorAll('[data-show]').forEach(function (b) {
+  b.addEventListener('click', function () { document.querySelectorAll('[data-' + b.getAttribute('data-show') + ']').forEach(function (x) { x.hidden = false; }); b.remove(); });
+});
+</script>
+</body></html>

@@ -1,0 +1,54 @@
+<%# Property Operations Phase 8 — one booking: "Booking requested" after paying, its status, cancel. %>
+<%- include("../mypg/_head.ejs", { title: state === "booked" ? "Booking " + (b.no || "") : "Booking" }) %>
+<%- include("_style.ejs") %>
+<body class="mp">
+<%- include("../mypg/_top.ejs") %>
+<main class="mp-page <%= state !== 'booked' || fresh ? 'mp-center' : '' %>" style="padding-top:24px">
+<% if (state === "booked") { const step = b.status === "requested" ? 1 : b.status === "accepted" ? 2 : b.status === "moved_in" ? 3 : 0; %>
+  <% if (fresh) { %>
+    <div class="mp-big" style="background:var(--gt)" aria-hidden="true">📨</div>
+    <h1 style="margin-top:14px">Booking requested</h1>
+    <div class="mp-soft" style="margin:4px 0 16px"><%= b.property %> answers by <b><%= b.answerBy %></b></div>
+  <% } else { %>
+    <a class="mp-crumb" href="/student/bookings">← My bookings</a>
+    <div class="mp-row" style="margin:6px 0 12px;align-items:flex-start"><div><h1 style="margin:0"><%= b.property %></h1><div class="mp-soft"><%= b.no %></div></div><span class="mp-pill <%= b.tone %>"><%= b.label %></span></div>
+  <% } %>
+  <% if (dup) { %><div class="mp-note warn" role="status" style="margin-bottom:12px;text-align:left">ℹ️ <span>This booking was already paid. If you paid a second time, that payment is not needed and is returned to you by Razorpay (or HostelNode support) within a few working days.</span></div><% } %>
+  <section class="mp-card" style="text-align:left">
+    <% if (step) { %><div class="bk-tl"><div class="<%= step >= 1 ? 'd' : '' %>"><i></i>Requested</div><div class="<%= step >= 2 ? 'd' : '' %>"><i></i>Accepted</div><div class="<%= step >= 3 ? 'd' : '' %>"><i></i>Moved in</div></div><% } %>
+    <div class="mp-m"><span class="mp-k">Room</span><span><%= b.roomType %><%= b.bed ? " · " + b.bed : "" %></span></div>
+    <div class="mp-m"><span class="mp-k">Move in</span><span><%= b.moveIn %></span></div>
+    <div class="mp-m"><span class="mp-k">Paid</span><span><%= b.total %><%= b.paidAt ? " · " + b.paidAt : "" %></span></div>
+    <div class="mp-m"><span class="mp-k">Counts towards</span><span><%= b.countsTowards === "deposit" ? "Deposit" : "First month's rent" %> (<%= b.amount %>)</span></div>
+    <% if (b.status === "requested" && !fresh) { %><div class="mp-m"><span class="mp-k">Owner answers by</span><span><%= b.answerBy %></span></div><% } %>
+    <% if (b.reason) { %><div class="mp-m"><span class="mp-k">Reason</span><span style="text-align:right"><%= b.reason %></span></div><% } %>
+    <% if (b.refund) { %><div class="mp-m"><span class="mp-k">Refund</span><span><%= b.refund %></span></div><% } %>
+    <div class="mp-m"><span class="mp-k">Booking no.</span><span><%= b.no %></span></div>
+  </section>
+  <% if (fresh) { %><div class="mp-note warn" style="text-align:left">💬 <span><%= waOn ? "Confirmation sent on WhatsApp. " : "" %>If the owner declines or doesn't answer within 72 hours, you get the full <%= b.total %> back automatically.</span></div><% } %>
+  <% if (b.status === "accepted") { %><div class="mp-note ok" style="text-align:left;margin-bottom:12px">✅ <span><%= b.property %> accepted your booking<%= b.bed ? ": " + b.bed : "" %>. Bring your ID on <%= b.moveIn %>.</span></div><% } %>
+  <% if (b.status === "moved_in") { %><div class="mp-note blue" style="text-align:left;margin-bottom:12px">🏠 <span>You moved in. Your rent and receipts are in <a href="/student/my-pg" style="color:inherit;font-weight:800">My PG</a>.</span></div><% } %>
+  <% if (b.cancel) { %>
+    <section class="mp-card" id="cancel" style="text-align:left"><h2>Cancel this booking?</h2>
+      <div class="mp-soft" style="margin-bottom:10px"><%= b.cancel.none ? "Cancelling now gives no refund (" + b.rule.replace(/^.*After they accept: /, "after acceptance: ") + ")" : b.cancel.full ? "You get the full " + b.cancel.refund + " back." : "You get " + b.cancel.refund + " back, as the PG's rule says: " + b.rule.replace(/^.*After they accept: /, "") %></div>
+      <% if (typeof changed !== "undefined" && changed) { %><div class="mp-note warn" role="alert" style="margin-bottom:10px">ℹ️ <span>The booking changed a moment ago, so the refund is different now. Please check it before cancelling.</span></div><% } %>
+      <form method="POST" action="/student/bookings/<%= b.id %>/cancel" style="margin:0" onsubmit="return confirm('Cancel your booking at <%= String(b.property).replace(/['\\<>]/g, '') %>? <%= b.cancel.none ? 'No refund.' : b.cancel.refund + ' comes back to you.' %>')">
+        <input type="hidden" name="expect" value="<%= b.cancel.paise %>">
+        <button type="submit" class="mp-btn is-ghost" style="color:var(--coral) !important">Cancel booking<%= b.cancel.none ? "" : " · " + b.cancel.refund + " back" %></button></form></section>
+  <% } %>
+  <a class="mp-btn is-ghost" href="/student/bookings" style="margin-top:6px">My bookings</a>
+<% } else if (state === "pending") { %>
+  <div class="mp-big" style="background:var(--bt)" aria-hidden="true">⏳</div>
+  <h1 style="margin-top:14px">Confirming your payment</h1>
+  <div class="mp-soft" style="margin:6px 0 16px">This usually takes a few seconds. You don't need to pay again; this page updates by itself.</div>
+  <a class="mp-btn is-ghost" href="/student/bookings/<%= b.id %>?w=1">Check now</a>
+  <script>(function () { var n = 0; var t = setInterval(function () { if (++n > 15) { clearInterval(t); return; } fetch(location.href, { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (h) { if (h.indexOf('data-bk-state=' + '"booked"') > -1) { clearInterval(t); location.reload(); } }).catch(function () {}); }, 4000); })();</script>
+<% } else { %>
+  <div class="mp-big" style="background:var(--ct)" aria-hidden="true">✖️</div>
+  <h1 style="margin-top:14px">Payment not completed</h1>
+  <div class="mp-soft" style="margin:6px 0 16px">Nothing was booked. If money was taken from your account, it is recorded here automatically within a few minutes, or returned by your bank.</div>
+  <a class="mp-btn" href="/student/book/<%= b.listing %>">Try again</a>
+<% } %>
+<span data-bk-state="<%= state %>" hidden></span>
+</main>
+</body></html>

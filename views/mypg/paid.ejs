@@ -1,0 +1,37 @@
+<%# Property Operations Phase 7 — after paying: paid (with receipt), confirming, or not paid. %>
+<%- include("_head.ejs", { title: state === "success" ? "Rent paid" : "Payment" }) %>
+<body class="mp">
+<%- include("_top.ejs") %>
+<main class="mp-page mp-center" style="padding-top:28px">
+<% if (state === "success") { %>
+  <div class="mp-big" style="background:var(--gt)" aria-hidden="true">✅</div>
+  <h1 style="margin-top:14px"><%= done.amount %> paid</h1>
+  <div class="mp-soft" style="margin:4px 0 16px">to <%= property %> · <%= done.when %></div>
+  <section class="mp-card" style="text-align:left">
+    <div class="mp-m"><span class="mp-k">Receipt</span><span><%= done.receiptNo %></span></div>
+    <div class="mp-m"><span class="mp-k">Paid by</span><span style="text-align:right"><%= done.way %> · Razorpay <%= done.payId %></span></div>
+    <% if (done.total) { %><div class="mp-m"><span class="mp-k">Total with fee</span><span><%= done.total %></span></div><% } %>
+    <div class="mp-m"><span class="mp-k">For</span><span style="text-align:right"><%= done.forText %></span></div>
+    <% if (done.dueAfter) { %><div class="mp-m"><span class="mp-k">Still due</span><span><%= done.dueAfter %></span></div><% } %>
+  </section>
+  <a class="mp-btn" href="<%= done.receipt %>" target="_blank" rel="noopener">⬇ Download receipt</a>
+  <a class="mp-link" href="/student/my-pg?m=<%= m %>">Back to My PG</a>
+  <% if (dup) { %><div class="mp-note warn" style="margin-top:16px;text-align:left" role="status">ℹ️ <span>This rent was already paid. If you paid a second time, that second payment is not needed and is returned to you by Razorpay (or by HostelNode support) within a few working days.</span></div><% } %>
+  <div class="mp-note ok" style="margin-top:16px;text-align:left">💬 <span><%= receiptWa ? "The receipt is also sent to you on WhatsApp. " : "" %><%= property %> sees the payment at once.</span></div>
+<% } else if (state === "pending") { %>
+  <div class="mp-big" style="background:var(--bt)" aria-hidden="true">⏳</div>
+  <h1 style="margin-top:14px">Confirming your payment</h1>
+  <div class="mp-soft" style="margin:6px 0 16px">This usually takes a few seconds. You don't need to pay again; this page updates by itself.</div>
+  <a class="mp-btn is-ghost" href="/student/my-pg/paid/<%= rec._id %>?w=1">Check now</a>
+  <a class="mp-link" href="/student/my-pg?m=<%= m %>">Back to My PG</a>
+  <script>(function () { var n = 0; var t = setInterval(function () { if (++n > 15) { clearInterval(t); return; } fetch(location.href, { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (h) { if (h.indexOf('data-mp-state=' + '"success"') > -1) { clearInterval(t); location.reload(); } }).catch(function () {}); }, 4000); })();</script>
+<% } else { %>
+  <div class="mp-big" style="background:var(--ct)" aria-hidden="true">✖️</div>
+  <h1 style="margin-top:14px">Payment not completed</h1>
+  <div class="mp-soft" style="margin:6px 0 16px"><%= failure ? failure + ". " : "" %>If money was taken from your account, it is recorded here automatically within a few minutes, or returned by your bank.</div>
+  <a class="mp-btn" href="/student/my-pg/pay?m=<%= m %>">Try again</a>
+  <a class="mp-link" href="/student/my-pg?m=<%= m %>">Back to My PG</a>
+<% } %>
+<span data-mp-state="<%= state %>" hidden></span>
+</main>
+</body></html>

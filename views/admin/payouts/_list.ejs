@@ -1,0 +1,40 @@
+<%# Body of /admin/payouts. Every value is printed escaped. %>
+<%- include('_style') %>
+<%
+  const day = d => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—';
+  const rate = (t, v) => t === 'fixed' ? '₹' + v + ' per payment' : v + '%';
+  const chips = [['all', 'All', total], ['attention', 'Needs attention', c.needs_attention || 0], ['review', 'Under review', c.under_review || 0], ['active', 'Active', c.active || 0], ['hold', 'On hold', held], ['suspended', 'Suspended', c.suspended || 0], ['draft', 'Not finished', c.draft || 0]];
+%>
+<div class="page-header"><div class="page-header-left"><h1>Owner payouts</h1><p>Owners' bank accounts for online rent (Razorpay Route). Owners add and change them in their dashboard; Razorpay checks them.</p></div>
+  <a href="/admin/payouts/settings" class="btn btn-outline"><i class="fa-solid fa-percent"></i> Fees &amp; commission</a></div>
+
+<div class="po-stats">
+  <div class="card"><small>Active</small><b style="color:#15803d"><%= c.active || 0 %></b></div>
+  <div class="card"><small>Under review</small><b style="color:#1d4ed8"><%= c.under_review || 0 %></b></div>
+  <div class="card"><small>Needs attention</small><b style="color:#b45309"><%= c.needs_attention || 0 %></b></div>
+  <div class="card"><small>On hold by you</small><b><%= held %></b></div>
+</div>
+<nav class="po-chips" aria-label="Filter">
+  <% chips.forEach(function (x) { %><a href="/admin/payouts<%= x[0] === 'all' ? '' : '?f=' + x[0] %>" <%- f === x[0] ? 'aria-current="page"' : '' %>><%= x[1] %> <%= x[2] %></a><% }) %>
+</nav>
+<div class="card">
+  <% if (!rows.length) { %><div class="pl-empty"><h3><%= f === 'all' ? 'No owner has started yet' : 'No owners here' %></h3><p>Owners add their bank account in the owner dashboard: account menu → Receive payments.</p></div>
+  <% } else { %>
+  <div class="table-wrap"><table class="admin-table">
+    <thead><tr><th>Owner</th><th>Bank</th><th>Status</th><th>Since</th><th>Commission</th><th>Payouts</th><th></th></tr></thead>
+    <tbody>
+    <% rows.forEach(function (r) { const o = byOwner.get(String(r.owner)) || {}; const L = LABEL[r.status] || LABEL.draft; %>
+      <tr>
+        <td><div class="cell-name"><%= o.name || '(owner removed)' %></div><div class="cell-sub"><%= [firstHostel.get(String(r.owner)), r.legalName, o.email].filter(Boolean).join(' · ') %></div></td>
+        <td><div class="cell-name"><%= r.bankLast4 ? (r.bankName || 'Bank') + ' ••' + r.bankLast4 : '—' %></div><div class="cell-sub"><%= r.ifsc || '' %></div></td>
+        <td><span class="badge badge-<%= L[1] %>"><%= L[0] %></span><% if (r.mode === 'test') { %> <span class="badge badge-gray">test</span><% } %></td>
+        <td><div class="cell-sub"><%= day(r.status === 'active' ? r.activatedAt : r.submittedAt || r.createdAt) %></div></td>
+        <td><div class="cell-sub"><%= r.commission && r.commission.own ? rate(r.commission.type, r.commission.value) + ' (own)' : 'Default (' + rate(fees.commissionType, fees.commissionValue) + ')' %></div></td>
+        <td><% if (r.hold && r.hold.on) { %><span class="badge badge-gray">On hold</span><% } else if (r.status === 'active') { %><span class="badge badge-green">Flowing</span><% } else { %>—<% } %></td>
+        <td><a class="btn btn-outline btn-sm" href="/admin/payouts/owner/<%= r.owner %>">Open</a></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+  <% } %>
+</div>

@@ -1,0 +1,22 @@
+<%# Property Operations Phase 8 — booking pages (on top of the My PG look). %>
+<style>
+  .bk-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1.5px solid #dbe3df; border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; background: #fff; cursor: pointer; font-weight: 700; font-size: 14px; }
+  .bk-opt small { display: block; color: var(--muted); font-weight: 500; font-size: 12.5px; margin-top: 2px; }
+  .bk-opt input { width: 18px; height: 18px; accent-color: var(--g); flex: none; margin: 0; }
+  .bk-opt:has(input:checked) { border: 2px solid var(--g); background: #effbf4; }
+  .bk-opt.is-off { opacity: .55; cursor: not-allowed; }
+  .bk-opt:focus-within { outline: 3px solid rgba(9,184,80,.3); outline-offset: 2px; }
+  .bk-tl { display: flex; margin: 4px 0 12px; }
+  .bk-tl div { flex: 1; text-align: center; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+  .bk-tl i { display: block; height: 6px; border-radius: 99px; background: #dbe7e1; margin: 0 2px 6px; }
+  .bk-tl .d i { background: var(--g); } .bk-tl .d { color: var(--ink); }
+  .bk-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 10px; box-shadow: 0 14px 30px -26px rgba(16,35,27,.5); }
+  .bk-card .h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .bk-card b { font-size: 15px; }
+  .bk-card small { display: block; color: var(--muted); font-size: 12.5px; font-weight: 500; margin-top: 2px; line-height: 1.45; }
+  .bk-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .bk-sbtn { display: inline-flex; align-items: center; min-height: 38px; padding: 0 14px; border-radius: 11px; border: 1.5px solid #dbe3df; background: #fff; font-weight: 800; font-size: 13px; color: var(--ink) !important; text-decoration: none; cursor: pointer; font-family: inherit; }
+  .bk-sbtn:hover { border-color: var(--g); background: var(--gt); }
+  .bk-sbtn.is-red { color: var(--coral) !important; }
+  .bk-muted { opacity: .8; }
+</style>

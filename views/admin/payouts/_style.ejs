@@ -1,0 +1,33 @@
+<%- include('../plans/_style') %>
+<style>
+  .po-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .po-stats .card { margin: 0; padding: 14px 16px; }
+  .po-stats small { display: block; font-size: 12px; color: #64748b; font-weight: 700; }
+  .po-stats b { display: block; font-size: 24px; color: #0f172a; margin-top: 4px; }
+  .po-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .po-chips a { font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 99px; background: #fff; border: 1px solid #d5dce3; color: #475569; text-decoration: none; }
+  .po-chips a[aria-current="page"] { background: #111827; color: #fff; border-color: #111827; }
+  .po-seg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .po-seg label { flex: 1; min-width: 140px; margin: 0; }
+  .po-seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .po-seg span { display: block; text-align: center; padding: 10px 12px; border: 1.5px solid #d5dce3; border-radius: 10px; font-size: 13px; font-weight: 700; color: #334155; background: #fff; cursor: pointer; }
+  .po-seg input:checked + span { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+  .po-seg input:focus-visible + span { outline: 3px solid rgba(22,163,74,.35); outline-offset: 2px; }
+  .po-calc { background: #f8fafc; border-radius: 12px; padding: 12px 14px; font-size: 13px; font-weight: 600; margin-top: 12px; max-width: 420px; }
+  .po-calc .ln { display: flex; justify-content: space-between; padding: 4px 0; }
+  .po-calc .tot { border-top: 1px solid #e2e8f0; margin-top: 4px; padding-top: 8px; font-weight: 800; }
+  .po-hist { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #eef2f6; }
+  .po-hist:last-child { border-bottom: 0; }
+  .po-hist small { color: #64748b; display: block; margin-top: 2px; }
+  .po-status { border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; font-size: 13.5px; font-weight: 600; }
+  .po-status b { display: block; font-size: 15px; margin-bottom: 4px; }
+  .po-status.green { background: #f0fdf4; color: #166534; } .po-status.blue { background: #eff6ff; color: #1e40af; } .po-status.amber { background: #fffbeb; color: #92400e; } .po-status.red { background: #fef2f2; color: #991b1b; } .po-status.gray { background: #f1f5f9; color: #334155; }
+  .po-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .po-tbl th { text-align: left; font-size: 12px; color: #64748b; font-weight: 700; padding: 8px; border-bottom: 1px solid #e2e8f0; }
+  .po-tbl td { padding: 9px 8px; border-bottom: 1px solid #eef2f6; font-weight: 600; vertical-align: top; }
+  .po-tbl td small { display: block; color: #64748b; font-weight: 500; font-size: 11.5px; margin-top: 2px; overflow-wrap: anywhere; }
+  .po-tbl .r { text-align: right; white-space: nowrap; }
+  .po-pill { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+  .po-pill.green { background: #dcfce7; color: #15803d; } .po-pill.blue { background: #dbeafe; color: #1e40af; } .po-pill.gray { background: #e2e8f0; color: #334155; } .po-pill.red { background: #fee2e2; color: #991b1b; }
+  @media (max-width: 760px) { .po-stats { grid-template-columns: 1fr 1fr; } }
+</style>

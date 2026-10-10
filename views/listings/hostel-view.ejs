@@ -839,9 +839,12 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
               <i class="fa-solid fa-circle"></i>
               <%= hnFree === null ? (room.available ? 'Available now' : 'Waitlist') : (hnFree > 0 ? (hnFree === 1 ? '1 bed free' : hnFree + ' beds free') : 'Full right now') %>
             </span>
-            <button class="btn-book-room" onclick="openBooking('<%= room.type %>', <%= room.price %>)">
-              Enquire Now
+            <% const hnBt = typeof hnBook !== "undefined" && hnBook ? hnBook.types[i] : null; /* Property Operations Phase 8 */ %>
+            <% if (hnBt && hnBt.can) { %><span class="hn8-pair"><% } %>
+            <button class="btn-book-room<%= hnBt && hnBt.can ? ' hn8-ghost' : '' %>" onclick="openBooking('<%= room.type %>', <%= room.price %>)">
+              <%= hnBt && hnBt.can ? "Enquire" : "Enquire Now" %>
             </button>
+            <% if (hnBt && hnBt.can) { %><a class="btn-book-room hn8-book" href="/student/book/<%= hnBook.id %>?type=<%= i %>">Book</a></span><% } %>
           </div>
         </div>
         <% }) %>
@@ -1166,10 +1169,13 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
       <!-- CTA buttons -->
 <!-- CTA buttons -->
 <div class="bc-actions">
-  <button class="cta-primary" id="contactOwnerBtn" onclick="openContactModal()">
+  <% const hnCanBook = typeof hnBook !== "undefined" && hnBook && hnBook.free > 0; /* Property Operations Phase 8 */ %>
+  <% if (hnCanBook) { %><div class="hn8-row"><a class="cta-primary hn8-cta" href="/student/book/<%= hnBook.id %>"><i class="fa-solid fa-bed"></i><span>Book now</span></a><% } %>
+  <button class="cta-primary<%= hnCanBook ? ' hn8-ghost' : '' %>" id="contactOwnerBtn" onclick="openContactModal()">
     <i class="fa-solid fa-paper-plane"></i>
     <span>Contact Owner</span>
   </button>
+  <% if (hnCanBook) { %></div><div class="hn8-note"><%= hnBook.free === 1 ? "1 bed free" : hnBook.free + " beds free" %> · pay ₹<%= Math.round(hnBook.from).toLocaleString("en-IN") %> to book · refundable until accepted</div><% } %>
 
 <div class="cta-secondary-row">
   <button class="cta-secondary" onclick="scrollToRooms()">
@@ -1217,7 +1223,7 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
       <!-- EMI note -->
       <div class="bc-emi">
         <i class="fa-solid fa-calendar-days"></i>
-        Monthly rent — no advance booking fee
+        <%= hnCanBook ? "Booking amount counts towards your first rent or deposit" : "Monthly rent — no advance booking fee" %><%# (Phase 8: not "no booking fee" when this PG takes bookings) %>
       </div>
 
     </div><!-- /booking-card -->
@@ -2043,6 +2049,19 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
 <!-- ============================================================
      MOBILE BOTTOM BAR
 ============================================================ -->
+<%# Property Operations Phase 8: Book buttons (only when the owner switched booking on for this listing). %>
+<style>
+  .hn8-pair { display: inline-flex; gap: 6px; align-items: center; }
+  .hn8-pair .btn-book-room { margin: 0; }
+  .btn-book-room.hn8-ghost { background: #fff !important; color: #0f172a !important; border: 1.5px solid #d6e0db !important; box-shadow: none !important; }
+  a.hn8-book { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+  .hn8-row { display: flex; gap: 8px; }
+  .hn8-row > * { flex: 1; min-width: 0; }
+  .hn8-row a.hn8-cta { text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .hn8-row .hn8-ghost { background: #fff !important; color: #0f172a !important; border: 1.5px solid #d6e0db !important; box-shadow: none !important; }
+  .hn8-note { font-size: 12px; color: #64748b; text-align: center; margin: 8px 0 2px; font-weight: 500; }
+  a.hn8-mbb { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+</style>
 <div class="mobile-bottom-bar">
   <div class="mbb-price">
     <div class="mbb-from">From</div>
@@ -2052,9 +2071,10 @@ content="https://hostelnode.com/hostel/<%= hostel.slug %>">
     <button class="mbb-call" onclick="openContactModal()">
       <i class="fa-solid fa-paper-plane"></i> Contact
     </button>
+    <% if (typeof hnBook !== "undefined" && hnBook && hnBook.free > 0) { %><a class="mbb-book hn8-mbb" href="/student/book/<%= hnBook.id %>">Book now</a><% } else { %>
     <button class="mbb-book" onclick="scrollToRooms()">
       View Rooms
-    </button>
+    </button><% } %>
   </div>
 </div>
 <!-- Bootstrap JS -->

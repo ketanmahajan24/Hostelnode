@@ -1,0 +1,46 @@
+<%# Body of /admin/payouts/settings. Every value is printed escaped. %>
+<%- include('_style') %>
+<div class="page-header"><div class="page-header-left"><h1>Fees &amp; commission</h1><p>Used when tenants pay rent online. Owners see them in their dashboard; only you can change them. An owner can have their own commission (open them in Owner payouts).</p></div>
+  <a href="/admin/payouts" class="btn btn-outline">Owner payouts</a></div>
+<% if (saved) { %><div class="pl-note ok" role="status"><i class="fa-solid fa-circle-check"></i><div>Saved. New online payments use these from now on.</div></div><% } %>
+<% if (error) { %><div class="pl-note err" role="alert"><i class="fa-solid fa-circle-xmark"></i><div><%= error %></div></div><% } %>
+<form method="POST" action="/admin/payouts/settings" data-po-form>
+<div class="pl-grid2">
+  <div class="card"><div class="card-body" style="padding:18px 20px">
+    <h3 style="margin:0 0 4px;font-size:1rem">HostelNode commission</h3><p class="pl-help" style="margin:0 0 12px">Kept by HostelNode from each online rent payment. Can be 0. Check with your CA before switching one on.</p>
+    <div class="po-seg" role="radiogroup" aria-label="Commission type"><label><input type="radio" name="commissionType" value="percent" <%= s.commissionType !== 'fixed' ? 'checked' : '' %>><span>Percentage</span></label><label><input type="radio" name="commissionType" value="fixed" <%= s.commissionType === 'fixed' ? 'checked' : '' %>><span>Fixed ₹ per payment</span></label></div>
+    <div class="form-group"><label class="form-label" for="po-cv">Commission (% or ₹)</label><input id="po-cv" class="form-input" name="commissionValue" value="<%= s.commissionValue %>" inputmode="decimal" style="max-width:200px"></div>
+  </div></div>
+  <div class="card"><div class="card-body" style="padding:18px 20px">
+    <h3 style="margin:0 0 4px;font-size:1rem">Payment gateway fee</h3><p class="pl-help" style="margin:0 0 12px">Razorpay's fee for the payment. Set it to match your Razorpay pricing (often about 2% for UPI and cards).</p>
+    <div class="po-seg" role="radiogroup" aria-label="Fee type"><label><input type="radio" name="feeType" value="percent" <%= s.feeType !== 'fixed' ? 'checked' : '' %>><span>Percentage</span></label><label><input type="radio" name="feeType" value="fixed" <%= s.feeType === 'fixed' ? 'checked' : '' %>><span>Fixed ₹</span></label></div>
+    <div class="form-group"><label class="form-label" for="po-fv">Fee (% or ₹)</label><input id="po-fv" class="form-input" name="feeValue" value="<%= s.feeValue %>" inputmode="decimal" style="max-width:200px"></div>
+    <div class="form-label" id="po-who">Who pays it</div>
+    <div class="po-seg" role="radiogroup" aria-labelledby="po-who"><label><input type="radio" name="feePaidBy" value="tenant" <%= s.feePaidBy === 'tenant' ? 'checked' : '' %>><span>Tenant (added to the amount)</span></label><label><input type="radio" name="feePaidBy" value="owner" <%= s.feePaidBy !== 'tenant' ? 'checked' : '' %>><span>Owner (taken from the payout)</span></label></div>
+    <div class="po-calc" aria-live="polite" data-po-calc></div>
+  </div></div>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:14px">Save fees &amp; commission</button>
+<% if (s.updatedBy) { %><span class="pl-help" style="margin-left:10px">Last changed by <%= s.updatedBy %></span><% } %>
+</form>
+<script>
+(function () {
+  var f = document.querySelector('[data-po-form]'), out = document.querySelector('[data-po-calc]'); if (!f || !out) return;
+  function inr(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+  function row(a, b, cls) { var d = document.createElement('div'); d.className = 'ln' + (cls ? ' ' + cls : ''); var x = document.createElement('span'); x.textContent = a; var y = document.createElement('span'); y.textContent = b; d.appendChild(x); d.appendChild(y); return d; }
+  function calc() {
+    var rent = 6500, v = function (n) { return Number(String(f[n].value || '0').replace(/[,₹%\s]/g, '')) || 0; };
+    var ct = f.querySelector('[name=commissionType]:checked').value, ft = f.querySelector('[name=feeType]:checked').value, who = f.querySelector('[name=feePaidBy]:checked').value;
+    var fee = ft === 'fixed' ? v('feeValue') : Math.round(rent * v('feeValue') / 100);
+    var com = ct === 'fixed' ? v('commissionValue') : Math.round(rent * v('commissionValue') / 100);
+    var pays = who === 'tenant' ? rent + fee : rent;
+    out.innerHTML = '';
+    var h = document.createElement('div'); h.style.cssText = 'font-size:12px;color:#64748b;margin-bottom:4px'; h.textContent = 'Example: rent ' + inr(rent); out.appendChild(h);
+    out.appendChild(row('Tenant pays', inr(pays)));
+    out.appendChild(row('Gateway fee', '− ' + inr(fee)));
+    out.appendChild(row('HostelNode commission', '− ' + inr(com)));
+    out.appendChild(row('Owner receives', inr(pays - fee - com), 'tot'));
+  }
+  f.addEventListener('input', calc); f.addEventListener('change', calc); calc();
+})();
+</script>

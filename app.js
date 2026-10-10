@@ -1,10 +1,9 @@
-//  ============================================================
-  //  app.js  —  HostelNode Main Server
-
+/* ============================================================
+   app.js  —  HostelNode Main Server
+============================================================ */
 require('dotenv').config({
   path: '/root/hostelnode-envs/hostelnode.com/.env'
- });
-
+});
 // At the top with other requires
 const userRouter = require("./routes/userRoutes.js"); // or whatever your owner router file is named
 
@@ -112,6 +111,8 @@ app.engine("ejs", ejsMate);
 //   ROUTES  —  ORDER MATTERS
 // ════════════════════════════════════════════════════════════
 app.post("/track-location", trackGpsLocation);
+app.use(require("./routes/myPgRoutes").myPgLink);   // Property Operations Phase 7: "My PG" in the student menu (tenants only)
+app.use(require("./routes/bookingRoutes").bookingsLink);   // Property Operations Phase 8: "My bookings" in the student menu
 
 app.use("/webhook",     waBot);
 app.use(require("./Middlewares/planGate"));   // Subscriptions Phase 4: plan limits (only when switched on in /admin/plans)
@@ -122,8 +123,11 @@ app.use("/admin",       require("./routes/adminSubscriptionRoutes"));   // Subsc
 app.use("/admin",       require("./routes/adminPaymentsRoutes"));   // Subscriptions Phase 3: /admin/payments
 app.use("/admin",       require("./routes/adminBusinessRoutes"));   // Subscriptions Phase 5: /admin/subscriptions (read-only business view)
 app.use("/admin",       require("./routes/adminKycRoutes"));   // Property Operations Phase 4: /admin/kyc
+app.use("/admin",       require("./routes/adminPayoutsRoutes"));   // Property Operations Phase 6: /admin/payouts (owner bank payouts, fees & commission)
 app.use("/admin",       adminRouter);
 app.use("/",            require("./routes/kycRoutes")); // Property Operations Phase 4 — DigiLocker KYC (/kyc, /student/kyc/start, profile card)
+app.use("/",            require("./routes/myPgRoutes")); // Property Operations Phase 7 — My PG: tenants pay rent online (/student/my-pg)
+app.use("/",            require("./routes/bookingRoutes")); // Property Operations Phase 8 — book a bed from a listing (/student/book, /student/bookings)
 app.use("/student",     studentRouter);
 app.use("/findHostels", findHostelsRouter);
 app.use("/city",        cityRouter);

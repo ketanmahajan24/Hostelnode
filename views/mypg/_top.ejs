@@ -1,0 +1,2 @@
+<div class="mp-top"><a href="/" class="mp-brand"><img src="/images/hostelnode-logo-cutout.png" alt="">HostelNode</a>
+  <% if (typeof student !== "undefined" && student) { %><a href="/student/" class="mp-back">← Back to dashboard</a><% } else { %><a href="<%= typeof loginHref !== 'undefined' ? loginHref : '/student/login' %>" class="mp-back">Log in</a><% } %></div>

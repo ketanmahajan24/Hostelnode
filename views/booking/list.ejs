@@ -1,0 +1,24 @@
+<%# Property Operations Phase 8 — My bookings. %>
+<%- include("../mypg/_head.ejs", { title: "My bookings" }) %>
+<%- include("_style.ejs") %>
+<body class="mp">
+<%- include("../mypg/_top.ejs") %>
+<main class="mp-page">
+  <h1>My bookings</h1>
+  <div class="mp-soft" style="margin-bottom:14px">Beds you booked on HostelNode</div>
+  <% if (msg) { %><div class="mp-note ok mp-flash" role="status">✅ <span><%= msg %></span></div><% } %>
+  <% if (!list.length) { %>
+    <section class="mp-card"><div class="mp-soft">No bookings yet. On a PG's page, choose <b>Book</b> next to a room type with free beds.</div><a class="mp-btn is-ghost" href="/#search-card" style="margin-top:12px">Find a PG</a></section>
+  <% } %>
+  <% list.forEach(function (b) { %>
+    <div class="bk-card <%= b.tone === 'slate' ? 'bk-muted' : '' %>">
+      <div class="h"><div><b><%= b.property %></b><small><%= [b.roomType, b.bed, (b.status === "moved_in" ? "moved in " : "move in ") + b.moveIn, b.no].filter(Boolean).join(" · ") %></small></div><span class="mp-pill <%= b.tone %>"><%= b.label %></span></div>
+      <div class="mp-soft" style="margin-top:8px;font-size:12.5px">
+        <%= b.status === "requested" ? "Answers by " + b.answerBy + " · " + b.total + " paid" : b.status === "accepted" ? b.amount + " counts towards your " + (b.countsTowards === "deposit" ? "deposit" : "first month's rent") : b.refund ? b.refund + (b.reason ? " · “" + b.reason + "”" : "") : b.status === "moved_in" ? "" : "" %>
+        <% if (b.status === "moved_in") { %>Your rent and receipts are in <a href="/student/my-pg" style="color:var(--g2);font-weight:800;text-decoration:none">My PG</a><% } %></div>
+      <div class="bk-acts"><a class="bk-sbtn" href="/student/bookings/<%= b.id %>">Open</a>
+        <% if (b.cancel) { %><a class="bk-sbtn is-red" href="/student/bookings/<%= b.id %>#cancel"><%= b.cancel.none ? "Cancel · no refund" : b.cancel.full ? "Cancel · full refund" : "Cancel · " + b.cancel.refund + " back" %></a><% } %></div>
+    </div>
+  <% }) %>
+</main>
+</body></html>

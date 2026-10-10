@@ -102,7 +102,16 @@ router.get("/hostel/:slug", optionalStudentAuth, async (req, res) => {
       _id: { $ne: listing._id },
     }).limit(4);
 
+    // Property Operations Phase 8: "Book" on room types with free beds (only when the owner switched booking on).
+    let hnBook = null;
+    try {
+      const av = await require("../utils/bookings").bookability(listing.toObject());
+      if (av.on) hnBook = { id: String(listing._id), types: av.types.map(t => ({ i: t.i, can: t.can, free: t.free, amount: t.amount })), free: av.types.reduce((s, t) => s + (t.can ? t.free : 0), 0),
+        from: Math.min(...av.types.filter(t => t.can).map(t => t.amount).concat([Infinity])) };
+    } catch (e) { console.error("Listing booking (non-fatal):", e.message); }
+
     res.render("listings/hostel-view.ejs", {
+      hnBook,
       hostel: listing,
       similar,
       student,

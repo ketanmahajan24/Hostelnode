@@ -119,11 +119,13 @@ router.get("/kyc/return", async (req, res) => {
   try {
     const vid = String(req.query.vid || req.query.verification_id || "");
     const session = /^[A-Za-z0-9._-]{1,50}$/.test(vid) ? await KycSession.findById(vid).lean() : null;
-    if (!session || session.via !== "student") return res.status(404).render("kyc/return.ejs", { out: { state: "failed", reason: "unknown" }, vid: "", tries: 99, next: "/kyc" });
+    // Property Operations Phase 8: verifying while booking a bed goes back to that booking.
+    const book = validId(String(req.query.book || "")) ? String(req.query.book) : "";
+    if (!session || session.via !== "student") return res.status(404).render("kyc/return.ejs", { out: { state: "failed", reason: "unknown" }, vid: "", tries: 99, next: "/kyc", book: "" });
     const out = await kyc.finish(vid);
     const tries = Math.min(20, Math.max(0, parseInt(req.query.t, 10) || 0));
     res.set("Cache-Control", "no-store");
-    res.render("kyc/return.ejs", { out, vid, tries, next: session.hostel ? "/kyc?p=" + session.hostel : "/student/edit-profile" });
+    res.render("kyc/return.ejs", { out, vid, tries, book, next: book ? "/student/book/" + book : session.hostel ? "/kyc?p=" + session.hostel : "/student/edit-profile" });
   } catch (err) {
     console.error("KYC return (student) error:", err.message);
     res.status(500).send("Something went wrong. Open your profile to check your KYC.");

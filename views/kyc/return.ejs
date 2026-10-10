@@ -3,7 +3,7 @@
 <% const pending = out.state === "pending" && tries < 20; %>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aadhaar verification · HostelNode</title><meta name="robots" content="noindex">
-<% if (pending) { %><meta http-equiv="refresh" content="3;url=/kyc/return?vid=<%= encodeURIComponent(vid) %>&t=<%= tries + 1 %>"><% } %>
+<% if (pending) { %><meta http-equiv="refresh" content="3;url=/kyc/return?vid=<%= encodeURIComponent(vid) %>&t=<%= tries + 1 %><%= typeof book !== 'undefined' && book ? '&book=' + book : '' %>"><% } %>
 <%- include("_style.ejs") %></head>
 <body class="hnk hnk-page">
 <div class="hnk-top"><a href="/">🏠 HostelNode</a></div>

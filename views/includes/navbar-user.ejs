@@ -304,6 +304,8 @@
 
             <div class="hn2-dd-items">
               <a href="/#search-card" class="hn2-drow"><i class="fa-solid fa-magnifying-glass"></i> Find Hostel</a>
+              <% if (typeof hnMyPg !== "undefined" && hnMyPg) { %><a href="/student/my-pg" class="hn2-drow"><i class="fa-solid fa-house-user"></i> My PG</a><% } %>
+              <% if (typeof hnMyBookings !== "undefined" && hnMyBookings) { %><a href="/student/bookings" class="hn2-drow"><i class="fa-solid fa-bed"></i> My bookings</a><% } %>
               <a href="/student/saved" class="hn2-drow"><i class="fa-solid fa-heart"></i> Saved Properties</a>
               <a href="/student/recently-viewed" class="hn2-drow"><i class="fa-solid fa-clock"></i> Recently Viewed</a>
               <a href="/student/edit-profile" class="hn2-drow"><i class="fa-solid fa-user-pen"></i> Edit Profile</a>
@@ -360,6 +362,8 @@
       <a href="/flatmate" class="hn2-drow" data-nav="flatmate"><i class="fa-solid fa-people-roof"></i> Flatmate</a>
       <a href="/messages" class="hn2-drow" data-nav="messages"><i class="fa-solid fa-message"></i> Messages</a>
       <a href="/flatmate/my-listings" class="hn2-drow" data-nav="my-listings"><i class="fa-solid fa-list"></i> My Listings</a>
+      <% if (typeof hnMyPg !== "undefined" && hnMyPg) { %><a href="/student/my-pg" class="hn2-drow"><i class="fa-solid fa-house-user"></i> My PG</a><% } %>
+      <% if (typeof hnMyBookings !== "undefined" && hnMyBookings) { %><a href="/student/bookings" class="hn2-drow"><i class="fa-solid fa-bed"></i> My bookings</a><% } %>
       <a href="/student/saved" class="hn2-drow"><i class="fa-solid fa-heart"></i> Saved Properties</a>
       <a href="/student/recently-viewed" class="hn2-drow"><i class="fa-solid fa-clock"></i> Recently Viewed</a>
       <a href="/#feature-list" class="hn2-drow"><i class="fa-solid fa-star"></i> Features</a>

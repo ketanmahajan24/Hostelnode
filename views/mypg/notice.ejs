@@ -1,0 +1,27 @@
+<%# Property Operations Phase 7 — give notice to leave (the owner confirms it). %>
+<%- include("_head.ejs", { title: "Give notice to leave" }) %>
+<body class="mp">
+<%- include("_top.ejs") %>
+<main class="mp-page">
+  <a class="mp-crumb" href="/student/my-pg?m=<%= v.id %>">← My PG</a>
+  <h1>Give notice to leave</h1>
+  <div class="mp-soft" style="margin-bottom:14px"><%= [v.property, v.roomLine].filter(Boolean).join(" · ") %></div>
+  <% if (v.notice.state === "set") { %>
+    <section class="mp-card"><div class="mp-note ok">✅ <span>Your leaving date is <b><%= v.notice.date %></b>. Talk to the owner to change it.</span></div></section>
+  <% } else if (v.notice.state === "pending") { %>
+    <section class="mp-card"><div class="mp-note warn">⏳ <span>You asked to leave on <b><%= v.notice.date %></b>. Waiting for <%= v.property %> to confirm.</span></div></section>
+  <% } else { %>
+  <section class="mp-card">
+    <% if (error) { %><div class="mp-note bad" role="alert" style="margin-bottom:12px">⚠️ <span><%= error %></span></div><% } %>
+    <form method="POST" action="/student/my-pg/notice" style="margin:0" data-once>
+      <input type="hidden" name="m" value="<%= v.id %>">
+      <div class="mp-f"><label for="nd">Leaving date</label><input id="nd" class="mp-in" type="date" name="date" min="<%= min %>" max="<%= max %>" required aria-describedby="nd-h">
+        <div class="mp-help" id="nd-h">Your rent is charged until then. The deposit is settled when you move out.</div></div>
+      <div class="mp-f"><label for="nr">Reason <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input id="nr" class="mp-in" name="reason" maxlength="60" placeholder="e.g. Got a job in Pune"></div>
+      <button type="submit" class="mp-btn">Send to <%= v.property %></button>
+    </form>
+  </section>
+  <% } %>
+</main>
+<script>document.querySelectorAll('form[data-once]').forEach(function (f) { f.addEventListener('submit', function () { var b = f.querySelector('button'); setTimeout(function () { b.disabled = true; b.textContent = 'Sending…'; }, 0); }); });</script>
+</body></html>

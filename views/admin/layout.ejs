@@ -104,6 +104,14 @@
       </a>
       <% } %>
 
+      <div class="nav-section-label">Payouts</div>
+      <a href="/admin/payouts" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'payouts' ? 'active' : '' %>">
+        <i class="fa-solid fa-building-columns"></i> Owner payouts
+      </a>
+      <a href="/admin/payouts/settings" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'payoutSettings' ? 'active' : '' %>">
+        <i class="fa-solid fa-percent"></i> Fees &amp; commission
+      </a>
+
       <div class="nav-section-label">Verification</div>
       <a href="/admin/kyc" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'kyc' ? 'active' : '' %>">
         <i class="fa-solid fa-id-card"></i> KYC (DigiLocker)

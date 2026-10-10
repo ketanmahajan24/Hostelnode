@@ -1,0 +1,93 @@
+<%# Property Operations Phase 8 — book a bed: room type, move-in date, KYC, booking amount, cancellation rule, pay. %>
+<%- include("../mypg/_head.ejs", { title: "Book a bed" }) %>
+<%- include("_style.ejs") %>
+<body class="mp">
+<%- include("../mypg/_top.ejs") %>
+<% const r = function (n) { return "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN"); };
+   const back = listing.slug ? "/hostel/" + listing.slug : "/";
+   const blocked = kyc.required && !kyc.ok; %>
+<main class="mp-page">
+  <a class="mp-crumb" href="<%= back %>">← <%= pay.property %></a>
+  <h1>Book a bed</h1>
+  <div class="mp-soft" style="margin-bottom:12px"><%= [pay.property, listing.location && (listing.location.area || listing.location.city)].filter(Boolean).join(" · ") %></div>
+  <% if (pay.testMode && av.on) { %><div class="mp-test">🧪 Test mode: no real money moves. Use Razorpay's test UPI or card.</div><% } %>
+
+  <% if (!av.on) { %>
+    <section class="mp-card"><div class="mp-note blue">ℹ️ <span><%= why || "Booking online is not available right now." %></span></div>
+      <a class="mp-btn is-ghost" href="<%= back %>" style="margin-top:12px">Back to the listing</a></section>
+  <% } else if (!t) { %>
+    <section class="mp-card"><div class="mp-note warn">🛏️ <span>No bed is free to book right now. You can still contact the owner or join the waitlist on the listing.</span></div>
+      <a class="mp-btn is-ghost" href="<%= back %>" style="margin-top:12px">Back to the listing</a></section>
+  <% } else { %>
+  <form method="GET" action="/student/book/<%= listing._id %>" id="bk-choose" style="margin:0">
+    <section class="mp-card" aria-labelledby="h-type">
+      <h2 id="h-type">Room type</h2>
+      <% types.forEach(function (x) { %>
+        <label class="bk-opt <%= x.can ? '' : 'is-off' %>"><div><%= x.type %><small><%= x.can ? (x.free === 1 ? "1 bed free" : x.free + " beds free") + " · " + r(x.price) + " a month" : (x.matched ? "Full" : "Contact the owner") %></small></div>
+          <input type="radio" name="type" value="<%= x.i %>" <%= x.i === t.i ? "checked" : "" %> <%= x.can ? "" : "disabled" %> data-auto></label>
+      <% }) %>
+      <div class="mp-f" style="margin:12px 0 0"><label for="bk-d">Move-in date</label>
+        <input id="bk-d" class="mp-in" type="date" name="d" value="<%= moveIn %>" min="<%= min %>" max="<%= max %>" required data-auto aria-describedby="bk-dh">
+        <div class="mp-help" id="bk-dh">Up to <%= maxText %>. The owner picks your exact bed.</div></div>
+      <noscript><button type="submit" class="mp-btn is-ghost" style="margin-top:10px">Update</button></noscript>
+    </section>
+  </form>
+
+  <section class="mp-card" aria-label="Aadhaar verification">
+    <% if (kycErr) { %><div class="mp-note bad" role="alert" style="margin-bottom:10px">⚠️ <span>DigiLocker could not be opened just now. Please try again in a minute.</span></div><% } %>
+    <% if (kyc.verified) { %><div class="mp-note ok">✅ <span>Aadhaar verified with DigiLocker · <%= kyc.name %>. <%= pay.property %> sees your verified name.</span></div>
+    <% } else if (blocked) { %>
+      <div class="mp-note warn">🛡️ <span><b>Verify your Aadhaar to book.</b> PG owners on HostelNode admit only verified tenants. It takes about a minute with DigiLocker, then you come straight back here.</span></div>
+      <form method="POST" action="/student/book/<%= listing._id %>/kyc" style="margin:0" data-once><input type="hidden" name="type" value="<%= t.i %>"><input type="hidden" name="d" value="<%= moveIn %>">
+        <button type="submit" class="mp-btn" style="margin-top:12px">Verify with DigiLocker</button></form>
+      <div class="mp-soft mp-center" style="font-size:12px;margin-top:8px">Your choices are kept. Nothing is paid yet.</div>
+    <% } else { %><div class="mp-note blue">ℹ️ <span>Aadhaar verification is not switched on yet, so you can book without it.</span></div><% } %>
+  </section>
+
+  <section class="mp-card <%= blocked ? 'bk-muted' : '' %>" aria-labelledby="h-amt">
+    <h2 id="h-amt">Booking amount</h2>
+    <div class="mp-sum">
+      <div class="ln"><span>Booking amount · <%= t.type %></span><span><%= r(q.amount) %></span></div>
+      <% if (q.feePaidBy === "tenant" && q.fee > 0) { %><div class="ln"><span class="mp-soft" style="font-size:14px">Payment fee<%= feeLabel %></span><span><%= r(q.fee) %></span></div><% } %>
+      <div class="ln tot"><span>Total</span><span><%= r(q.total) %></span></div>
+    </div>
+    <div class="mp-soft" style="font-size:12.5px;margin-top:6px">Counts towards your <%= countsTowards === "deposit" ? "security deposit" : "first month's rent" %>.</div>
+    <div class="mp-note blue" style="margin-top:12px">↩️ <span><b>Cancellation:</b> <%= rule %></span></div>
+    <div class="mp-note bad" role="alert" data-say hidden style="margin-top:12px">⚠️ <span data-say-text></span></div>
+    <button type="button" class="mp-btn" style="margin-top:14px" data-pay <%= blocked ? "disabled" : "" %>>Pay <%= r(q.total) %> and request</button>
+    <div class="mp-trust">🔒 Paid through Razorpay. Held by HostelNode until you move in.</div>
+  </section>
+  <script type="application/json" id="bk-pay"><%- JSON.stringify(Object.assign({}, pay, { type: t.i })).replace(/</g, "\\u003c") %></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+  <script>
+  (function () {
+    var f = document.getElementById('bk-choose');
+    f.querySelectorAll('[data-auto]').forEach(function (x) { x.addEventListener('change', function () { if (x.type !== 'date' || x.value) f.submit(); }); });
+    document.querySelectorAll('form[data-once]').forEach(function (fm) { fm.addEventListener('submit', function () { var b = fm.querySelector('button'); setTimeout(function () { b.disabled = true; b.textContent = 'Opening DigiLocker…'; }, 0); }); });
+    var data = JSON.parse(document.getElementById('bk-pay').textContent);
+    var btn = document.querySelector('[data-pay]'), box = document.querySelector('[data-say]'), txt = document.querySelector('[data-say-text]'), label = btn.textContent;
+    function say(t) { txt.textContent = t; box.hidden = !t; }
+    function busy(on, t) { btn.disabled = on; btn.textContent = on ? (t || 'Opening Razorpay…') : label; }
+    function post(url, body) { return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body || {}) }).then(function (r) { return r.json().catch(function () { return { ok: false }; }); }); }
+    btn.addEventListener('click', function () {
+      say('');
+      if (!window.Razorpay) { say('The payment window is still loading. Please try again in a moment.'); return; }
+      busy(true);
+      post('/student/book/' + encodeURIComponent(data.listing) + '/order', { type: data.type, moveIn: document.getElementById('bk-d').value }).then(function (o) {
+        if (!o || !o.ok) { busy(false); if (o && o.redirect) { location.href = o.redirect; return; } say((o && o.error) || 'We could not start the payment. Nothing was charged. Please try again.'); return; }
+        var done = '/student/bookings/' + encodeURIComponent(o.recordId);
+        var rzp = new window.Razorpay({ key: data.keyId, order_id: o.orderId, amount: o.amount, currency: 'INR', name: 'HostelNode', description: 'Booking · ' + data.property,
+          image: location.origin + '/images/hostelnode-logo-cutout.png', prefill: data.prefill, theme: { color: '#09B850' },
+          handler: function (resp) { busy(true, 'Confirming your payment…');
+            post('/student/bookings/verify', { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature })
+              .then(function (v) { location.href = (v && v.redirect) || done + '?w=1'; }, function () { location.href = done + '?w=1'; }); },
+          modal: { ondismiss: function () { busy(false); say('Payment was not completed. Nothing was charged. You can try again whenever you are ready.'); } } });
+        rzp.on('payment.failed', function (resp) { say(((resp && resp.error && resp.error.description) || 'The payment did not go through.') + ' You can try again in the same window or choose another way to pay.'); });
+        rzp.open();
+      }, function () { busy(false); say('We could not reach HostelNode. Nothing was charged. Please try again.'); });
+    });
+  })();
+  </script>
+  <% } %>
+</main>
+</body></html>

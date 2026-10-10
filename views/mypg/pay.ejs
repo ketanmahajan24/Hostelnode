@@ -1,0 +1,79 @@
+<%# Property Operations Phase 7 — Pay rent: who is paid, what for, the fee, the total; then Razorpay checkout. %>
+<%- include("_head.ejs", { title: "Pay rent" }) %>
+<body class="mp">
+<%- include("_top.ejs") %>
+<% const r = function (n) { return "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN"); };
+   const feeText = q.feePaidBy === "tenant" && q.fee > 0; %>
+<main class="mp-page">
+  <a class="mp-crumb" href="/student/my-pg?m=<%= v.id %>">← My PG</a>
+  <h1>Pay rent</h1>
+  <% if (pay.testMode) { %><div class="mp-test">🧪 Test mode: no real money moves. Use Razorpay's test UPI or card.</div><% } %>
+  <section class="mp-card" style="margin-top:12px">
+    <div class="mp-row" style="justify-content:flex-start;gap:12px"><span class="mp-ini" aria-hidden="true"><%= String(v.property).split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() %></span>
+      <div><div style="font-weight:800">Paying <%= v.property %></div><div class="mp-soft">through HostelNode<%= v.roomLine ? " · " + v.roomLine : "" %></div></div></div>
+    <div class="mp-sum" style="margin-top:14px">
+      <% lines.forEach(function (l) { %><div class="ln"><span><%= l.label %></span><span><%= r(l.amount) %></span></div><% }) %>
+      <% if (feeText) { %><div class="ln"><span class="mp-soft" style="font-size:14px">Payment fee<%= feeLabel %></span><span><%= r(q.fee) %></span></div><% } %>
+      <div class="ln tot"><span>Total</span><span><%= r(q.total) %></span></div>
+    </div>
+    <div class="mp-note bad" role="alert" data-say <%- error ? "" : "hidden" %> style="margin-top:12px">⚠️ <span data-say-text><%= error %></span></div>
+    <button type="button" class="mp-btn" style="margin-top:14px" data-pay>Pay <%= r(q.total) %></button>
+    <div class="mp-trust">🔒 Payments are processed by Razorpay. HostelNode never sees your card or UPI PIN.</div>
+    <% if (feeText) { %><div class="mp-soft mp-center" style="font-size:12px;margin-top:8px">The fee is shown before you pay. <%= r(q.amount) %> is credited to your rent.</div><% } %>
+  </section>
+  <section class="mp-card" style="background:#f8fbf9">
+    <% if (!changing) { %>
+      <div class="mp-soft" style="font-size:13px">Paying a different amount? <a href="/student/my-pg/pay?m=<%= v.id %>&change=1" style="color:var(--g2);font-weight:800;text-decoration:none">Change amount</a> (<%= r(min) %> to <%= r(v.due) %>).</div>
+    <% } else { %>
+      <form method="GET" action="/student/my-pg/pay" style="margin:0">
+        <input type="hidden" name="m" value="<%= v.id %>">
+        <div class="mp-f" style="margin-bottom:10px"><label for="amt">Amount to pay (₹)</label>
+          <input id="amt" class="mp-in <%= error ? 'is-bad' : '' %>" name="amount" inputmode="numeric" pattern="[0-9]*" value="<%= amount %>" autocomplete="off" aria-describedby="amt-h">
+          <div class="mp-help" id="amt-h">From <%= r(min) %> to <%= r(v.due) %>. It pays your oldest month first.</div></div>
+        <button type="submit" class="mp-btn is-ghost">Update amount</button>
+      </form>
+    <% } %>
+  </section>
+</main>
+<script type="application/json" id="mp-pay"><%- JSON.stringify(pay).replace(/</g, "\\u003c") %></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById('mp-pay').textContent);
+  var btn = document.querySelector('[data-pay]'), box = document.querySelector('[data-say]'), txt = document.querySelector('[data-say-text]');
+  var label = btn.textContent;
+  function say(t) { txt.textContent = t; box.hidden = !t; }
+  function busy(on, t) { btn.disabled = on; btn.textContent = on ? (t || 'Opening Razorpay…') : label; }
+  function post(url, body) {
+    return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body || {}) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false }; }); });
+  }
+  btn.addEventListener('click', function () {
+    say('');
+    if (!window.Razorpay) { say('The payment window is still loading. Please try again in a moment.'); return; }
+    busy(true);
+    post('/student/my-pg/order', { m: data.m, amount: data.amount }).then(function (order) {
+      if (!order || !order.ok) { busy(false); if (order && order.redirect) { window.location.href = order.redirect; return; } say((order && order.error) || 'We could not start the payment. Nothing was charged. Please try again.'); return; }
+      var doneUrl = '/student/my-pg/paid/' + encodeURIComponent(order.recordId);
+      var rzp = new window.Razorpay({
+        key: data.keyId, order_id: order.orderId, amount: order.amount, currency: 'INR',
+        name: 'HostelNode', description: 'Rent · ' + data.property,
+        image: window.location.origin + '/images/hostelnode-logo-cutout.png',
+        prefill: data.prefill, theme: { color: '#09B850' },
+        handler: function (resp) {
+          busy(true, 'Confirming your payment…');
+          post('/student/my-pg/verify', { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature })
+            .then(function (v) { window.location.href = (v && v.redirect) || doneUrl + '?w=1'; }, function () { window.location.href = doneUrl + '?w=1'; });
+        },
+        modal: { ondismiss: function () { busy(false); say('Payment was not completed. Nothing was charged. You can try again whenever you are ready.'); } }
+      });
+      rzp.on('payment.failed', function (resp) {
+        var why = resp && resp.error && resp.error.description ? resp.error.description : 'The payment did not go through.';
+        say(why + ' You can try again in the same window or choose another way to pay.');
+      });
+      rzp.open();
+    }, function () { busy(false); say('We could not reach HostelNode. Nothing was charged. Please try again.'); });
+  });
+})();
+</script>
+</body></html>
