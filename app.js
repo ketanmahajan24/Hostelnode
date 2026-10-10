@@ -1,9 +1,7 @@
 /* ============================================================
    app.js  —  HostelNode Main Server
 ============================================================ */
-require('dotenv').config({
-  path: '/root/hostelnode-envs/hostelnode.com/.env'
-});
+require('dotenv').config();
 // At the top with other requires
 const userRouter = require("./routes/userRoutes.js"); // or whatever your owner router file is named
 
@@ -193,8 +191,13 @@ app.use(sitemap(
 
 // ════════════════════════════════════════════════════════════
 //   CRON — Monthly Fee Check (midnight daily)
+//   Property Operations Phase 5: OFF. The owner dashboard charges monthly rent
+//   (utils/monthlyRent.js there: India time, each tenant's own due day and rent,
+//   once a month). This old copy charged the room's rent on the joining day
+//   instead, so it could charge the wrong amount on the wrong day. Set
+//   HN_LEGACY_RENT_CRON=1 in .env only to bring it back.
 // ════════════════════════════════════════════════════════════
-cron.schedule("0 0 * * *", async () => {
+if (String(process.env.HN_LEGACY_RENT_CRON || "") === "1") cron.schedule("0 0 * * *", async () => {
   console.log("🔄 Running Monthly Fee Check...");
   try {
     const today   = moment().startOf("day");

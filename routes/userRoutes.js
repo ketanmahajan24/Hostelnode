@@ -445,8 +445,9 @@ router.get('/', jwtAuthMiddleware, attachHostel, async (req, res) => {
         paidAccounts         = 0, dueAccounts         = 0;
 
     members.forEach(member => {
-      const fees = (member.payments || []).reduce((s, p) => s + (p.roomFees   || 0), 0);
-      const paid = (member.payments || []).reduce((s, p) => s + (p.amountPaid || 0), 0);
+      const live = (member.payments || []).filter(p => p && !p.cancelledAt);   // Property Operations Phase 5: cancelled entries do not count
+      const fees = live.reduce((s, p) => s + (p.roomFees   || 0), 0);
+      const paid = live.reduce((s, p) => s + (p.amountPaid || 0), 0);
       const due  = Math.max(0, fees - paid);
       const adv  = Math.max(0, paid - fees);
       totalExpectedRevenue += fees;

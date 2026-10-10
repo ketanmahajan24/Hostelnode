@@ -13,7 +13,7 @@
    Listings, enquiries and the owner's profile on this site are not affected.
 ============================================================ */
 
-const OPS = /^\/(members?|member-edit|activemember|newmember|newadded|addpayment|payment-receipt|payment-history|allfeesrecords|searchfeesrecords|upcomingpayments|deureports|revenue|floors?|managefloor|newfloor|allrooms|managerooms?|newroom|rooms|tenants)(\/|$)/i;
+const OPS = /^\/(members?|member-edit|activemember|newmember|newadded|addpayment|payment-receipt|payment-history|allfeesrecords|searchfeesrecords|upcomingpayments|deureports|revenue|floors?|managefloor|newfloor|allrooms|managerooms?|newroom|rooms|tenants|payments|dues)(\/|$)/i;
 
 module.exports = function ownerOpsMoved(req, res, next) {
   let p = String(req.path || "").replace(/\/{2,}/g, "/");
