@@ -43,6 +43,18 @@
   var bar = document.getElementById('hnAppBar');
   if (!bar) return;
 
+  // Never show inside the HostelNode mobile app itself (WebView / installed app)
+  var ua = navigator.userAgent || '';
+  var inApp =
+    /; wv\)/i.test(ua) ||                 // Android WebView
+    /HostelNodeApp/i.test(ua) ||           // custom UA tag (optional, set in your app)
+    /(iPhone|iPod|iPad)(?!.*Safari)/i.test(ua) || // iOS WebView
+    !!window.ReactNativeWebView ||         // React Native
+    !!window.Capacitor ||                  // Capacitor / Ionic
+    /[?&]app=1\b/.test(location.search) ||  // optional ?app=1 flag
+    (window.matchMedia && matchMedia('(display-mode: standalone)').matches); // installed PWA
+  if (inApp) { bar.remove(); return; }
+
   var seen = false;
   try { seen = !!localStorage.getItem(KEY); } catch (e) {}
   if (seen) { bar.remove(); return; }
@@ -53,10 +65,14 @@
     setTimeout(function () { bar.remove(); }, 500);
   }
 
-  // slide down shortly after page load
-  window.addEventListener('load', function () {
-    setTimeout(function () { bar.classList.add('show'); }, 600);
-  });
+  // slide down once the DOM is ready (does not wait for images/fonts, which
+  // can take very long on mobile networks) and after the page loader fades
+  function reveal() { setTimeout(function () { bar.classList.add('show'); }, 700); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', reveal);
+  } else {
+    reveal();
+  }
 
   document.getElementById('hnAppBarClose').addEventListener('click', dismiss);
   document.getElementById('hnAppBarDl').addEventListener('click', function () {
