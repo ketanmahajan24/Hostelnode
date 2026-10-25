@@ -9,29 +9,33 @@
   #hnAppBar.show{height:60px}
   #hnAppBar .hnab-inner{
     height:60px;display:flex;align-items:center;justify-content:center;gap:12px;
-    padding:0 44px;font-size:14.5px;line-height:1;white-space:nowrap;
+    padding:0 48px 0 14px;font-size:17px;font-weight:500;line-height:1;white-space:nowrap;
   }
+  #hnAppBar .hnab-icon{width:40px;height:40px;object-fit:contain;flex-shrink:0;border-radius:9px;background:#fff;padding:3px}
   #hnAppBar .hnab-text{overflow:hidden;text-overflow:ellipsis}
   #hnAppBar .hnab-dl{
     background:linear-gradient(135deg,#09B850,#0A9F45);color:#fff;font-weight:600;
-    padding:7px 16px;border-radius:999px;text-decoration:none;font-size:13.5px;flex-shrink:0;
+    padding:9px 18px;border-radius:999px;text-decoration:none;font-size:15.5px;flex-shrink:0;
   }
   #hnAppBar .hnab-dl:hover{filter:brightness(1.08);color:#fff}
   #hnAppBar .hnab-close{
     position:absolute;right:8px;top:50%;transform:translateY(-50%);
-    width:28px;height:28px;border:0;border-radius:50%;background:transparent;
-    color:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;
+    width:32px;height:32px;border:0;border-radius:50%;background:transparent;
+    color:#fff;font-size:26px;line-height:1;cursor:pointer;display:flex;
     align-items:center;justify-content:center;opacity:.8;padding:0;
   }
   #hnAppBar .hnab-close:hover{opacity:1;background:rgba(255,255,255,.15)}
   @media (max-width:480px){
-    #hnAppBar .hnab-inner{font-size:13px;gap:10px;padding:0 40px 0 12px}
+    #hnAppBar .hnab-icon{width:36px;height:36px}
+    #hnAppBar .hnab-inner{font-size:14.5px;gap:8px;padding:0 42px 0 10px}
+    #hnAppBar .hnab-dl{font-size:14px;padding:8px 14px}
   }
 </style>
 
 <div id="hnAppBar" role="region" aria-label="Download HostelNode app">
   <div class="hnab-inner">
-    <span class="hnab-text">📱 Get the HostelNode app</span>
+    <img class="hnab-icon" src="/images/hostelnode-logo-cutout.png" alt="HostelNode">
+    <span class="hnab-text">Get the HostelNode app</span>
     <a class="hnab-dl" href="/app/Hostelnode.apk" download id="hnAppBarDl">Download</a>
   </div>
   <button type="button" class="hnab-close" id="hnAppBarClose" aria-label="Close">&times;</button>
